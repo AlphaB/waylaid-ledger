@@ -1,0 +1,132 @@
+local _, addon = ...
+
+-- Pure pricing functions. All money is integer copper. Snapshots contain only
+-- buyable auctions, with current-character owned quantities removed by Scanner.
+addon.Pricing = {}
+local Pricing = addon.Pricing
+
+function Pricing.Quote(snapshot, required)
+    if not snapshot then
+        return { status = "unknown" }
+    end
+    local available = 0
+    for _, offer in ipairs(snapshot.offers) do
+        available = available + offer.quantity
+    end
+    if available < required then
+        return { status = "short", available = available }
+    end
+
+    if snapshot.kind == "commodity" then
+        local remaining, cost = required, 0
+        -- The scanner normalizes offers in ascending unit-price order.
+        for _, offer in ipairs(snapshot.offers) do
+            local take = math.min(remaining, offer.quantity)
+            cost = cost + take * offer.unitPrice
+            remaining = remaining - take
+            if remaining == 0 then
+                break
+            end
+        end
+        return { status = "ok", cost = cost, purchased = required, available = available }
+    end
+
+    -- Item auctions are indivisible. Dynamic programming finds the minimum cash
+    -- outlay to buy at least the requested count, including unavoidable excess.
+    -- Capping the terminal state at required makes this O(offers * required).
+    local costs, quantities = { [0] = 0 }, { [0] = 0 }
+    for _, offer in ipairs(snapshot.offers) do
+        for count = required - 1, 0, -1 do
+            if costs[count] then
+                local nextCount = math.min(required, count + offer.quantity)
+                local nextCost = costs[count] + offer.buyoutAmount
+                local nextQuantity = quantities[count] + offer.quantity
+                if not costs[nextCount] or nextCost < costs[nextCount]
+                    or (nextCost == costs[nextCount] and nextQuantity < quantities[nextCount]) then
+                    costs[nextCount] = nextCost
+                    quantities[nextCount] = nextQuantity
+                end
+            end
+        end
+    end
+    return { status = "ok", cost = costs[required], purchased = quantities[required], available = available }
+end
+
+function Pricing.Evaluate(crate, snapshots, now, maxAge, failures)
+    local rows, bestCost, allKnown = {}, nil, true
+    for _, option in ipairs(crate.options) do
+        local snapshot = snapshots[option.itemID]
+        local quote = Pricing.Quote(snapshot, option.quantity)
+        quote.itemID, quote.quantity = option.itemID, option.quantity
+        quote.age = snapshot and math.max(0, now - snapshot.scannedAt) or nil
+        quote.stale = quote.age and quote.age > maxAge or false
+        quote.error = (failures and failures[option.itemID]) or (snapshot and snapshot.error) or nil
+        if quote.status == "unknown" or quote.stale or quote.error then
+            allKnown = false
+        end
+        if quote.status == "ok" and not quote.stale and not quote.error then
+            bestCost = bestCost and math.min(bestCost, quote.cost) or quote.cost
+        end
+        rows[#rows + 1] = quote
+    end
+    for _, row in ipairs(rows) do
+        row.best = bestCost ~= nil and row.status == "ok" and not row.stale
+            and not row.error and row.cost == bestCost
+    end
+    return rows, allKnown
+end
+
+-- Resolve each option using an explicit source policy. In Auto, a fresh scan
+-- (including known shortages) takes precedence over any imported estimate.
+-- The lookup is injected so provider behavior can be tested independently.
+function Pricing.Resolve(crate, snapshots, now, maxAge, failures, mode, lookup)
+    local scanRows = Pricing.Evaluate(crate, snapshots, now, maxAge, failures)
+    local rows, allVerified, bestVerified, bestEstimate = {}, true, nil, nil
+    for index, scan in ipairs(scanRows) do
+        scan.source, scan.sourceLabel = "own", "Own scan"
+        scan.best = false
+        local freshScan = scan.status ~= "unknown" and not scan.stale and not scan.error
+        local row = scan
+        if mode ~= "own" and not (mode == "auto" and freshScan) then
+            local sources = mode == "auto" and { "auctionator", "tsm" } or { mode }
+            local estimate, staleEstimate
+            for _, source in ipairs(sources) do
+                local candidate = lookup(source, scan.itemID)
+                if candidate then
+                    if not candidate.stale then
+                        estimate = candidate
+                        break
+                    end
+                    staleEstimate = staleEstimate or candidate
+                end
+            end
+            estimate = estimate or staleEstimate
+            if estimate then
+                row = { itemID = scan.itemID, quantity = scan.quantity, status = "ok", estimated = true,
+                    cost = math.ceil(estimate.unitPrice * scan.quantity), source = estimate.source,
+                    sourceLabel = estimate.sourceLabel, ageDays = estimate.ageDays, stale = estimate.stale,
+                    scanError = mode == "auto" and scan.error or nil }
+            elseif mode ~= "auto" then
+                row = { itemID = scan.itemID, quantity = scan.quantity, status = "unknown", source = mode,
+                    sourceLabel = mode == "auctionator" and "Auctionator" or "TSM" }
+            end
+        end
+        if row.estimated or row.status == "unknown" or row.stale or row.error then
+            allVerified = false
+        end
+        if row.status == "ok" and not row.stale and not row.error then
+            if row.estimated then
+                bestEstimate = bestEstimate and math.min(bestEstimate, row.cost) or row.cost
+            else
+                bestVerified = bestVerified and math.min(bestVerified, row.cost) or row.cost
+            end
+        end
+        rows[index] = row
+    end
+    for _, row in ipairs(rows) do
+        local eligible = row.status == "ok" and not row.stale and not row.error
+        row.best = eligible and not row.estimated and bestVerified ~= nil and row.cost == bestVerified or false
+        row.bestEstimate = eligible and row.estimated and bestEstimate ~= nil and row.cost == bestEstimate or false
+    end
+    return rows, allVerified
+end

@@ -1,0 +1,17 @@
+## Interface: 16001
+## Title: Waylaid Ledger
+## Notes: Compare auction costs for every Waylaid Crate filling option.
+## Author: Mikhail Salosin
+## Version: 0.2.0
+## OptionalDeps: Auctionator, TradeSkillMaster
+## SavedVariables: WaylaidLedgerDB
+## Category: Auction & Economy
+
+Data.lua
+Catalog.lua
+Pricing.lua
+Providers.lua
+Scanner.lua
+Tooltip.lua
+UI.lua
+Core.lua
