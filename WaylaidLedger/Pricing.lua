@@ -5,6 +5,19 @@ local _, addon = ...
 addon.Pricing = {}
 local Pricing = addon.Pricing
 
+-- Compare displayed, known costs even when every cached quote is old. Unknown,
+-- insufficient and failed results must never win. Ties keep catalog order.
+function Pricing.LowestKnown(rows)
+    local best, bestIndex
+    for index, row in ipairs(rows) do
+        if row.status == "ok" and not row.error and row.cost
+            and (not best or row.cost < best.cost) then
+            best, bestIndex = row, index
+        end
+    end
+    return best, bestIndex
+end
+
 function Pricing.Quote(snapshot, required)
     if not snapshot then
         return { status = "unknown" }
@@ -81,7 +94,7 @@ end
 -- The lookup is injected so provider behavior can be tested independently.
 function Pricing.Resolve(crate, snapshots, now, maxAge, failures, mode, lookup)
     local scanRows = Pricing.Evaluate(crate, snapshots, now, maxAge, failures)
-    local rows, allVerified, bestVerified, bestEstimate = {}, true, nil, nil
+    local rows, allVerified = {}, true
     for index, scan in ipairs(scanRows) do
         scan.source, scan.sourceLabel = "own", "Own scan"
         scan.best = false
@@ -114,19 +127,13 @@ function Pricing.Resolve(crate, snapshots, now, maxAge, failures, mode, lookup)
         if row.estimated or row.status == "unknown" or row.stale or row.error then
             allVerified = false
         end
-        if row.status == "ok" and not row.stale and not row.error then
-            if row.estimated then
-                bestEstimate = bestEstimate and math.min(bestEstimate, row.cost) or row.cost
-            else
-                bestVerified = bestVerified and math.min(bestVerified, row.cost) or row.cost
-            end
-        end
         rows[index] = row
     end
+    local best = Pricing.LowestKnown(rows)
     for _, row in ipairs(rows) do
-        local eligible = row.status == "ok" and not row.stale and not row.error
-        row.best = eligible and not row.estimated and bestVerified ~= nil and row.cost == bestVerified or false
-        row.bestEstimate = eligible and row.estimated and bestEstimate ~= nil and row.cost == bestEstimate or false
+        local winner = best ~= nil and row.status == "ok" and not row.error and row.cost == best.cost
+        row.best = winner and not row.estimated and not row.stale or false
+        row.bestEstimate = winner and (row.estimated or row.stale) or false
     end
     return rows, allVerified
 end

@@ -140,23 +140,13 @@ function UI.Update()
         local rows = addon:GetRows(crateID)
         if UI.selectedCrateID ~= crateID then
             UI.selectedCrateID, UI.optionIndex = crateID, 1
-            -- Prefer a verified winner, then the lowest usable estimate.
-            local estimatedIndex
-            for index, row in ipairs(rows) do
-                if row.best then
-                    UI.optionIndex = index
-                    estimatedIndex = nil
-                    break
-                elseif row.bestEstimate and not estimatedIndex then
-                    estimatedIndex = index
-                end
-            end
-            UI.optionIndex = estimatedIndex or UI.optionIndex
+            local _, bestIndex = addon.Pricing.LowestKnown(rows)
+            UI.optionIndex = bestIndex or 1
         end
         local selected = crate.options[UI.optionIndex]
         local quote = rows[UI.optionIndex]
         UI.crate:SetText(addon.Catalog.ItemName(crateID) .. " (cycle tracked crates)")
-        local price = quote.cost and (" - " .. (quote.estimated and "~ " or "") .. addon.Money(quote.cost)) or ""
+        local price = quote.cost and (" - " .. ((quote.estimated or quote.stale) and "~ " or "") .. addon.Money(quote.cost)) or ""
         if quote.stale or quote.error then
             price = price .. (quote.error and " (scan failed)" or " (stale)")
         end

@@ -17,87 +17,110 @@ end
 local function snapshot(age)
     return {kind="commodity",offers={{quantity=100,unitPrice=10}},scannedAt=time()-age}
 end
-local function noticeCount(tip)
-    local count=0
+local function checkNoNotice(tip)
     for _,line in ipairs(tip.lines) do
-        if line[1]=="Price data might be outdated." then count=count+1;equal(line[2],0.6);equal(line[3],0.6);equal(line[4],0.6) end
+        assert(not line[1]:lower():match("outdated"))
+        if type(line[2])=="string" then assert(not line[2]:lower():match("outdated")) end
     end
-    return count
+end
+local function highlighted(line)
+    return (line[3]==0.25 and line[4]==1) or (line[3]==1 and line[4]==0.72)
 end
 
-test("compact tooltips contain prices only, without badges, legends or usage footers",function()
+test("compact tooltips contain prices only, without badges, legends or age notifications",function()
     fixture(function(market)
         market.items[2770],market.items[2771]=snapshot(0),snapshot(0)
         local tip=CreateFrame("GameTooltip");addon.Tooltip.Append(tip,248683)
-        equal(#tip.lines,4);equal(noticeCount(tip),0)
+        equal(#tip.lines,4);checkNoNotice(tip)
         for _,line in ipairs(tip.lines) do
             assert(not line[1]:match("~ estimate") and not line[1]:match("Full bundle"))
-            if type(line[2])=="string" then assert(not line[2]:match("%[[ASTM]%]") and not line[2]:match(" stale")) end
+            if type(line[2])=="string" then assert(not line[2]:match("%[[ASTM]%]")) end
         end
     end)
 end)
-test("outdated notice appears strictly after 12 hours for own scan prices and only once",function()
+test("cached prices retain their cheapest highlight at any age without a notification",function()
     fixture(function(market)
-        market.items[2770],market.items[2771]=snapshot(43200),snapshot(43200)
-        local boundary=CreateFrame("GameTooltip");addon.Tooltip.Append(boundary,248683)
-        equal(noticeCount(boundary),0)
-        market.items[2770],market.items[2771]=snapshot(43201),snapshot(90000)
-        local old=CreateFrame("GameTooltip");addon.Tooltip.Append(old,248683)
-        equal(noticeCount(old),1);equal(#old.lines,5)
-        addon.Tooltip.Append(old,248683);equal(noticeCount(old),1)
-        addon.Tooltip.AddAgeWarning(old,{{status="ok",age=90000}});equal(noticeCount(old),1)
-        old.scripts.OnTooltipCleared(old);old.lines={}
-        market.items[2770],market.items[2771]=snapshot(0),snapshot(0)
-        addon.Tooltip.Append(old,248683);equal(noticeCount(old),0)
+        for _,age in ipairs({0,1860,43200,43201,90000}) do
+            market.items[2770],market.items[2771]=snapshot(age),snapshot(age)
+            market.items[2771].offers[1].unitPrice=20
+            local tip=CreateFrame("GameTooltip");addon.Tooltip.Append(tip,248683)
+            equal(#tip.lines,4);checkNoNotice(tip)
+            equal(highlighted(tip.lines[3]),true);equal(highlighted(tip.lines[4]),false)
+            if age>addon.db.maxAge then
+                equal(tip.lines[3][3],1);equal(tip.lines[3][4],0.72)
+                assert(tip.lines[3][2]:match("~ "))
+            else equal(tip.lines[3][3],0.25) end
+        end
     end)
 end)
-test("scan freshness cutoff does not produce a 12-hour warning for a 31-minute quote",function()
-    fixture(function(market)
-        market.items[2770],market.items[2771]=snapshot(1860),snapshot(1860)
-        local tip=CreateFrame("GameTooltip");addon.Tooltip.Append(tip,248683)
-        equal(noticeCount(tip),0);equal(#tip.lines,4)
-    end)
-end)
-test("Auctionator previous-day prices get a cautious notice without invented hourly age",function()
+test("Auctionator previous-day prices still highlight the cheapest option without an age notice",function()
     fixture(function()
         addon.db.source="auctionator"
-        Auctionator={API={v1={GetAuctionPriceByItemID=function() return 10 end,GetAuctionAgeByItemID=function() return 1 end}}}
+        Auctionator={API={v1={GetAuctionPriceByItemID=function(_,id) return id==2770 and 10 or 20 end,
+            GetAuctionAgeByItemID=function() return 2 end}}}
         addon.Providers.Invalidate()
         local tip=CreateFrame("GameTooltip");addon.Tooltip.Append(tip,248683)
-        equal(noticeCount(tip),1);assert(not tip.lines[3][2]:match("%[A%]"))
-        Auctionator.API.v1.GetAuctionAgeByItemID=function() return 0 end;addon.Providers.Invalidate()
-        tip=CreateFrame("GameTooltip");addon.Tooltip.Append(tip,248683);equal(noticeCount(tip),0)
+        equal(#tip.lines,4);checkNoNotice(tip)
+        equal(highlighted(tip.lines[3]),true);equal(highlighted(tip.lines[4]),false)
     end)
 end)
-test("unknown provider age stays unknown and no timestamp is fabricated",function()
+test("unknown provider age remains unknown and does not suppress cheapest highlighting",function()
     fixture(function()
         addon.db.source="tsm";Auctionator=nil
-        TSM_API={GetCustomPriceValue=function() return 10 end};addon.Providers.Invalidate()
+        TSM_API={GetCustomPriceValue=function(_,item) return item=="i:2770" and 10 or 20 end}
+        addon.Providers.Invalidate()
         local tip=CreateFrame("GameTooltip");addon.Tooltip.Append(tip,248683)
-        equal(noticeCount(tip),0);equal(#tip.lines,4)
+        equal(highlighted(tip.lines[3]),true);checkNoNotice(tip)
         IsShiftKeyDown=function() return true end
         tip=CreateFrame("GameTooltip");addon.Tooltip.Append(tip,248683)
         assert(tip.lines[3][2]:match("age unknown"));equal(#tip.lines,4)
     end)
 end)
-test("purchase age is checked in basket hover without restoring the old gray footer",function()
+test("native money color codes cannot override the winner tint and coin icons remain intact",function()
+    fixture(function(market)
+        market.items[2770],market.items[2771]=snapshot(0),snapshot(0)
+        market.items[2771].offers[1].unitPrice=20
+        local original=GetMoneyString
+        GetMoneyString=function(value) return "|cffffffff"..value.."|r|Tcoin:12|t" end
+        local tip=CreateFrame("GameTooltip");addon.Tooltip.Append(tip,248683)
+        GetMoneyString=original
+        assert(tip.lines[3][2]:match("^|cff40ff59"))
+        assert(not tip.lines[3][2]:match("|cffffffff"))
+        assert(tip.lines[3][2]:match("|Tcoin:12|t"))
+    end)
+end)
+test("cached cheapest ties highlight together and failed or insufficient costs never win",function()
+    fixture(function(market)
+        market.items[2770],market.items[2771]=snapshot(90000),snapshot(90000)
+        local tip=CreateFrame("GameTooltip");addon.Tooltip.Append(tip,248683)
+        equal(highlighted(tip.lines[3]),true);equal(highlighted(tip.lines[4]),true)
+        market.failures[2770]="timeout"
+        market.items[2771].offers={}
+        tip=CreateFrame("GameTooltip");addon.Tooltip.Append(tip,248683)
+        equal(highlighted(tip.lines[3]),false);equal(highlighted(tip.lines[4]),false)
+        checkNoNotice(tip)
+    end)
+end)
+test("tooltip, scan controls and shopping agree on the lowest known filling cost",function()
+    fixture(function(market)
+        market.items[2770],market.items[2771]=snapshot(90000),snapshot(0)
+        market.items[2771].offers[1].unitPrice=20
+        local tip=CreateFrame("GameTooltip");addon.Tooltip.Append(tip,248683)
+        equal(highlighted(tip.lines[3]),true);equal(highlighted(tip.lines[4]),false)
+        addon.lastCrateID=248683;addon.UI.selectedCrateID=nil;addon.UI.Update()
+        equal(addon.UI.optionIndex,1)
+        local entry=addon.Shopping.Entry("crates",248683)
+        equal(entry.optionIndex,1);equal(entry.delivery,200)
+    end)
+end)
+test("basket hover has no outdated-data notification even when purchase prices are old",function()
     fixture(function()
         local oldTip=GameTooltip;GameTooltip=CreateFrame("GameTooltip")
         local row={entry={itemID=264050,kind="writs",deliveryRows={{itemID=4245,quantity=1,status="ok",cost=50,
-            source="auctionator",sourceLabel="Auctionator",estimated=true,ageDays=0}},
-            purchaseQuote={status="ok",cost=100,source="auctionator",sourceLabel="Auctionator",estimated=true,ageDays=1},total=150}}
-        addon.BrowseUI.ShowTooltip(row)
-        equal(noticeCount(GameTooltip),1)
+            source="auctionator",sourceLabel="Auctionator",estimated=true,ageDays=2}},
+            purchaseQuote={status="ok",cost=100,source="auctionator",sourceLabel="Auctionator",estimated=true,ageDays=2},total=150}}
+        addon.BrowseUI.ShowTooltip(row);checkNoNotice(GameTooltip)
         for _,line in ipairs(GameTooltip.lines) do assert(not line[1]:match("Click to search") and not line[1]:match("Full quantities")) end
         GameTooltip=oldTip
-    end)
-end)
-
-test("old sold-out scan results receive the same outdated-data notice",function()
-    fixture(function(market)
-        market.items[2770]={kind="commodity",offers={},scannedAt=time()-43201}
-        market.items[2771]={kind="commodity",offers={},scannedAt=time()-43201}
-        local tip=CreateFrame("GameTooltip");addon.Tooltip.Append(tip,248683)
-        equal(noticeCount(tip),1);equal(tip.lines[3][2],"None listed")
     end)
 end)

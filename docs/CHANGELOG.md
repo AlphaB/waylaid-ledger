@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1
+
+- Remove the outdated-data notification from all item and basket tooltips.
+- Restore lowest-known highlighting even when every available price is cached.
+- Use one lowest-cost selection across tooltips, controls and crate shopping.
+- Explicit winner text color survives native money strings with embedded white formatting.
+- Unknown, insufficient and failed results still cannot win; ties highlight together.
+- 103 default Lua 5.1 tests; 105 with upstream public API contracts.
+
 ## 0.5.0
 
 - Opt-in automatic own scanning on AH open, independent of visible panels and inventory tracking.

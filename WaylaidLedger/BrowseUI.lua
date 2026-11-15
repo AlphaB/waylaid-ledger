@@ -34,10 +34,6 @@ function Browse.ShowTooltip(row)
     end
     GameTooltip:AddDoubleLine("Total", amount(entry.total, true) .. (entry.stale and " (stale)" or ""),
         1, 0.82, 0, 1, 0.82, 0)
-    local quotes = {}
-    for _, quote in ipairs(entry.deliveryRows) do quotes[#quotes + 1] = quote end
-    if entry.purchaseQuote then quotes[#quotes + 1] = entry.purchaseQuote end
-    addon.Tooltip.AddAgeWarning(GameTooltip, quotes)
     GameTooltip:Show()
 end
 
@@ -104,7 +100,7 @@ function Browse.Render(view)
         row.deliveryName:SetText(addon.Shopping.DeliveryLabel(entry))
         row.purchase:SetText(amount(entry.purchase, true))
         local estimated = false
-        for _, quote in ipairs(entry.deliveryRows) do estimated = estimated or quote.estimated or false end
+        for _, quote in ipairs(entry.deliveryRows) do estimated = estimated or quote.estimated or quote.stale or false end
         row.delivery:SetText(amount(entry.delivery, estimated))
         row.total:SetText(amount(entry.total, true) .. (entry.stale and " *" or ""))
         local color = entry.stale and 0.55 or (entry.total and 1 or 0.7)

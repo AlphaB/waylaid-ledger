@@ -63,12 +63,14 @@ is deferred until after other usable estimates. A forced mode never silently
 changes provider.
 
 Own scan prices retain their original timestamps and 30-minute eligibility.
-Auctionator prices from earlier scan days display in gray and cannot win.
+Auctionator ages remain in scan-day buckets; cached prices can still win the
+lowest-known comparison.
 TSM age remains explicitly unknown. Estimates are never assigned a fabricated
 `scannedAt` or available quantity and are never stored as own scan snapshots.
 
-The smallest usable own-scan cost is highlighted green. The smallest usable
-estimate is highlighted amber. These are separate comparisons, with ties allowed.
+The single lowest known cost across resolved options is highlighted. A fresh
+own scan uses green; an imported estimate or older own cache uses amber. Ties
+are allowed, while failures, shortages and unknown costs remain excluded.
 The compact tooltip uses color and plain amounts with an estimate prefix.
 Shift reveals source/age inline; source badges and footer legends are removed.
 
@@ -102,7 +104,7 @@ user to retry instead of searching with the wrong language.
 
 ## Validation performed
 
-- 102 standard Lua 5.1 tests execute the production modules.
+- 103 standard Lua 5.1 tests execute the production modules.
 - Two optional tests execute the **unmodified public API source** from Auctionator
   347 and TSM 4.15.7, with their internal services and UI stubbed.
 - Auctionator contract check: returned copper and day age, update registration,
@@ -142,16 +144,13 @@ for the legacy commands, but row shopping capability checks require the advanced
 API before interrupting any existing scan. Missing localized names also leave
 the current scan undisturbed.
 
-## Age notice and opening scans (v0.5.0)
+## Cached pricing and opening scans
 
-The new 12-hour notice is separate from own-scan comparison freshness (30m).
-Own snapshots carry exact epoch timestamps, so the notice starts strictly after
-43,200 seconds, including old shortage results. Auctionator's released
-`GetAuctionAgeByItemID` returns whole scan-day differences; a previous-day
-price gets a cautious notice, but may be younger than 12 hours across a day
-boundary. Conversely a same-day price could be older than 12 hours. TSM
-exposes no age through the reviewed public API. Neither provider receives a
-fabricated timestamp, and unknown age does not produce an asserted 12-hour age.
+Version 0.5.1 removes the outdated-data notification completely. Provider age
+limitations remain: Auctionator only exposes whole scan-day differences, and
+TSM exposes no age through the reviewed public API. Neither provider receives
+an invented timestamp. Source freshness still drives resolution and refresh;
+it no longer suppresses lowest-known highlighting when prices are cached.
 
 The new scan-on-open option runs the own 96-material crate scanner in Auto/Own
 modes, independently of the visible tab. It does not start Auctionator internals,

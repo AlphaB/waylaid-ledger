@@ -198,7 +198,8 @@ test("compact scan and Auctionator prices share layout without source badges",fu
     addon.db.source="auctionator";addon.Providers.Invalidate()
     local imported=CreateFrame("GameTooltip");addon.Tooltip.Append(imported,248683)
     equal(own.lines[3][1],imported.lines[3][1]);equal(#own.lines,#imported.lines)
-    equal(own.lines[3][2],imported.lines[3][2]:gsub("~ ",""))
+    local function plain(value) return value:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("~ ", "") end
+    equal(plain(own.lines[3][2]),plain(imported.lines[3][2]))
     assert(#imported.lines[3][2] - #own.lines[3][2] <= 2)
     addon.db.source,Auctionator,addon.db.tooltipDetails=oldSource,oldA,oldDetails
     market.items,market.failures=oldItems,oldFailures;addon.Providers.Invalidate()

@@ -11,35 +11,15 @@ local function money(copper)
 end
 addon.Money = money
 
-local OUTDATED_AFTER = 12 * 60 * 60
-
-function Tooltip.IsOutdated(row)
-    if not row or (row.status ~= "ok" and row.status ~= "short") then return false end
-    -- Own scans have exact ages. Auctionator exposes whole scan-day buckets;
-    -- a previous day warrants a cautious notice, not an invented timestamp.
-    if row.age then return row.age > OUTDATED_AFTER end
-    return row.ageDays ~= nil and row.ageDays > 0
-end
-
-function Tooltip.AddAgeWarning(tooltip, rows)
-    if tooltip.waylaidLedgerAgeWarning == true then return end
-    for _, row in ipairs(rows) do
-        if Tooltip.IsOutdated(row) then
-            tooltip:AddLine("Price data might be outdated.", 0.6, 0.6, 0.6)
-            tooltip.waylaidLedgerAgeWarning = true
-            return
-        end
-    end
-end
-
-local function appendRows(tooltip, rows, detailed)
+local function appendRows(tooltip, rows, detailed, compare)
+    local best = compare and addon.Pricing.LowestKnown(rows) or nil
     local owned = addon.Inventory.Totals().items
     for _, row in ipairs(rows) do
         local label = string.format("%dx %s", row.quantity, addon.Catalog.ItemName(row.itemID))
         if (owned[row.itemID] or 0) > 0 then label = label .. " (" .. owned[row.itemID] .. " owned)" end
         local value, red, green, blue = "Not scanned", 0.65, 0.65, 0.65
         if row.status == "ok" then
-            value = (row.estimated and "~ " or "") .. money(row.cost)
+            value = ((row.estimated or row.stale) and "~ " or "") .. money(row.cost)
             red, green, blue = 1, 1, 1
             if row.purchased and row.purchased > row.quantity then value = value .. " (buy " .. row.purchased .. ")" end
         elseif row.status == "short" then
@@ -49,14 +29,25 @@ local function appendRows(tooltip, rows, detailed)
         if row.stale or row.error then
             if row.error then value = value .. " failed" end
             red, green, blue = 0.65, 0.65, 0.65
-        elseif row.best then red, green, blue = 0.25, 1, 0.35
-        elseif row.bestEstimate then red, green, blue = 1, 0.72, 0.2 end
+        end
+        local winner = best and row.status == "ok" and not row.error and row.cost == best.cost
+        if winner then
+            if row.estimated or row.stale then red, green, blue = 1, 0.72, 0.2
+            else red, green, blue = 0.25, 1, 0.35 end
+        end
         if detailed then
             value = value .. " - " .. (row.sourceLabel or row.source)
             if row.age then value = value .. ", " .. math.floor(row.age / 60) .. "m"
             elseif row.ageDays ~= nil then value = value .. ", " .. row.ageDays .. "d"
             elseif row.estimated then value = value .. ", age unknown" end
             if row.scanError then value = value .. ", own scan failed" end
+        end
+        if winner then
+            -- GetMoneyString can embed white color codes that override the
+            -- FontString RGB. Preserve coin textures and explicitly tint digits.
+            value = value:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+            local color = (row.estimated or row.stale) and "|cffffb833" or "|cff40ff59"
+            value = color .. value .. "|r"
         end
         tooltip:AddDoubleLine(label, value, red, green, blue, red, green, blue)
     end
@@ -71,7 +62,7 @@ function Tooltip.Append(tooltip, itemID)
     if not watched[tooltip] then
         watched[tooltip] = true
         tooltip:HookScript("OnTooltipCleared", function(self)
-            self.waylaidLedgerItemID, self.waylaidLedgerAgeWarning = nil, nil
+            self.waylaidLedgerItemID = nil
         end)
     end
     if tooltip.waylaidLedgerItemID == itemID then
@@ -95,7 +86,6 @@ function Tooltip.Append(tooltip, itemID)
             tooltip:AddDoubleLine("Total", total and ("~ " .. money(total)) or "Incomplete prices",
                 0.75, 0.75, 0.75, 0.75, 0.75, 0.75)
         end
-        Tooltip.AddAgeWarning(tooltip, rows)
         return
     end
     addon.lastCrateID = itemID
@@ -106,14 +96,13 @@ function Tooltip.Append(tooltip, itemID)
     local detailed = addon.db.tooltipDetails or (IsShiftKeyDown and IsShiftKeyDown())
     tooltip:AddLine(" ")
     tooltip:AddLine("Waylaid Ledger", 1, 0.82, 0)
-    appendRows(tooltip, rows, detailed)
-    Tooltip.AddAgeWarning(tooltip, rows)
+    appendRows(tooltip, rows, detailed, true)
 end
 
 function Tooltip.Refresh()
     for tooltip in pairs(watched) do
         if tooltip.waylaidLedgerItemID and tooltip:IsShown() and tooltip.RebuildFromTooltipInfo then
-            tooltip.waylaidLedgerItemID, tooltip.waylaidLedgerAgeWarning = nil, nil
+            tooltip.waylaidLedgerItemID = nil
             tooltip:RebuildFromTooltipInfo()
         end
     end

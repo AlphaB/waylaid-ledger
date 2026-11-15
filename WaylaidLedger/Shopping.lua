@@ -15,21 +15,6 @@ local function purchaseQuote(kind, itemID)
     return rows[1]
 end
 
-local function cheapest(rows)
-    local best, bestIndex
-    for index, row in ipairs(rows) do
-        if row.status == "ok" and not row.error then
-            -- Prefer usable results to known-old data, then minimize full-bundle
-            -- outlay across scans and estimates. Equal costs keep catalog order.
-            if not best or (best.stale and not row.stale)
-                or (not (row.stale and not best.stale) and row.cost < best.cost) then
-                best, bestIndex = row, index
-            end
-        end
-    end
-    return best, bestIndex
-end
-
 function Shopping.Entry(kind, itemID)
     local definition = kind == "writs" and addon.Writs[itemID]
         or (kind == "crates" and addon.Crates[itemID])
@@ -46,7 +31,7 @@ function Shopping.Entry(kind, itemID)
         if addon.db.writSource == "off" then entry.reason = "Writ prices are disabled in settings." end
     else
         local rows = addon:GetRows(itemID)
-        local best, index = cheapest(rows)
+        local best, index = addon.Pricing.LowestKnown(rows)
         entry.deliveryRows = best and { best } or {}
         if best then
             entry.delivery, entry.deliveryStale, entry.optionIndex = best.cost, best.stale, index

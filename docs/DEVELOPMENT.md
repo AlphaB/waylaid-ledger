@@ -134,8 +134,8 @@ identified writ/crate with the full delivery quote. Missing components produce a
 nil total; comparator ordering is numeric total, then name and item ID, with
 unknown totals last. Stale totals retain their values and carry a visible marker.
 
-Crates select the cheapest nonfailed usable option across scan/provider quotes,
-falling back to known-old quotes only when none is usable. Observed shortages
+Crates select the lowest known nonfailed cost across resolved scan/provider
+quotes, including older cached amounts. Observed shortages
 are excluded. This does not claim that an unpriced alternative is more expensive.
 Writ requirements are cumulative; every objective must be priced for a total.
 
@@ -164,9 +164,12 @@ Competing queries defer pending opening work until two seconds of quiet and
 stop an active scan without restarting it. Pagination methods are observed too,
 and initial Blizzard browse queries cannot suppress the pending scan forever.
 
-Tooltip default amounts no longer carry source badges or explanatory footers.
-`Tooltip.IsOutdated` evaluates exact own ages against >43,200s, or cautiously
-accepts an Auctionator previous-day value. `AddAgeWarning` deduplicates the
-notice across native item and basket hover sections, and resets on clear/rebuild.
-The 30-minute comparison freshness policy is unchanged. Shift/detailed mode
-keeps source/age inline, including unknown age where appropriate.
+Tooltip default amounts carry no source badges or explanatory footers.
+Version 0.5.1 removes the outdated-data notice and its helpers entirely.
+`Pricing.LowestKnown` supplies one cost comparison for tooltips, controls,
+resolved winner flags and shopping, including cached prices. Failed, unknown
+and insufficient results remain ineligible. A fresh own-scan winner is green;
+a provider estimate or cached own-scan winner is amber. Native money-string
+color codes are stripped only for the winning amount and an explicit tint is
+applied without removing coin textures. Source freshness still drives Auto
+resolution and refresh. Shift/detailed mode retains inline source/age.

@@ -2,10 +2,10 @@
 
 A standalone World of Warcraft: Forever addon that scans the auction house for
 Waylaid Crate materials and adds the cost of every filling option to crate
-item tooltips. The cheapest freshly scanned option is highlighted in green; the lowest imported
-estimate is highlighted in amber. Auctionator and TSM are optional price providers.
+item tooltips. The lowest known filling cost is highlighted in green for a fresh own scan,
+or amber for a provider/cached estimate. Auctionator and TSM are optional price providers.
 
-Version **0.5.0** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.5.1** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -44,17 +44,15 @@ own purchase price is not included. Existing inventory is not deducted.
 - Each option uses one compact row: quantity/item on the left, amount on the
   right. Imported amounts keep a `~` prefix. Source badges and the gray
   explanatory footer have been removed.
-- **Green** highlights the lowest fresh, verified scan cost; **amber** highlights
-  the lowest usable estimate. These are separate comparisons; ties are allowed.
+- The **lowest displayed known filling cost** is highlighted. **Green** means
+  a fresh own scan; **amber** means an estimate or older cached scan. All tied
+  minima highlight, even if every available price is cached. Unknown prices,
+  failed scans, and observed shortages never win.
 - **Not scanned / No price** means no usable data exists for the selected source.
 - **Only N / None listed** means a complete scan found insufficient buyable stock.
-- Stale or failed prices stay gray and cannot win. Own prices expire after
-  30 minutes for comparison; Auctionator data from an earlier scan day is stale.
-- A single gray **Price data might be outdated.** notice appears when an own
-  snapshot is more than **12 hours** old. Auctionator exposes only whole scan
-  days, so a previous-day value receives the same cautious notice. Today
-  cannot prove a price is under 12 hours old. TSM exposes no age; the addon
-  never invents one. The notice also applies to old sold-out scan results.
+- Failed prices stay gray and cannot win. Cache freshness still guides Auto's
+  source selection and automatic refresh; older cached prices remain eligible
+  for lowest-known comparison. There is **no outdated-data notification**.
 - **Buy N** includes unavoidable excess from purchasing a whole auction stack.
 - Hold **Shift** for ages and detailed explanations, or enable detailed tooltips
   in settings. Source and age appear inline only in this detailed view; the
@@ -127,8 +125,7 @@ most expensive; unknown totals follow alphabetically. Known-old totals remain
 visible, gray and marked `*`. Missing data is never counted as zero.
 
 Each crate row chooses its cheapest usable filling option across scans and
-provider estimates. A known-old option is used only if no usable priced option
-exists. This is the **lowest known** cost; unpriced alternatives might be cheaper.
+provider estimates. Older cached prices remain eligible for this comparison. This is the **lowest known** cost; unpriced alternatives might be cheaper.
 A completed scan showing insufficient stock excludes that alternative. A crate
 with no priced filling option cannot launch a basket until prices are available.
 Writ objectives are cumulative and always use their full delivery quantities.
@@ -264,8 +261,7 @@ Use own scans there. Return to `default` for normal provider estimates.
 
 ## First live test
 
-The earlier versions were tested in the user's live client. The new opening
-scan and tooltip cleanup are tested in a simulated Lua 5.1 client and need a
+The earlier versions were tested in the user's live client. The restored highlight and tooltip cleanup are tested in a simulated Lua 5.1 client and need a
 live check.
 Please start with a small test:
 
@@ -318,8 +314,8 @@ depth, indivisible auctions, randomized exhaustive cross-checks, stale/unknown
 results, pagination, throttling, retry timeouts, interruptions, owned-stock
 filtering, profile isolation, full bootstrap, tooltip text, provider priorities,
 source settings, API errors, price-age semantics, callbacks, and shopping handoff.
-The default suite has 102 tests. Two additional contract tests run the actual
-unmodified public API Lua from separately downloaded release ZIPs (104 total):
+The default suite has 103 tests. Two additional contract tests run the actual
+unmodified public API Lua from separately downloaded release ZIPs (105 total):
 
 ```sh
 python3 tests/run.py --auctionator /path/to/Auctionator-347.zip --tsm /path/to/TradeSkillMaster.zip
