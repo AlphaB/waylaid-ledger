@@ -290,7 +290,7 @@ test("tooltip lists every bundle, highlights cheapest and avoids duplicates",fun
         market.items[option.itemID]=commodity({{quantity=100,unitPrice=i*10}})
     end
     TooltipDataProcessor.callback(tooltip,{id=248682})
-    local count=#tooltip.lines;equal(count,8)
+    local count=#tooltip.lines;equal(count,7)
     local best=0
     for _,line in ipairs(tooltip.lines) do if line[3]==0.25 and line[4]==1 then best=best+1 end end
     equal(best,1);equal(addon.lastCrateID,248682)
@@ -333,5 +333,7 @@ assert(loadfile(PROJECT_ROOT .. "/tests/integrations.lua"))(addon, test, equal, 
 assert(loadfile(PROJECT_ROOT .. "/tests/features.lua"))(addon, test, equal, host)
 assert(loadfile(PROJECT_ROOT .. "/tests/writs.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/shopping.lua"))(addon, test, equal)
+assert(loadfile(PROJECT_ROOT .. "/tests/auction_open.lua"))(addon, test, equal, host)
+assert(loadfile(PROJECT_ROOT .. "/tests/tooltip_age.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/upstream_contracts.lua"))(addon, test, equal)
 print(string.format("\n%d tests passed on %s",passed,_VERSION))

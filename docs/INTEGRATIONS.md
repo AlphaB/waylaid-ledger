@@ -69,8 +69,8 @@ TSM age remains explicitly unknown. Estimates are never assigned a fabricated
 
 The smallest usable own-scan cost is highlighted green. The smallest usable
 estimate is highlighted amber. These are separate comparisons, with ties allowed.
-The compact tooltip uses color and short source badges; Shift reveals the
-comparison legend and price age.
+The compact tooltip uses color and plain amounts with an estimate prefix.
+Shift reveals source/age inline; source badges and footer legends are removed.
 
 Provider reads, including misses, are cached on demand for 15 seconds, keyed by
 market context, provider, item ID, and TSM price definition. Replacing the provider
@@ -102,7 +102,7 @@ user to retry instead of searching with the wrong language.
 
 ## Validation performed
 
-- 87 standard Lua 5.1 tests execute the production modules.
+- 102 standard Lua 5.1 tests execute the production modules.
 - Two optional tests execute the **unmodified public API source** from Auctionator
   347 and TSM 4.15.7, with their internal services and UI stubbed.
 - Auctionator contract check: returned copper and day age, update registration,
@@ -141,3 +141,22 @@ Older list-creation APIs do not guarantee tab switching. They remain available
 for the legacy commands, but row shopping capability checks require the advanced
 API before interrupting any existing scan. Missing localized names also leave
 the current scan undisturbed.
+
+## Age notice and opening scans (v0.5.0)
+
+The new 12-hour notice is separate from own-scan comparison freshness (30m).
+Own snapshots carry exact epoch timestamps, so the notice starts strictly after
+43,200 seconds, including old shortage results. Auctionator's released
+`GetAuctionAgeByItemID` returns whole scan-day differences; a previous-day
+price gets a cautious notice, but may be younger than 12 hours across a day
+boundary. Conversely a same-day price could be older than 12 hours. TSM
+exposes no age through the reviewed public API. Neither provider receives a
+fabricated timestamp, and unknown age does not produce an asserted 12-hour age.
+
+The new scan-on-open option runs the own 96-material crate scanner in Auto/Own
+modes, independently of the visible tab. It does not start Auctionator internals,
+scan writ goods, or populate purchase estimates. Publicly observed competing
+queries defer pending opening work until two seconds of quiet, including page
+requests. They cancel active scans; manual refresh or the next AH visit is
+required after interruption. Existing shopping handoffs still
+stop our scanner before calling the provider.

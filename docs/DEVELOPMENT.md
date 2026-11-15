@@ -150,3 +150,23 @@ construction nor Refresh creates auction queries or expands the scanner catalog.
 Automatic tracked-crate refresh runs in the Crates tab/scan controls, not Writs.
 Tests execute actual Auctionator 347 public source to check Shopping tab clicks
 and both complete baskets, including the 200-unit ammo requirement.
+
+## Opening scan and compact tooltips (v0.5.0)
+
+`db.scanOnOpen` is an opt-in boolean independent of `db.tracking.autoScan`.
+`autoReason` distinguishes queued opening scans from queued panel refreshes;
+`scanOnOpen` distinguishes active opening scans from panel-driven runs. Both
+use the same scheduler and scanner. Opening work covers all crate materials,
+reuses fresh snapshots, and waits two seconds to yield to other addon startup
+queries. Panel refresh cannot replace queued opening work. Panel visibility
+changes only cancel panel work. Explicit stops, AH closure and provider changes cancel pending/active work.
+Competing queries defer pending opening work until two seconds of quiet and
+stop an active scan without restarting it. Pagination methods are observed too,
+and initial Blizzard browse queries cannot suppress the pending scan forever.
+
+Tooltip default amounts no longer carry source badges or explanatory footers.
+`Tooltip.IsOutdated` evaluates exact own ages against >43,200s, or cautiously
+accepts an Auctionator previous-day value. `AddAgeWarning` deduplicates the
+notice across native item and basket hover sections, and resets on clear/rebuild.
+The 30-minute comparison freshness policy is unchanged. Shift/detailed mode
+keeps source/age inline, including unknown age where appropriate.

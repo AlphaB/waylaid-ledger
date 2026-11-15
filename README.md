@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The cheapest freshly scanned option is highlighted in green; the lowest imported
 estimate is highlighted in amber. Auctionator and TSM are optional price providers.
 
-Version **0.4.0** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.5.0** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -41,18 +41,24 @@ The addon does not require Auctionator or TradeSkillMaster.
 Each line is the cost to buy one complete bundle for **one crate**. The crate's
 own purchase price is not included. Existing inventory is not deducted.
 
-- Each option uses one compact row: quantity/item on the left, amount and a
-  source badge on the right. **S** = own scan, **A** = Auctionator, **T** = TSM
-  minimum buyout, **M** = TSM market. Imported amounts have a `~` prefix.
+- Each option uses one compact row: quantity/item on the left, amount on the
+  right. Imported amounts keep a `~` prefix. Source badges and the gray
+  explanatory footer have been removed.
 - **Green** highlights the lowest fresh, verified scan cost; **amber** highlights
   the lowest usable estimate. These are separate comparisons; ties are allowed.
 - **Not scanned / No price** means no usable data exists for the selected source.
 - **Only N / None listed** means a complete scan found insufficient buyable stock.
-- **Stale / failed** prices stay gray and cannot win. Own prices expire after
-  30 minutes; Auctionator data from an earlier scan day is stale.
+- Stale or failed prices stay gray and cannot win. Own prices expire after
+  30 minutes for comparison; Auctionator data from an earlier scan day is stale.
+- A single gray **Price data might be outdated.** notice appears when an own
+  snapshot is more than **12 hours** old. Auctionator exposes only whole scan
+  days, so a previous-day value receives the same cautious notice. Today
+  cannot prove a price is under 12 hours old. TSM exposes no age; the addon
+  never invents one. The notice also applies to old sold-out scan results.
 - **Buy N** includes unavoidable excess from purchasing a whole auction stack.
 - Hold **Shift** for ages and detailed explanations, or enable detailed tooltips
-  in settings. Auctionator age is in days; TSM scan age is unknown.
+  in settings. Source and age appear inline only in this detailed view; the
+  footer legends stay removed. Auctionator age is in days; TSM age is unknown.
 
 Commodity costs consume the cheapest price tiers until the required count is
 reached. Item-auction costs use an exact minimum-cost subset calculation; a cheap
@@ -90,6 +96,27 @@ missing, stale, or failed requirements of tracked crates. It never queries in a
 forced Auctionator/TSM mode. **Stop** pauses automatic refresh for that AH visit;
 manual scan or reopening the AH enables it again. Starting another auction search
 stops our queue. There are no idle polling timers or auction queries away from AH.
+
+### Scan when opening the auction house
+
+Enable **Auto-scan crate prices on auction open (Auto/Own)** in `/wll settings`,
+or type **`/wll scanopen on`** (`off` disables it). This option is **off by default**
+and survives reloads. It is separate from tracked-inventory refresh.
+
+With crate price source Auto or Own, it waits two seconds after the AH opens,
+then scans missing, failed, or stale materials across the full **96-item crate
+catalog**, without needing our tab or inventory tracking. Fresh snapshots are
+reused. Closing or switching away from our panels does not cancel this opening
+scan; **Stop**, AH closure, disabling the option, or a competing query during an
+active scan cancels it. Pending opening work waits until observed searches and
+page requests have been quiet for two seconds, so the initial Blizzard browse
+query does not suppress it. An interrupted active scan stays paused until a
+manual scan or the next AH visit.
+
+This is Waylaid Ledger's own crate-material scan, not an Auctionator full scan.
+Writ goods and writ/crate purchase prices continue to use Auctionator/TSM caches.
+It does not run in forced Auctionator or TSM mode, and performs no queries away
+from the auction house.
 
 ## Ranked auction lists
 
@@ -204,6 +231,7 @@ See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) for the reviewed API contracts.
 | `/wll tracking on` | Capture bag inventory (`off` disables it) |
 | `/wll banks on` | Include visited banks (`off` excludes them) |
 | `/wll alts on` | Include remembered alts (`off` excludes them) |
+| `/wll scanopen on` | Auto-scan missing/stale crate prices on AH open (`off` disables it) |
 | `/wll autoscan on` | Refresh tracked prices in the AH panel (`off` disables it) |
 | `/wll details on` | Always show tooltip details (`off` uses Shift) |
 | `/wll writsource auto` | Writ estimates: auto, auctionator, tsm, or off |
@@ -236,8 +264,9 @@ Use own scans there. Return to `default` for normal provider estimates.
 
 ## First live test
 
-Version 0.3.0 worked in the user's live client. The new ranked tabs and complete
-basket shopping are tested in a simulated Lua 5.1 client and need a live check.
+The earlier versions were tested in the user's live client. The new opening
+scan and tooltip cleanup are tested in a simulated Lua 5.1 client and need a
+live check.
 Please start with a small test:
 
 1. Enable Lua errors with `/console scriptErrors 1`, then `/reload`.
@@ -289,8 +318,8 @@ depth, indivisible auctions, randomized exhaustive cross-checks, stale/unknown
 results, pagination, throttling, retry timeouts, interruptions, owned-stock
 filtering, profile isolation, full bootstrap, tooltip text, provider priorities,
 source settings, API errors, price-age semantics, callbacks, and shopping handoff.
-The default suite has 87 tests. Two additional contract tests run the actual
-unmodified public API Lua from separately downloaded release ZIPs (89 total):
+The default suite has 102 tests. Two additional contract tests run the actual
+unmodified public API Lua from separately downloaded release ZIPs (104 total):
 
 ```sh
 python3 tests/run.py --auctionator /path/to/Auctionator-347.zip --tsm /path/to/TradeSkillMaster.zip

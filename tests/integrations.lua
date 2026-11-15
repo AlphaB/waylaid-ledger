@@ -182,6 +182,7 @@ test("source settings persist and explicit unavailable source stays unknown",fun
     addon:GetMarket().items[2770]=fresh({{quantity=20,unitPrice=1}})
     equal(addon:GetRows(248683)[1].status,"unknown")
     addon:SetWritSource("tsm")
+    addon:SetFeature("scanopen",true)
     local settings=WaylaidLedgerDB
     -- Simulate reload using the same production modules and persisted table.
     local originalCallback,originalFrame,originalReport,originalSlash=TooltipDataProcessor.callback,WaylaidLedgerFrame,WaylaidLedgerReportFrame,SlashCmdList.WAYLAIDLEDGER
@@ -193,10 +194,11 @@ test("source settings persist and explicit unavailable source stays unknown",fun
     -- via the mock registry exposed by spec.lua rather than changing production.
     local newHost=TEST_FRAMES[#TEST_FRAMES]
     newHost.scripts.OnEvent(newHost,"ADDON_LOADED","WaylaidLedger")
-    equal(reloaded.db,settings);equal(reloaded.db.source,"tsm");equal(reloaded.db.writSource,"tsm")
+    equal(reloaded.db,settings);equal(reloaded.db.source,"tsm");equal(reloaded.db.writSource,"tsm");equal(reloaded.db.scanOnOpen,true)
     equal(reloaded:GetMarket().items[2770].offers[1].unitPrice,1)
     TooltipDataProcessor.callback=originalCallback
     WaylaidLedgerFrame,WaylaidLedgerReportFrame,SlashCmdList.WAYLAIDLEDGER=originalFrame,originalReport,originalSlash
+    addon:SetFeature("scanopen",false)
 end)
 test("Auctionator shopping hands off after stopping our scan, with exact quantities",function()
     reset();local f=fakeAuctionator({[2770]=1,[2771]=2})
@@ -244,12 +246,12 @@ test("shopping exceptions are reported without restarting or losing our complete
     addon:StartScan("hovered");equal(addon:Shop(true),false);equal(addon.scanner.active,false)
     equal(market.items[2770].offers[1].unitPrice,1);assert(Providers.errors.auctionator:match("search blocked"))
 end)
-test("estimated tooltips use amber, source labels and explicit unknown age",function()
+test("estimated tooltips use amber and compact prices without source badges",function()
     reset();TSM_API={GetCustomPriceValue=function(_,itemString) return itemString=="i:2770" and 1 or 2 end}
     local tooltip=CreateFrame("GameTooltip")
     TooltipDataProcessor.callback(tooltip,{id=248683})
     assert(tooltip.lines[3][2]:match("~"))
-    assert(tooltip.lines[3][2]:match("%[T%]"));assert(not tooltip.lines[3][2]:match("age unknown"))
+    assert(not tooltip.lines[3][2]:match("%[T%]"));assert(not tooltip.lines[3][2]:match("age unknown"))
     equal(tooltip.lines[3][3],1);equal(tooltip.lines[3][4],0.72)
     for _,line in ipairs(tooltip.lines) do assert(not line[1]:match("^Cheapest:")) end
 end)
@@ -266,7 +268,7 @@ end)
 test("diagnostics include provider policy, per-row provenance, and API errors",function()
     reset();fakeAuctionator({[2770]=5});addon.lastCrateID=248683
     local report=addon:Report()
-    assert(report:match("0.4.0"));assert(report:match("Price policy: auto"))
+    assert(report:match("0.5.0"));assert(report:match("Price policy: auto"))
     assert(report:match("source=auctionator estimated=true ageDays=0"))
     Providers.errors.tsm="not ready";report=addon:Report();assert(report:match("TSM last error: not ready"))
 end)

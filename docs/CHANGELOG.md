@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0
+
+- Opt-in automatic own scanning on AH open, independent of visible panels and inventory tracking.
+- Scan only missing, stale or failed crate materials; reuse fresh snapshots.
+- Two-second quiet period on opening; active scans yield to competing searches.
+- Persisted settings checkbox and `/wll scanopen on|off`.
+- Remove tooltip source badges and gray explanatory footers.
+- One gray outdated-data notice after 12 hours for timestamped own data.
+- Cautious notice for Auctionator previous-day prices; no invented provider timestamps.
+- 102 default Lua 5.1 tests; 104 including upstream API contracts.
+
 ## 0.4.0
 
 - Separate Writs and Waylaid Crates auction tabs with scrollable ranked lists.

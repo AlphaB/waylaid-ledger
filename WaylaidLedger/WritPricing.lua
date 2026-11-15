@@ -15,7 +15,7 @@ function addon.WritPricing.Rows(itemID)
     for _, row in ipairs(rows) do
         -- Requirements are cumulative; no individual requirement is a winner.
         row.best, row.bestEstimate = false, false
-        if row.source == "own" then row.source = "providers" end
+        if row.source == "own" then row.source, row.sourceLabel = "providers", "Auctionator/TSM" end
         if row.status == "ok" then
             total = total + row.cost
             stale = stale or row.stale or false

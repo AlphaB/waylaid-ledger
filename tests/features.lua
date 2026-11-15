@@ -187,7 +187,7 @@ test("minimap visibility, settings click, dragging and saved angle work",functio
     addon.UI.settings:Hide();button:Hide();addon.MinimapButton.frame=nil
     Minimap,GetCursorPosition=oldMap,oldCursor
 end)
-test("compact scan and Auctionator amounts share layout with short source badges",function()
+test("compact scan and Auctionator prices share layout without source badges",function()
     local oldSource,oldA,oldDetails=addon.db.source,Auctionator,addon.db.tooltipDetails
     local market=addon:GetMarket();local oldItems,oldFailures=market.items,market.failures
     market.items={[2770]={kind="commodity",offers={{quantity=20,unitPrice=125}},scannedAt=time()},
@@ -198,7 +198,7 @@ test("compact scan and Auctionator amounts share layout with short source badges
     addon.db.source="auctionator";addon.Providers.Invalidate()
     local imported=CreateFrame("GameTooltip");addon.Tooltip.Append(imported,248683)
     equal(own.lines[3][1],imported.lines[3][1]);equal(#own.lines,#imported.lines)
-    equal(own.lines[3][2]:gsub("%[S%]",""),imported.lines[3][2]:gsub("~ ",""):gsub("%[A%]",""))
+    equal(own.lines[3][2],imported.lines[3][2]:gsub("~ ",""))
     assert(#imported.lines[3][2] - #own.lines[3][2] <= 2)
     addon.db.source,Auctionator,addon.db.tooltipDetails=oldSource,oldA,oldDetails
     market.items,market.failures=oldItems,oldFailures;addon.Providers.Invalidate()
@@ -207,6 +207,7 @@ test("Shift reveals price age without making the compact default wider",function
     local oldShift,oldDetails=IsShiftKeyDown,addon.db.tooltipDetails
     addon.db.tooltipDetails=false;IsShiftKeyDown=function() return true end
     local tooltip=CreateFrame("GameTooltip");addon.Tooltip.Append(tooltip,248683)
-    assert(tooltip.lines[#tooltip.lines][1]:match("Full bundle"))
+    equal(#tooltip.lines,2+#addon.Crates[248683].options)
+    assert(tooltip.lines[3][2]:match(" %- "))
     IsShiftKeyDown,addon.db.tooltipDetails=oldShift,oldDetails
 end)

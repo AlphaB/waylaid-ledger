@@ -34,11 +34,10 @@ function Browse.ShowTooltip(row)
     end
     GameTooltip:AddDoubleLine("Total", amount(entry.total, true) .. (entry.stale and " (stale)" or ""),
         1, 0.82, 0, 1, 0.82, 0)
-    if entry.kind == "crates" then
-        GameTooltip:AddLine("Uses the lowest known filling cost; other options may lack prices.", 0.7, 0.7, 0.7, true)
-    end
-    GameTooltip:AddLine("Full quantities; owned items are not deducted. Cached prices do not verify stock.", 0.7, 0.7, 0.7, true)
-    GameTooltip:AddLine(entry.reason or "Click to search this complete basket in Auctionator.", 0.7, 0.7, 0.7, true)
+    local quotes = {}
+    for _, quote in ipairs(entry.deliveryRows) do quotes[#quotes + 1] = quote end
+    if entry.purchaseQuote then quotes[#quotes + 1] = entry.purchaseQuote end
+    addon.Tooltip.AddAgeWarning(GameTooltip, quotes)
     GameTooltip:Show()
 end
 

@@ -104,8 +104,8 @@ function UI.Create()
     end)
     frame:SetScript("OnHide", function()
         if addon.initialized and not UI.IsScanPanelVisible() then
-            addon.autoDue = nil
-            if addon.scanAutomatic and addon.scanner.active then addon:StopScan("Automatic refresh paused after closing the panel.") end
+            if addon.autoReason ~= "open" then addon.autoDue, addon.autoReason = nil, nil end
+            if addon.scanAutomatic and not addon.scanOnOpen and addon.scanner.active then addon:StopScan("Automatic refresh paused after closing the panel.") end
             addon:UpdateScheduler()
         end
     end)
@@ -215,8 +215,8 @@ function UI.AttachAuction()
         end)
         host:SetScript("OnHide", function()
             if category == "crates" then
-                addon.autoDue = nil
-                if addon.scanAutomatic and addon.scanner.active then
+                if addon.autoReason ~= "open" then addon.autoDue, addon.autoReason = nil, nil end
+                if addon.scanAutomatic and not addon.scanOnOpen and addon.scanner.active then
                     addon:StopScan("Automatic refresh paused after leaving the crates tab.")
                 end
                 addon:UpdateScheduler()
@@ -263,6 +263,7 @@ function UI.UpdateSettings()
     for feature, control in pairs(UI.settingsChecks) do
         local enabled
         if feature == "minimap" then enabled = not addon.db.minimap.hide
+        elseif feature == "scanopen" then enabled = addon.db.scanOnOpen
         elseif feature == "details" then enabled = addon.db.tooltipDetails
         else enabled = addon.db.tracking[({tracking="enabled",banks="bank",alts="alts",autoscan="autoScan"})[feature]] end
         control:SetChecked(enabled and true or false)
@@ -272,7 +273,7 @@ end
 function UI.ToggleSettings()
     if not UI.settings then
         local frame = CreateFrame("Frame", "WaylaidLedgerSettingsFrame", UIParent, "BasicFrameTemplateWithInset")
-        frame:SetSize(480, 460)
+        frame:SetSize(480, 500)
         frame:SetPoint("CENTER")
         frame:SetFrameStrata("DIALOG")
         frame:SetClampedToScreen(true)
@@ -282,7 +283,8 @@ function UI.ToggleSettings()
         for index, option in ipairs({
             {"minimap", "Show minimap button"}, {"tracking", "Remember crate and material inventory"},
             {"banks", "Include visited character and shared banks"}, {"alts", "Include remembered characters on this realm/faction"},
-            {"autoscan", "Auto refresh tracked prices in the Waylaid panel"}, {"details", "Always show detailed price tooltips"},
+            {"autoscan", "Auto refresh tracked prices in the Crates tab"},
+            {"scanopen", "Auto-scan crate prices on auction open (Auto/Own)"}, {"details", "Always show detailed price tooltips"},
         }) do
             local feature = option[1]
             local control = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
@@ -293,17 +295,17 @@ function UI.ToggleSettings()
             control:SetScript("OnClick", function(self) addon:SetFeature(feature, self:GetChecked() and true or false) end)
             UI.settingsChecks[feature] = control
         end
-        UI.writSourceButton = button(frame, "Writ prices", 18, -255, 210, function()
+        UI.writSourceButton = button(frame, "Writ prices", 18, -290, 210, function()
             local sources = { auto = "auctionator", auctionator = "tsm", tsm = "off", off = "auto" }
             addon:SetWritSource(sources[addon.db.writSource])
         end)
-        button(frame, "Scan controls / diagnostics", 18, -290, 230, function() UI.OpenControls(); frame:Hide() end)
+        button(frame, "Scan controls / diagnostics", 18, -325, 230, function() UI.OpenControls(); frame:Hide() end)
         local note = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-        note:SetPoint("TOPLEFT", 18, -330)
+        note:SetPoint("TOPLEFT", 18, -365)
         note:SetWidth(440)
         note:SetJustifyH("LEFT")
         note:SetText("Offline characters are last-seen snapshots. Log into each character and visit their bank once. No auction queries run away from the auction house.")
-        button(frame, "Clear remembered inventory", 18, -405, 230, function()
+        button(frame, "Clear remembered inventory", 18, -440, 230, function()
             addon.db.inventory = { characters = {}, sharedBanks = {} }
             addon.Inventory.CaptureBags()
             addon.Inventory.CaptureBank()

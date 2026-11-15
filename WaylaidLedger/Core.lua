@@ -1,5 +1,5 @@
 local addonName, addon = ...
-addon.version = "0.4.0"
+addon.version = "0.5.0"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -50,37 +50,49 @@ function addon:UpdateScheduler()
     end
 end
 
-function addon:RequestAutoScan()
-    if not self.db.tracking.enabled or not self.db.tracking.autoScan or self.autoPaused
-        or not self.scanner.open or self.scanner.active or not self.UI.IsScanPanelVisible()
-        or (self.db.source ~= "auto" and self.db.source ~= "own") then return end
-    self.autoDue = GetTime() + 0.5
+function addon:CanAutoScan(reason)
+    if self.autoPaused or not self.scanner.open or self.scanner.active
+        or (self.db.source ~= "auto" and self.db.source ~= "own") then return false end
+    if reason == "open" then return self.db.scanOnOpen end
+    return self.db.tracking.enabled and self.db.tracking.autoScan and self.UI.IsScanPanelVisible()
+end
+
+function addon:RequestAutoScan(onOpen)
+    -- An opening scan has priority over tab-driven refresh until it starts or
+    -- is cancelled. The delay lets another addon's startup scan take the house.
+    if not onOpen and self.autoReason == "open" then return end
+    local reason = onOpen and "open" or "panel"
+    if not self:CanAutoScan(reason) then return end
+    self.autoReason = reason
+    self.autoDue = GetTime() + (onOpen and 2 or 0.5)
     self:UpdateScheduler()
 end
 
 function addon:AutoScan()
-    if not self.db.tracking.enabled or not self.db.tracking.autoScan or self.autoPaused
-        or not self.scanner.open or self.scanner.active or not self.UI.IsScanPanelVisible()
-        or (self.db.source ~= "auto" and self.db.source ~= "own") then return end
-    if self.lastExternalAt and GetTime() - self.lastExternalAt < 1 then
-        self.autoDue = self.lastExternalAt + 1
+    local reason = self.autoReason or "panel"
+    self.autoReason = nil
+    if not self:CanAutoScan(reason) then return end
+    local quietPeriod = reason == "open" and 2 or 1
+    if self.lastExternalAt and GetTime() - self.lastExternalAt < quietPeriod then
+        self.autoReason, self.autoDue = reason, self.lastExternalAt + quietPeriod
         return
     end
     self.Inventory.CaptureBags()
+    local crateIDs = reason == "open" and self.Catalog.AllCrates() or self.Inventory.CrateIDs()
     local market, items = self:GetMarket(), {}
-    for _, itemID in ipairs(self.Catalog.Materials(self.Inventory.CrateIDs())) do
+    for _, itemID in ipairs(self.Catalog.Materials(crateIDs)) do
         local snapshot = market.items[itemID]
         if not snapshot or market.failures[itemID] or time() - snapshot.scannedAt > self.db.maxAge then
             items[#items + 1] = itemID
         end
     end
     if #items == 0 then return end
-    self.scanMarket, self.scanAutomatic = market, true
+    self.scanMarket, self.scanAutomatic, self.scanOnOpen = market, true, reason == "open"
     self.scanner:Start(items)
 end
 
 function addon:StopScan(message)
-    self.autoPaused, self.autoDue = true, nil
+    self.autoPaused, self.autoDue, self.autoReason, self.scanOnOpen = true, nil, nil, false
     self.scanner:Stop(message)
     self:UpdateScheduler()
 end
@@ -90,14 +102,22 @@ function addon:SetFeature(feature, enabled)
         self.db.minimap.hide = not enabled
         self.MinimapButton.Create()
         self.MinimapButton.Update()
+    elseif feature == "scanopen" then
+        self.db.scanOnOpen = enabled
+        if not enabled and (self.autoReason == "open" or self.scanOnOpen) then
+            self:StopScan("Auction-open scan disabled.")
+        elseif enabled then
+            self.autoPaused = false
+            self:RequestAutoScan(true)
+        end
     elseif feature == "details" then
         self.db.tooltipDetails = enabled
     else
         local keys = { tracking = "enabled", banks = "bank", alts = "alts", autoscan = "autoScan" }
         self.db.tracking[keys[feature]] = enabled
         if not enabled and (feature == "tracking" or feature == "autoscan") then
-            self.autoDue = nil
-            if self.scanAutomatic then self:StopScan("Automatic refresh disabled.") end
+            if self.autoReason ~= "open" then self.autoDue, self.autoReason = nil, nil end
+            if self.scanAutomatic and not self.scanOnOpen then self:StopScan("Automatic refresh disabled.") end
         end
         self.Inventory.CaptureBags()
         self.Inventory.CaptureBank()
@@ -140,6 +160,11 @@ function addon:SetSource(source)
         return
     end
     self.db.source = source
+    if source ~= "auto" and source ~= "own" then
+        self.autoDue, self.autoReason = nil, nil
+        if self.scanAutomatic then self:StopScan("Automatic scan paused for the selected provider.") end
+        self:UpdateScheduler()
+    end
     self.Providers.Invalidate()
     self.UI.Update()
     self.Tooltip.Refresh()
@@ -253,7 +278,7 @@ function addon:StartScan(scope)
     end
     if not self.scanner.active then
         self.scanMarket = self:GetMarket()
-        self.scanAutomatic, self.autoPaused, self.autoDue = false, false, nil
+        self.scanAutomatic, self.autoPaused, self.autoDue, self.autoReason, self.scanOnOpen = false, false, nil, nil, false
     end
     local ok, message = self.scanner:Start(self.Catalog.Materials(crateIDs))
     if not ok then
@@ -286,6 +311,7 @@ function addon:Report()
         "AH tabs: " .. tostring(self.UI.auctionHost ~= nil) .. "; active: " .. tostring(self.db.browserTab) .. "; minimap hidden: " .. tostring(self.db.minimap.hide),
         "Last basket: " .. tostring(self.lastBasket and self.lastBasket.itemID)
             .. "; total: " .. tostring(self.lastBasket and self.lastBasket.total),
+        "Auction-open scan: " .. tostring(self.db.scanOnOpen) .. "; pending reason: " .. tostring(self.autoReason),
         "Scan requests retained in rolling window: " .. #self.scanner.requests,
         "Price policy: " .. self.db.source .. "; TSM key: " .. self.db.tsmKey,
         "Auctionator price API: " .. tostring(self.Providers.Available("auctionator"))
@@ -375,7 +401,7 @@ function addon:Command(text)
     elseif command == "inventory" then
         self.UI.ShowReport(self.Inventory.Report())
     elseif command == "minimap" or command == "tracking" or command == "banks" or command == "alts"
-        or command == "autoscan" or command == "details" then
+        or command == "autoscan" or command == "scanopen" or command == "details" then
         rest = rest:lower()
         if rest ~= "on" and rest ~= "off" then
             self:Print("Use /wll " .. command .. " on or off, or /wll settings.")
@@ -416,7 +442,7 @@ function addon:Command(text)
     else
         self:Print("/wll - window | scan bags/hovered/all | source auto/auctionator/tsm/own | tsmkey DBMinBuyout/DBMarket")
         self:Print("search | shop [option number] | stop | report | debug | inspect [item ID] | market <name> | clear")
-        self:Print("writsource auto/auctionator/tsm/off | settings | controls | inventory | minimap/tracking/banks/alts/autoscan/details on/off | scan tracked")
+        self:Print("writsource auto/auctionator/tsm/off | settings | controls | inventory | minimap/tracking/banks/alts/autoscan/scanopen/details on/off | scan tracked")
     end
     self.UI.Update()
 end
@@ -437,6 +463,7 @@ local function initialize()
     for _, key in ipairs({ "enabled", "bank", "alts", "autoScan" }) do
         if type(addon.db.tracking[key]) ~= "boolean" then addon.db.tracking[key] = true end
     end
+    if type(addon.db.scanOnOpen) ~= "boolean" then addon.db.scanOnOpen = false end
     addon.db.minimap = addon.db.minimap or { angle = 225, hide = false }
     addon.db.minimap.angle = tonumber(addon.db.minimap.angle) or 225
     addon.db.writSource = WRIT_SOURCES[addon.db.writSource] and addon.db.writSource or "auto"
@@ -460,6 +487,7 @@ local function initialize()
             addon.UI.Update()
             addon:UpdateScheduler()
             if not scanner.active then
+                addon.scanOnOpen = false
                 addon.Tooltip.Refresh()
                 if scanner.message and not addon.scanAutomatic then addon:Print(scanner.message) end
             end
@@ -472,12 +500,20 @@ local function initialize()
     if not addon.Tooltip.Install() then
         addon:Print("No supported tooltip hook found. Use /wll report to collect diagnostics.")
     end
-    for _, method in ipairs({ "SendSearchQuery", "SendSellSearchQuery", "SendBrowseQuery", "SearchForItemKeys", "ReplicateItems" }) do
+    for _, method in ipairs({ "SendSearchQuery", "SendSellSearchQuery", "SendBrowseQuery", "SearchForItemKeys", "ReplicateItems",
+        "RequestMoreCommoditySearchResults", "RequestMoreItemSearchResults" }) do
         if api[method] then
             hooksecurefunc(api, method, function()
                 if not addon.scanner.issuing then
                     addon.lastExternalAt = GetTime()
-                    if addon.scanner.active then addon.autoPaused, addon.autoDue = true, nil end
+                    if addon.scanner.active then
+                        addon.autoPaused, addon.autoDue, addon.autoReason = true, nil, nil
+                    elseif addon.autoReason == "open" then
+                        -- Initial Blizzard browse queries also pass here. Wait
+                        -- for a quiet house instead of cancelling every opening.
+                        addon.autoDue = addon.lastExternalAt + 2
+                    end
+                    addon:UpdateScheduler()
                 end
                 addon.scanner:ExternalQuery()
             end)
@@ -516,13 +552,14 @@ frame:SetScript("OnEvent", function(_, event, argument)
     if not scanner then return end
     if event == "AUCTION_HOUSE_SHOW" then
         scanner:SetOpen(true)
-        addon.autoPaused, addon.autoDue = false, nil
+        addon.autoPaused, addon.autoDue, addon.autoReason = false, nil, nil
         addon.Inventory.CaptureBags()
         addon.UI.AttachAuction()
         addon.UI.Update()
+        addon:RequestAutoScan(true)
         addon:RequestAutoScan()
     elseif event == "AUCTION_HOUSE_CLOSED" then
-        addon.autoDue = nil
+        addon.autoDue, addon.autoReason, addon.scanOnOpen = nil, nil, false
         scanner:SetOpen(false)
         addon.UI.AuctionClosed()
         addon.UI.Update()
