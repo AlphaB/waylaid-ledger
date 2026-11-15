@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The cheapest freshly scanned option is highlighted in green; the lowest imported
 estimate is highlighted in amber. Auctionator and TSM are optional price providers.
 
-Version **0.3.0** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.4.0** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -21,12 +21,13 @@ Version **0.3.0** · Forever **1.60.1 / interface 16001** · No addon dependenci
 3. Restart the game, enable **Waylaid Ledger** in the AddOns menu, and log in.
 4. Hover an identified crate. If Auctionator or TSM already has pricing data,
    estimates appear immediately, including away from the auction house.
-5. Visit an auctioneer and select the **Waylaid** tab. It refreshes missing or
-   stale prices for remembered crates. **Scan bags**, **Scan tracked crates**, and
-   **Scan all** also run on demand. The minimap button opens the tab/window;
-   right-click it for settings.
+5. Visit an auctioneer and select **Writs** or **Waylaid Crates**. Each tab lists
+   its catalog in order of **purchase + delivery** cost. Click a row to open
+   Auctionator Shopping with one writ/crate and its complete delivery bundle.
+   The minimap button opens your last used tab; right-click it for settings.
 6. Hover a recognized Waylaid Crate in your bags, chat, or the auction house to
-   compare its options. Open `/wll` to choose a price provider or shop a bundle.
+   compare its options. `/wll settings` changes price preferences.
+   `/wll controls` opens the original scan and diagnostic controls.
 
 **Scan all** searches 96 materials. Requests run as soon as the server is ready,
 with a 0.05s courtesy gap and at most 100 requests per rolling 60.1s window.
@@ -72,7 +73,9 @@ requirements are known. Its tooltip explains this instead of inventing prices.
 `/wll settings` configures the minimap button, bag tracking, bank inclusion, alt
 inclusion, automatic AH refresh, tooltip details, and writ price source. Drag the
 minimap button to reposition it. Away from the AH, `/wll` opens a standalone window.
-At the AH, the Waylaid tab shares the addon tab row used by Auctionator.
+At the AH, Writs and Waylaid Crates share the addon tab row used by Auctionator.
+The former button grid is available separately through `/wll controls` or
+Settings → Scan controls / diagnostics.
 
 Bag snapshots update on login and inventory changes. Character/shared bank
 snapshots update while the bank is open. Log into each alt and visit its bank
@@ -82,11 +85,46 @@ Snapshots are restricted to the same region/realm/faction/project; shared-bank
 items are counted once. `/wll inventory` shows snapshot timestamps. Settings can
 clear remembered inventory without clearing prices.
 
-Automatic refresh runs only at the AH while the Waylaid panel is visible, for
+Automatic refresh runs only at the AH while the Waylaid Crates tab or scan controls are visible, for
 missing, stale, or failed requirements of tracked crates. It never queries in a
 forced Auctionator/TSM mode. **Stop** pauses automatic refresh for that AH visit;
 manual scan or reopening the AH enables it again. Starting another auction search
 stops our queue. There are no idle polling timers or auction queries away from AH.
+
+## Ranked auction lists
+
+The **Writs** tab lists all 150 known identified writs. **Waylaid Crates** lists
+all 30 identified crates. Columns show the purchase price of one writ/crate, the
+full delivery cost, and their sum. Rows with known totals sort from cheapest to
+most expensive; unknown totals follow alphabetically. Known-old totals remain
+visible, gray and marked `*`. Missing data is never counted as zero.
+
+Each crate row chooses its cheapest usable filling option across scans and
+provider estimates. A known-old option is used only if no usable priced option
+exists. This is the **lowest known** cost; unpriced alternatives might be cheaper.
+A completed scan showing insufficient stock excludes that alternative. A crate
+with no priced filling option cannot launch a basket until prices are available.
+Writ objectives are cumulative and always use their full delivery quantities.
+
+Purchase quotes always come from Auctionator/TSM, adding **no own-scan queries**.
+Crate purchase quotes use Auto provider priority even if crate delivery is set to
+Own. Writ purchase and delivery both follow the separate writ source preference.
+The selected TSM key applies to both purchase and delivery provider estimates.
+Custom profiles disable external prices and therefore cannot show complete totals.
+
+Search filters item names and required goods. **Refresh** rereads provider data;
+it does not start a server scan. Auctionator database updates and our scan updates
+refresh the visible list automatically. Hidden lists do not poll or read prices.
+Hover a row for the price breakdown and provenance. Totals are acquisition
+estimates, not profits: rewards, owned stock, AH fees and travel are not deducted.
+Cached provider prices do not prove that auctions are currently available.
+
+Clicking a row opens Auctionator's **Shopping** tab with exact-name searches for
+**one writ/crate plus the required delivery goods**. A crate includes exactly
+one alternative, selected again using current prices at click time. This uses
+Auctionator's public advanced shopping API; update Auctionator if it is missing.
+TSM can supply prices, but Auctionator is required for this shopping handoff.
+The existing legacy shopping commands remain available on older compatible APIs.
 
 ## Craftsman's Writ estimates
 
@@ -128,7 +166,7 @@ when `DBMinBuyout` is missing. The addon needs no external service, API key, or
 account connection. Existing TSM users maintain their pricing through TSM's
 normal data setup.
 
-At an auctioneer, hover a crate and open `/wll`:
+For the original delivery-only shopping controls, hover a crate and use `/wll controls`:
 
 - **Search all alternatives** opens Auctionator searches for every possible
   filling material, with required quantities. You still need only one bundle.
@@ -155,7 +193,8 @@ See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) for the reviewed API contracts.
 
 | Command | Action |
 | --- | --- |
-| `/wll` | Open or close the scan window |
+| `/wll` | At AH: last used list tab; elsewhere: scan window |
+| `/wll controls` | Open the standalone scan and diagnostic controls |
 | `/wll scan bags` | Scan materials for recognized crates in equipped bags |
 | `/wll scan hovered` | Scan the last recognized crate you hovered |
 | `/wll scan tracked` | Scan materials for remembered bag/bank/alt crates |
@@ -197,21 +236,23 @@ Use own scans there. Return to `default` for normal provider estimates.
 
 ## First live test
 
-The earlier version worked in the user's live client. The new UI, tracking,
-scan pacing, and writ features are tested in a simulated Lua 5.1 client and still
-need a live check.
+Version 0.3.0 worked in the user's live client. The new ranked tabs and complete
+basket shopping are tested in a simulated Lua 5.1 client and need a live check.
 Please start with a small test:
 
 1. Enable Lua errors with `/console scriptErrors 1`, then `/reload`.
 2. Have an identified crate in your bags and open the auction house.
-3. Check the Waylaid tab alongside Auctionator, the minimap button, and settings.
+3. Check both list tabs alongside Auctionator, sorting, filtering, and row hovers.
+   Check one purchase + delivery total and click it: Auctionator should open
+   Shopping with one writ/crate and the full delivery quantity.
+   Check the minimap button and settings.
    Type `/wll debug`, then `/wll scan bags`. Check that Stop pauses auto refresh.
 4. After completion, hover the crate. Check one listed material manually in the
    auction house, including enough units to fill the crate.
 5. Close the auction house and hover again. `/reload` and verify cached prices
    remain visible.
 6. If using Auctionator, check `/wll source auctionator`, its update after a scan,
-   and both shopping buttons. Verify that the selected material and quantity are
+   and the legacy shopping buttons in `/wll controls`. Verify that the selected material and quantity are
    correct. With TSM data available, check `/wll source tsm` against its tooltip.
    Return to `/wll source auto` afterward.
 7. Log into an alt, visit its bank, and check remembered crate counts after
@@ -248,8 +289,8 @@ depth, indivisible auctions, randomized exhaustive cross-checks, stale/unknown
 results, pagination, throttling, retry timeouts, interruptions, owned-stock
 filtering, profile isolation, full bootstrap, tooltip text, provider priorities,
 source settings, API errors, price-age semantics, callbacks, and shopping handoff.
-The default suite has 74 tests. Two additional contract tests run the actual
-unmodified public API Lua from separately downloaded release ZIPs (76 total):
+The default suite has 87 tests. Two additional contract tests run the actual
+unmodified public API Lua from separately downloaded release ZIPs (89 total):
 
 ```sh
 python3 tests/run.py --auctionator /path/to/Auctionator-347.zip --tsm /path/to/TradeSkillMaster.zip

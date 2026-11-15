@@ -104,8 +104,10 @@ Character identity uses GUID; snapshots are partitioned by market identity.
 Account banks. A bank tab without loaded slots cannot erase a prior snapshot.
 Shared-bank snapshots are included once. No remote-character API is assumed.
 
-`UI.lua` reparents the same controls between a standalone shell and a LibAHTab
-panel. `Minimap.lua` uses native frames, with an update callback only during drag.
+`UI.lua` retains standalone scan controls and registers two LibAHTab panels.
+`BrowseUI.lua` supplies searchable scrolling rows with separate purchase, delivery,
+and total columns. Only visible lists are rebuilt on price/UI updates; filtering
+reuses the current entries. There is no background polling. `Minimap.lua` uses native frames, with an update callback only during drag.
 
 `WritData.lua` is generated offline from `data/writs.json`: 150 Forever quests,
 150 distinct required goods, 148 additional IDs relative to crate materials.
@@ -123,3 +125,28 @@ Importer review checks: all 150 objective writ item IDs/names matched the guide'
 150 item links. Quest IDs are parsed rather than inferred from item-ID offsets.
 Delivery objectives exclude the writ itself; Crafted Solid Shot requires 200
 units. Network/parse failures abort replacement of the existing checked-in data.
+
+## Complete acquisition baskets (v0.4.0)
+
+`Shopping.lua` builds ranked entries and exact-name shopping terms independently
+of frame rendering. Each total combines a provider purchase estimate for one
+identified writ/crate with the full delivery quote. Missing components produce a
+nil total; comparator ordering is numeric total, then name and item ID, with
+unknown totals last. Stale totals retain their values and carry a visible marker.
+
+Crates select the cheapest nonfailed usable option across scan/provider quotes,
+falling back to known-old quotes only when none is usable. Observed shortages
+are excluded. This does not claim that an unpriced alternative is more expensive.
+Writ requirements are cumulative; every objective must be priced for a total.
+
+`Core.ShopEntry` reprices on click, constructs the full basket, and validates
+localized names and the tab-switching API before stopping the scanner. One
+crate/writ and only the selected delivery goods are handed off. Legacy
+delivery-only commands retain their older API fallback; list row shopping
+requires `MultiSearchAdvanced`, whose upstream implementation switches tabs.
+
+All 180 purchase IDs are read only from optional price databases. Neither list
+construction nor Refresh creates auction queries or expands the scanner catalog.
+Automatic tracked-crate refresh runs in the Crates tab/scan controls, not Writs.
+Tests execute actual Auctionator 347 public source to check Shopping tab clicks
+and both complete baskets, including the 200-unit ammo requirement.

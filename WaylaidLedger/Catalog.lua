@@ -67,7 +67,9 @@ function Catalog.SearchName(itemID)
     -- localized auction search; wait for the client's name on other locales.
     local locale = GetLocale()
     if locale == "enUS" or locale == "enGB" then
-        return addon.MaterialNames[itemID]
+        return addon.MaterialNames[itemID] or addon.WritMaterialNames[itemID]
+            or (addon.Writs[itemID] and addon.Writs[itemID].name)
+            or (addon.Crates[itemID] and addon.Crates[itemID].name)
     end
     return nil
 end

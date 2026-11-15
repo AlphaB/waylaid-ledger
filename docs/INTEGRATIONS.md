@@ -102,7 +102,7 @@ user to retry instead of searching with the wrong language.
 
 ## Validation performed
 
-- 74 standard Lua 5.1 tests execute the production modules.
+- 87 standard Lua 5.1 tests execute the production modules.
 - Two optional tests execute the **unmodified public API source** from Auctionator
   347 and TSM 4.15.7, with their internal services and UI stubbed.
 - Auctionator contract check: returned copper and day age, update registration,
@@ -124,3 +124,20 @@ LibStub and LibAHTab 1.0 minor 5 are bundled with their own licenses. LibAHTab
 shares a single extra-tab row with compatible addons, including Auctionator 347,
 without appending to Blizzard's `AuctionHouseFrame.Tabs` array. The actual
 unmodified library is executed by the integration tests.
+
+## Complete basket lists (v0.4.0)
+
+Purchase estimates add one writ/crate to the full delivery amount. Writ purchases
+use the writ source policy; crate purchases use provider Auto independently of
+the crate-delivery policy. No purchase IDs are added to the own scanner.
+
+Row shopping passes exact localized names and quantities for the writ/crate and
+its selected delivery goods to `MultiSearchAdvanced`. Its released implementation
+clicks `AuctionatorTabs_Shopping` and raises `ListSearchRequested`; our code does
+not call internal tab frames itself. Contract tests execute that implementation
+and assert a tab click and complete quantities for both a writ and a crate.
+
+Older list-creation APIs do not guarantee tab switching. They remain available
+for the legacy commands, but row shopping capability checks require the advanced
+API before interrupting any existing scan. Missing localized names also leave
+the current scan undisturbed.

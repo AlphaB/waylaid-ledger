@@ -1,5 +1,5 @@
 local addonName, addon = ...
-addon.version = "0.3.0"
+addon.version = "0.4.0"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -52,7 +52,7 @@ end
 
 function addon:RequestAutoScan()
     if not self.db.tracking.enabled or not self.db.tracking.autoScan or self.autoPaused
-        or not self.scanner.open or self.scanner.active or not self.UI.IsPanelVisible()
+        or not self.scanner.open or self.scanner.active or not self.UI.IsScanPanelVisible()
         or (self.db.source ~= "auto" and self.db.source ~= "own") then return end
     self.autoDue = GetTime() + 0.5
     self:UpdateScheduler()
@@ -60,7 +60,7 @@ end
 
 function addon:AutoScan()
     if not self.db.tracking.enabled or not self.db.tracking.autoScan or self.autoPaused
-        or not self.scanner.open or self.scanner.active or not self.UI.IsPanelVisible()
+        or not self.scanner.open or self.scanner.active or not self.UI.IsScanPanelVisible()
         or (self.db.source ~= "auto" and self.db.source ~= "own") then return end
     if self.lastExternalAt and GetTime() - self.lastExternalAt < 1 then
         self.autoDue = self.lastExternalAt + 1
@@ -215,6 +215,27 @@ function addon:Shop(allOptions, optionIndex)
     return true
 end
 
+function addon:ShopEntry(kind, itemID)
+    if not self.scanner.open then
+        self:Print("Open the auction house to search with Auctionator.")
+        return false
+    end
+    if not self.Providers.ShoppingAvailable(true) then
+        self:Print("Auctionator's row-shopping API is unavailable. Update/enable Auctionator.")
+        return false
+    end
+    -- Reprice on click so a stale row cannot select an obsolete filling option.
+    local entry = self.Shopping.Entry(kind, itemID)
+    local terms, reason = self.Shopping.Terms(entry)
+    if not terms then self:Print(reason); return false end
+    self:StopScan("Stopped to hand the complete basket to Auctionator.")
+    local ok, errorMessage = self.Providers.Search(terms, "Waylaid Ledger - basket - " .. itemID, true)
+    if not ok then self:Print(errorMessage); return false end
+    self.lastBasket = entry
+    self:Log("Basket handoff: " .. kind .. " " .. itemID .. "; " .. #terms .. " search terms")
+    return true
+end
+
 function addon:StartScan(scope)
     local crateIDs
     if scope == "all" then
@@ -262,7 +283,9 @@ function addon:Report()
         string.format("Tracking: enabled=%s banks=%s alts=%s autoRefresh=%s paused=%s",
             tostring(self.db.tracking.enabled), tostring(self.db.tracking.bank), tostring(self.db.tracking.alts),
             tostring(self.db.tracking.autoScan), tostring(self.autoPaused)),
-        "AH tab: " .. tostring(self.UI.auctionHost ~= nil) .. "; minimap hidden: " .. tostring(self.db.minimap.hide),
+        "AH tabs: " .. tostring(self.UI.auctionHost ~= nil) .. "; active: " .. tostring(self.db.browserTab) .. "; minimap hidden: " .. tostring(self.db.minimap.hide),
+        "Last basket: " .. tostring(self.lastBasket and self.lastBasket.itemID)
+            .. "; total: " .. tostring(self.lastBasket and self.lastBasket.total),
         "Scan requests retained in rolling window: " .. #self.scanner.requests,
         "Price policy: " .. self.db.source .. "; TSM key: " .. self.db.tsmKey,
         "Auctionator price API: " .. tostring(self.Providers.Available("auctionator"))
@@ -345,6 +368,8 @@ function addon:Command(text)
         else
             self:Shop(false, tonumber(rest))
         end
+    elseif command == "controls" then
+        self.UI.OpenControls()
     elseif command == "settings" then
         self.UI.ToggleSettings()
     elseif command == "inventory" then
@@ -391,7 +416,7 @@ function addon:Command(text)
     else
         self:Print("/wll - window | scan bags/hovered/all | source auto/auctionator/tsm/own | tsmkey DBMinBuyout/DBMarket")
         self:Print("search | shop [option number] | stop | report | debug | inspect [item ID] | market <name> | clear")
-        self:Print("writsource auto/auctionator/tsm/off | settings | inventory | minimap/tracking/banks/alts/autoscan/details on/off | scan tracked")
+        self:Print("writsource auto/auctionator/tsm/off | settings | controls | inventory | minimap/tracking/banks/alts/autoscan/details on/off | scan tracked")
     end
     self.UI.Update()
 end

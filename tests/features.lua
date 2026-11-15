@@ -144,8 +144,21 @@ test("auction integration shares the real tab library and does not alter Blizzar
         addon.scanAutomatic=false;addon.scanner:SetOpen(true)
         addon.UI.AttachAuction();assert(addon.UI.auctionHost)
         equal(#AuctionHouseFrame.Tabs,3)
-        addon.UI.Toggle();equal(addon.UI.panel:GetParent(),addon.UI.auctionHost)
+        equal(addon.UI.panel:GetParent(),addon.UI.frame)
+        addon.UI.Toggle();equal(addon.UI.auctionHosts.crates,addon.UI.auctionHost)
         equal(addon.UI.auctionHost:IsShown(),true);equal(addon.UI.frame:IsShown(),false)
+        local writHost=addon.UI.auctionHosts.writs
+        lib:SetSelected("WaylaidLedgerWrits");equal(writHost:IsShown(),true)
+        equal(addon.UI.auctionHost:IsShown(),false);equal(addon.db.browserTab,"writs")
+        equal(addon.UI.IsScanPanelVisible(),false)
+        addon.UI.OpenControls();addon.scanAutomatic=true
+        addon.scanMarket=addon:GetMarket();addon.scanner:Start({2770})
+        assert(addon.scanner.active)
+        lib:SetSelected("WaylaidLedgerWrits")
+        equal(addon.scanner.active,false);equal(addon.autoDue,nil)
+        addon.scanAutomatic=false
+        lib:SetSelected("WaylaidLedgerCrates");equal(writHost:IsShown(),false)
+        equal(addon.UI.IsScanPanelVisible(),true)
         local other=CreateFrame("Frame",nil,AuctionHouseFrame)
         lib:CreateTab("OtherAddonTest",other,"Other")
         lib:SetSelected("OtherAddonTest");equal(addon.UI.auctionHost:IsShown(),false);equal(other:IsShown(),true)
@@ -156,7 +169,7 @@ test("auction integration shares the real tab library and does not alter Blizzar
     lib.internalState=oldState
     AuctionHouseFrame,AuctionHouseFrameDisplayMode=oldAH,oldMode
     PanelTemplates_TabResize,PanelTemplates_SelectTab,PanelTemplates_DeselectTab=oldResize,oldSelect,oldDeselect
-    addon.UI.auctionHost,addon.UI.tabLibrary=nil,nil;addon.autoDue=nil;addon:UpdateScheduler()
+    addon.UI.auctionHost,addon.UI.tabLibrary,addon.UI.auctionHosts=nil,nil,nil;addon.BrowseUI.views={};addon.autoDue=nil;addon:UpdateScheduler()
     assert(ok,err)
 end)
 test("minimap visibility, settings click, dragging and saved angle work",function()

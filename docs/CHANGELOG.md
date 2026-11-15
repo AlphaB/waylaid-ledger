@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0
+
+- Separate Writs and Waylaid Crates auction tabs with scrollable ranked lists.
+- Purchase, delivery, and total columns; unknown totals sort last.
+- Search by item or delivery goods; hover for the full price breakdown.
+- Crate rows select the cheapest known usable filling option.
+- Row clicks open Auctionator Shopping with one writ/crate and its delivery goods.
+- Baskets are repriced and localized names validated before handing off scans.
+- Purchase quotes read Auctionator/TSM caches; own scanning stays at 96 materials.
+- Original scan controls remain under settings and `/wll controls`.
+- 87 default Lua 5.1 tests; 89 with upstream API contracts including tab switching.
+
 ## 0.3.0
 
 - AH-integrated Waylaid tab using the shared LibAHTab row.

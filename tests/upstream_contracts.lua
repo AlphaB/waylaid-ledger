@@ -5,7 +5,8 @@ local addon, test, equal = ...
 -- functions, argument validation and handoff behavior are the upstream code.
 if UPSTREAM_AUCTIONATOR then
     test("adapter calls actual Auctionator release price, age, callback and shopping APIs", function()
-        local callback, terms, listItems, searched
+        local callback, terms, listItems, searched, shoppingClicks
+        shoppingClicks = 0
         local list = { AppendItems=function(_,items) listItems=items end }
         Auctionator = { API={v1={}},
             Database={GetPrice=function(_,key) equal(key,"2770");return 125 end,
@@ -29,7 +30,7 @@ if UPSTREAM_AUCTIONATOR then
             RegisterSource=function(self) return self end,
             Fire=function(self,_,event) equal(event,"search");searched=true;return self end,
             UnregisterSource=function(self) return self end}
-        AuctionatorTabs_Shopping={Click=function() end}
+        AuctionatorTabs_Shopping={Click=function() shoppingClicks=shoppingClicks+1 end}
         AUCTIONATOR_L_TEMPORARY_LOWER_CASE="temporary"
         for _,path in ipairs({"Source/API/v1/GetAuctionPrice.lua","Source/API/v1/GetAuctionAge.lua",
             "Source/API/v1/MultiSearch.lua","Source_ModernAH/API/v1/RegisterForDBUpdate.lua"}) do
@@ -42,6 +43,27 @@ if UPSTREAM_AUCTIONATOR then
         callback()
         local ok=addon.Providers.Search({{searchString="Copper Ore",categoryKey="",isExact=true,quantity=20}},"Test list")
         equal(ok,true);assert(searched);assert(terms);equal(listItems[1],"exact copper ore;20")
+        equal(shoppingClicks,1)
+        local basketTerms={}
+        Auctionator.Search.ReconstituteAdvancedSearch=function(term)
+            equal(term.isExact,true);basketTerms[#basketTerms+1]=term
+            return term.searchString .. ";" .. term.quantity
+        end
+        Auctionator.Database.GetPrice=function(_,id)
+            return ({["264037"]=40,["8069"]=3,["248683"]=50,["2770"]=4,["2771"]=2})[id]
+        end
+        Auctionator.Database.GetPriceAge=function() return 0 end
+        addon.db.writSource,addon.db.source="auto","auto"
+        addon.scanner:SetOpen(true);addon.Providers.Invalidate()
+        equal(addon:ShopEntry("writs",264037),true)
+        equal(shoppingClicks,2);equal(#basketTerms,2)
+        equal(basketTerms[1].searchString,"Craftsman's Writ: Crafted Solid Shot");equal(basketTerms[1].quantity,1)
+        equal(basketTerms[2].searchString,"Crafted Solid Shot");equal(basketTerms[2].quantity,200)
+        local market=addon:GetMarket();market.items,market.failures={},{}
+        basketTerms={};equal(addon:ShopEntry("crates",248683),true)
+        equal(shoppingClicks,3);equal(#basketTerms,2)
+        equal(basketTerms[1].searchString,addon.Crates[248683].name);equal(basketTerms[1].quantity,1)
+        equal(basketTerms[2].searchString,"Tin Ore");equal(basketTerms[2].quantity,20)
         Auctionator=nil;addon.Providers.boundAPI=nil;addon.Providers.Invalidate()
     end)
 end

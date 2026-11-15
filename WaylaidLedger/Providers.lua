@@ -23,10 +23,10 @@ function Providers.Available(source)
     return api ~= nil and type(api[method]) == "function"
 end
 
-function Providers.ShoppingAvailable()
+function Providers.ShoppingAvailable(requireTabSwitch)
     local api = auctionatorAPI()
     return api ~= nil and (type(api.MultiSearchAdvanced) == "function"
-        or (type(api.ConvertToSearchString) == "function" and type(api.CreateShoppingList) == "function"))
+        or (not requireTabSwitch and type(api.ConvertToSearchString) == "function" and type(api.CreateShoppingList) == "function"))
 end
 
 function Providers.Invalidate()
@@ -103,9 +103,9 @@ function Providers.Install()
     end
 end
 
-function Providers.Search(terms, listName)
+function Providers.Search(terms, listName, requireTabSwitch)
     local api = auctionatorAPI()
-    if not Providers.ShoppingAvailable() then
+    if not Providers.ShoppingAvailable(requireTabSwitch) then
         return false, "Auctionator's shopping API is unavailable. Install/enable a compatible Auctionator release."
     end
     local ok, errorMessage

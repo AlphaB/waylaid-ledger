@@ -186,7 +186,7 @@ test("source settings persist and explicit unavailable source stays unknown",fun
     -- Simulate reload using the same production modules and persisted table.
     local originalCallback,originalFrame,originalReport,originalSlash=TooltipDataProcessor.callback,WaylaidLedgerFrame,WaylaidLedgerReportFrame,SlashCmdList.WAYLAIDLEDGER
     local reloaded={}
-    for _,name in ipairs({"Data","WritData","Catalog","Inventory","Pricing","Providers","WritPricing","Scanner","Tooltip","UI","Minimap","Core"}) do
+    for _,name in ipairs({"Data","WritData","Catalog","Inventory","Pricing","Providers","WritPricing","Shopping","Scanner","Tooltip","UI","BrowseUI","Minimap","Core"}) do
         assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/"..name..".lua"))("WaylaidLedger",reloaded)
     end
     -- Core registers ADDON_LOADED on the newly created unnamed frame. Locate it
@@ -266,7 +266,7 @@ end)
 test("diagnostics include provider policy, per-row provenance, and API errors",function()
     reset();fakeAuctionator({[2770]=5});addon.lastCrateID=248683
     local report=addon:Report()
-    assert(report:match("0.3.0"));assert(report:match("Price policy: auto"))
+    assert(report:match("0.4.0"));assert(report:match("Price policy: auto"))
     assert(report:match("source=auctionator estimated=true ageDays=0"))
     Providers.errors.tsm="not ready";report=addon:Report();assert(report:match("TSM last error: not ready"))
 end)

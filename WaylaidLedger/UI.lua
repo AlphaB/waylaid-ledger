@@ -103,7 +103,7 @@ function UI.Create()
         if addon.initialized then UI.Update(); addon:RequestAutoScan() end
     end)
     frame:SetScript("OnHide", function()
-        if addon.initialized and not UI.IsPanelVisible() then
+        if addon.initialized and not UI.IsScanPanelVisible() then
             addon.autoDue = nil
             if addon.scanAutomatic and addon.scanner.active then addon:StopScan("Automatic refresh paused after closing the panel.") end
             addon:UpdateScheduler()
@@ -116,6 +116,7 @@ function UI.Update()
     if not UI.frame then
         return
     end
+    if addon.BrowseUI then addon.BrowseUI.UpdateVisible() end
     local scanner = addon.scanner
     UI.source:SetText("Prices: " .. SOURCE_LABELS[addon.db.source] .. " (change)")
     UI.tsmKey:SetText(addon.db.tsmKey == "DBMarket" and "TSM: Market value (change)" or "TSM: Min buyout (change)")
@@ -180,65 +181,78 @@ function UI.Update()
         crateCount, totals.characters, totals.banks))
 end
 
-local TAB_ID = "WaylaidLedger"
+local TAB_IDS = { crates = "WaylaidLedgerCrates", writs = "WaylaidLedgerWrits" }
 
 function UI.IsPanelVisible()
-    return (UI.frame and UI.frame:IsShown())
-        or (UI.auctionHost and UI.auctionHost:IsShown() and AuctionHouseFrame and AuctionHouseFrame:IsShown()) or false
+    if UI.frame and UI.frame:IsShown() then return true end
+    for _, host in pairs(UI.auctionHosts or {}) do
+        if AuctionHouseFrame and AuctionHouseFrame:IsShown() and host:IsShown() then return true end
+    end
+    return false
+end
+
+function UI.IsScanPanelVisible()
+    return (UI.frame and UI.frame:IsShown()) or (AuctionHouseFrame and AuctionHouseFrame:IsShown() and UI.auctionHost and UI.auctionHost:IsShown()) or false
 end
 
 function UI.AttachAuction()
-    if UI.auctionHost or not AuctionHouseFrame or not LibStub then return end
+    if UI.auctionHosts or not AuctionHouseFrame or not LibStub then return end
     local lib = LibStub:GetLibrary("LibAHTab-1-0", true)
     if not lib then return end
-    local host = CreateFrame("Frame", "WaylaidLedgerAuctionPanel", AuctionHouseFrame)
-    host:SetPoint("TOPLEFT", AuctionHouseFrame, "TOPLEFT", 10, -35)
-    host:SetPoint("BOTTOMRIGHT", AuctionHouseFrame, "BOTTOMRIGHT", -10, 10)
-    host:SetScript("OnShow", function()
-        UI.panel:SetParent(host)
-        UI.panel:ClearAllPoints()
-        UI.panel:SetPoint("TOPLEFT")
-        UI.panel:Show()
-        UI.frame:Hide()
-        UI.Update()
-        addon:RequestAutoScan()
-    end)
-    host:SetScript("OnHide", function()
-        addon.autoDue = nil
-        if addon.scanAutomatic and addon.scanner.active then
-            addon:StopScan("Automatic refresh paused after leaving the Waylaid tab.")
-        end
-        addon:UpdateScheduler()
-    end)
-    lib:CreateTab(TAB_ID, host, "Waylaid", "Waylaid Ledger")
-    UI.auctionHost, UI.tabLibrary = host, lib
+    UI.auctionHosts, UI.tabLibrary = {}, lib
+    for _, kind in ipairs({ "writs", "crates" }) do
+        local category = kind
+        local host = CreateFrame("Frame", nil, AuctionHouseFrame)
+        host:SetPoint("TOPLEFT", AuctionHouseFrame, "TOPLEFT", 10, -35)
+        host:SetPoint("BOTTOMRIGHT", AuctionHouseFrame, "BOTTOMRIGHT", -10, 10)
+        UI.auctionHosts[category] = host
+        local view = addon.BrowseUI.Create(host, category)
+        host:SetScript("OnShow", function()
+            addon.db.browserTab = category
+            UI.frame:Hide()
+            addon.BrowseUI.Refresh(view)
+            if category == "crates" then addon:RequestAutoScan() end
+        end)
+        host:SetScript("OnHide", function()
+            if category == "crates" then
+                addon.autoDue = nil
+                if addon.scanAutomatic and addon.scanner.active then
+                    addon:StopScan("Automatic refresh paused after leaving the crates tab.")
+                end
+                addon:UpdateScheduler()
+            end
+        end)
+        local title = category == "writs" and "Writs" or "Waylaid Crates"
+        lib:CreateTab(TAB_IDS[category], host, title, "Waylaid Ledger - " .. title)
+    end
+    UI.auctionHost = UI.auctionHosts.crates
 end
 
 function UI.AuctionClosed()
-    if UI.auctionHost then UI.auctionHost:Hide() end
-    UI.panel:SetParent(UI.frame)
-    UI.panel:ClearAllPoints()
-    UI.panel:SetPoint("TOPLEFT", 5, -25)
+    for _, host in pairs(UI.auctionHosts or {}) do host:Hide() end
     UI.frame:Hide()
+end
+
+function UI.OpenControls()
+    UI.Update()
+    UI.frame:Show()
+    addon:RequestAutoScan()
 end
 
 function UI.Toggle()
     UI.Update()
     if addon.scanner.open and AuctionHouseFrame then
         UI.AttachAuction()
-        if UI.auctionHost then
-            if UI.auctionHost:IsShown() then
+        if UI.auctionHosts then
+            if UI.auctionHosts.crates:IsShown() or UI.auctionHosts.writs:IsShown() then
                 AuctionHouseFrame:SetDisplayMode(AuctionHouseFrameDisplayMode.Buy)
             else
-                UI.tabLibrary:SetSelected(TAB_ID)
+                local kind = TAB_IDS[addon.db.browserTab] and addon.db.browserTab or "crates"
+                UI.tabLibrary:SetSelected(TAB_IDS[kind])
             end
             return
         end
     end
-    UI.panel:SetParent(UI.frame)
-    UI.panel:ClearAllPoints()
-    UI.panel:SetPoint("TOPLEFT", 5, -25)
-    UI.panel:Show()
     UI.frame:SetShown(not UI.frame:IsShown())
     if UI.frame:IsShown() then addon:RequestAutoScan() end
 end
@@ -258,7 +272,7 @@ end
 function UI.ToggleSettings()
     if not UI.settings then
         local frame = CreateFrame("Frame", "WaylaidLedgerSettingsFrame", UIParent, "BasicFrameTemplateWithInset")
-        frame:SetSize(480, 420)
+        frame:SetSize(480, 460)
         frame:SetPoint("CENTER")
         frame:SetFrameStrata("DIALOG")
         frame:SetClampedToScreen(true)
@@ -283,12 +297,13 @@ function UI.ToggleSettings()
             local sources = { auto = "auctionator", auctionator = "tsm", tsm = "off", off = "auto" }
             addon:SetWritSource(sources[addon.db.writSource])
         end)
+        button(frame, "Scan controls / diagnostics", 18, -290, 230, function() UI.OpenControls(); frame:Hide() end)
         local note = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-        note:SetPoint("TOPLEFT", 18, -300)
+        note:SetPoint("TOPLEFT", 18, -330)
         note:SetWidth(440)
         note:SetJustifyH("LEFT")
         note:SetText("Offline characters are last-seen snapshots. Log into each character and visit their bank once. No auction queries run away from the auction house.")
-        button(frame, "Clear remembered inventory", 18, -365, 230, function()
+        button(frame, "Clear remembered inventory", 18, -405, 230, function()
             addon.db.inventory = { characters = {}, sharedBanks = {} }
             addon.Inventory.CaptureBags()
             addon.Inventory.CaptureBank()

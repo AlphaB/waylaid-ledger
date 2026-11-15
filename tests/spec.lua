@@ -14,7 +14,7 @@ local function loadModule(name)
     local chunk = assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/" .. name .. ".lua"))
     chunk("WaylaidLedger", addon)
 end
-for _, name in ipairs({ "Libs/LibStub", "Libs/LibAHTab", "Data", "WritData", "Catalog", "Inventory", "Pricing", "Providers", "WritPricing", "Scanner" }) do loadModule(name) end
+for _, name in ipairs({ "Libs/LibStub", "Libs/LibAHTab", "Data", "WritData", "Catalog", "Inventory", "Pricing", "Providers", "WritPricing", "Shopping", "Scanner" }) do loadModule(name) end
 local P = addon.Pricing
 local function commodity(offers, at) return {kind="commodity", offers=offers, scannedAt=at or 100} end
 local function item(offers) return {kind="item", offers=offers, scannedAt=100} end
@@ -218,6 +218,11 @@ function methods:RegisterEvent(event) self.events[event]=true end
 function methods:UnregisterEvent(event) self.events[event]=nil end
 function methods:CreateFontString() return setmetatable({scripts={},events={}}, {__index=methods}) end
 function methods:SetText(text) self.text=text end
+function methods:GetText() return rawget(self,"text") or "" end
+function methods:SetHeight(height) self.height=height end
+function methods:SetWidth(width) self.width=width end
+function methods:SetVerticalScroll(value) self.scroll=value end
+function methods:GetVerticalScroll() return rawget(self,"scroll") or 0 end
 function methods:Show() local changed=not self.shown;self.shown=true;if changed and self.scripts.OnShow then self.scripts.OnShow(self) end end
 function methods:Hide() local changed=self.shown;self.shown=false;if changed and self.scripts.OnHide then self.scripts.OnHide(self) end end
 function methods:IsShown() local parent=rawget(self,"parent");return self.shown and (not parent or not parent.IsShown or parent:IsShown()) end
@@ -246,6 +251,7 @@ function CreateFrame(kind,name,parent)
     return f
 end
 UIParent={};UISpecialFrames={};SlashCmdList={};tinsert=table.insert
+SearchBoxTemplate_OnTextChanged=function() end
 C_Item={GetItemNameByID=function() return nil end,RequestLoadItemDataByID=function() end}
 GetTime=function() return 0 end;time=function() return 100 end;date=function() return "12:00:00" end
 GetCurrentRegion=function() return 3 end;GetNormalizedRealmName=function() return "TestRealm" end;GetRealmName=GetNormalizedRealmName
@@ -263,7 +269,7 @@ NUM_TOTAL_EQUIPPED_BAG_SLOTS=5
 local bags={[0]={248682,248683,248682,999},[5]={248684}}
 C_Container={GetContainerNumSlots=function(bag) return bags[bag] and #bags[bag] or 0 end,
     GetContainerItemID=function(bag,slot) return bags[bag][slot] end}
-for _, name in ipairs({"Tooltip","UI","Minimap","Core"}) do loadModule(name) end
+for _, name in ipairs({"Tooltip","UI","BrowseUI","Minimap","Core"}) do loadModule(name) end
 local host=frames[1]
 host.scripts.OnEvent(host,"ADDON_LOADED","WaylaidLedger")
 
@@ -326,5 +332,6 @@ end)
 assert(loadfile(PROJECT_ROOT .. "/tests/integrations.lua"))(addon, test, equal, host)
 assert(loadfile(PROJECT_ROOT .. "/tests/features.lua"))(addon, test, equal, host)
 assert(loadfile(PROJECT_ROOT .. "/tests/writs.lua"))(addon, test, equal)
+assert(loadfile(PROJECT_ROOT .. "/tests/shopping.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/upstream_contracts.lua"))(addon, test, equal)
 print(string.format("\n%d tests passed on %s",passed,_VERSION))
