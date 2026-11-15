@@ -53,7 +53,7 @@ function Providers.Read(source, itemID)
     if source == "auctionator" then
         ok, price = pcall(api.GetAuctionPriceByItemID, CALLER, itemID)
     else
-        -- Raw materials have no relevant item-level/bonus distinctions.
+        -- Base-item estimates for catalogued materials and finished writ goods.
         ok, price, reason = pcall(api.GetCustomPriceValue, addon.db.tsmKey, "i:" .. itemID)
     end
     local value

@@ -10,7 +10,7 @@
   indivisible auctions. State counts are capped at the required bundle size.
 - `Providers.lua`: optional public API adapters, on-demand estimates, update
   callbacks, and Auctionator shopping handoff. See [INTEGRATIONS.md](INTEGRATIONS.md).
-- `Scanner.lua`: single-flight, event-driven state machine. Query pacing is 0.8s;
+- `Scanner.lua`: single-flight, event-driven state machine. Query courtesy spacing is 0.05s;
   throttle readiness also gates every request. Each unanswered item gets one retry
   after 15s. The total per-item deadline is 90s, including throttle/page waits.
 - `Tooltip.lua`: modern item-tooltip post-processing, duplicate suppression,
@@ -32,7 +32,7 @@ recognized. There is no universal cross-addon lock: finish other scan operations
 before starting this one. Internal page-request activity from another addon is
 not independently attributed.
 
-No timers run while idle. While scanning, a frame checks state every 0.1s. One
+No timers run while idle. While scanning or waiting for a scheduled refresh, a frame checks state on update. One
 material's completed snapshot is persisted immediately in SavedVariables memory;
 WoW writes SavedVariables to disk on logout/reload, as usual. Logs are capped at
 100 entries.
@@ -58,7 +58,9 @@ The relevant auction contract is `C_AuctionHouse.MakeItemKey`,
 `HasFullCommoditySearchResults`, `HasFullItemSearchResults`, both `RequestMore*`
 methods, both `GetNum*SearchResults` methods, and both `Get*SearchResultInfo`
 methods. `IsThrottledMessageSystemReady` gates requests. The API documents a
-100 search/minute limit; our 0.8s minimum interval also applies to page requests.
+100 search/minute limit; a rolling 100-request / 60.1s budget includes page
+requests and observed external queries and survives scanner restarts. Server
+readiness is always required, regardless of the courtesy interval.
 
 `COMMODITY_SEARCH_RESULTS_UPDATED/ADDED` carry an item ID;
 `ITEM_SEARCH_RESULTS_UPDATED/ADDED` carry an item key. The no-payload
@@ -93,3 +95,31 @@ loader. Tests execute the actual production modules without transformed code.
 
 Catalog refresh is an explicit developer action. The addon has no HTTP capability
 and never attempts network calls outside WoW's built-in AH query API.
+
+## v0.3 modules and data
+
+`Inventory.lua` stores recognized bag/bank contents in account SavedVariables.
+Character identity uses GUID; snapshots are partitioned by market identity.
+`C_Bank.FetchPurchasedBankTabIDs` supplies actual containers for Character and
+Account banks. A bank tab without loaded slots cannot erase a prior snapshot.
+Shared-bank snapshots are included once. No remote-character API is assumed.
+
+`UI.lua` reparents the same controls between a standalone shell and a LibAHTab
+panel. `Minimap.lua` uses native frames, with an update callback only during drag.
+
+`WritData.lua` is generated offline from `data/writs.json`: 150 Forever quests,
+150 distinct required goods, 148 additional IDs relative to crate materials.
+`WritPricing.lua` reuses provider resolution without using persisted own scans;
+requirements are cumulative, so it clears alternative-winner highlights and only
+returns a total when every required item has a price. Nothing adds writ goods to
+`Catalog.Materials` or the scanner. Main and writ source settings are independent.
+
+Primary sources: [writ overview](https://www.wowhead.com/forever/guide/professions/craftsmans-writs-overview-recipes-rewards),
+[Forever quest index](https://www.wowhead.com/forever/quests/name:Craftsman%27s%20Writ),
+[bank API](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_APIDocumentationGenerated/BankDocumentation.lua),
+and [LibAHTab upstream](https://github.com/TheMouseNest/LibAHTab).
+
+Importer review checks: all 150 objective writ item IDs/names matched the guide's
+150 item links. Quest IDs are parsed rather than inferred from item-ID offsets.
+Delivery objectives exclude the writ itself; Crafted Solid Shot requires 200
+units. Network/parse failures abort replacement of the existing checked-in data.

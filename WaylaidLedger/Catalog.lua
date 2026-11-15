@@ -49,6 +49,8 @@ end
 function Catalog.ItemName(itemID)
     return (C_Item and C_Item.GetItemNameByID(itemID))
         or addon.MaterialNames[itemID]
+        or addon.WritMaterialNames[itemID]
+        or (addon.Writs[itemID] and addon.Writs[itemID].name)
         or (addon.Crates[itemID] and addon.Crates[itemID].name)
         or ("Item " .. itemID)
 end

@@ -6,13 +6,15 @@ addon.Scanner = {}
 local Scanner = addon.Scanner
 Scanner.__index = Scanner
 
-local INTERVAL = 0.8 -- At most 75 requests/minute; the API permits 100 searches.
+local INTERVAL = 0.05 -- Courtesy gap only; server readiness gates every request.
+local WINDOW = 60.1
+local REQUEST_LIMIT = 100 -- Rolling window, retained across stop/restart and external queries.
 local RESPONSE_TIMEOUT = 15
 local JOB_TIMEOUT = 90
 
 function Scanner.New(api, runtime, callbacks)
     return setmetatable({ api = api, runtime = runtime, callbacks = callbacks,
-        active = false, open = false, nextSend = 0 }, Scanner)
+        active = false, open = false, nextSend = 0, requests = {} }, Scanner)
 end
 
 function Scanner:Notify()
@@ -73,7 +75,9 @@ function Scanner:Stop(message)
 end
 
 function Scanner:ExternalQuery()
-    if self.active and not self.issuing then
+    if self.issuing then return end
+    self:RecordRequest()
+    if self.active then
         self:Stop("Scan stopped because another auction search started. Scan again when the auction house is idle.")
     end
 end
@@ -98,11 +102,25 @@ function Scanner:Advance()
     self:Notify()
 end
 
+function Scanner:BudgetReady(now)
+    while self.requests[1] and now - self.requests[1] >= WINDOW do
+        table.remove(self.requests, 1)
+    end
+    return #self.requests < REQUEST_LIMIT
+end
+
+function Scanner:RecordRequest()
+    local now = self.runtime.now()
+    self:BudgetReady(now)
+    self.requests[#self.requests + 1] = now
+end
+
 function Scanner:Send(method, argument, ...)
+    self:RecordRequest()
+    self.nextSend = self.runtime.now() + INTERVAL
     self.issuing = true
     local ok, result = pcall(self.api[method], argument, ...)
     self.issuing = false
-    self.nextSend = self.runtime.now() + INTERVAL
     if not ok then
         self:Log(method .. " failed: " .. tostring(result))
         return false, tostring(result)
@@ -135,7 +153,7 @@ function Scanner:Tick()
             return
         end
     end
-    if not pending.action or now < self.nextSend or not self.api.IsThrottledMessageSystemReady() then
+    if not pending.action or now < self.nextSend or not self:BudgetReady(now) or not self.api.IsThrottledMessageSystemReady() then
         return
     end
     local action = pending.action
@@ -220,7 +238,7 @@ function Scanner:Results(kind, item)
     pending.kind = kind
     if not full then
         -- More than one event may describe a page; queue only one next request.
-        pending.action = "more"
+        pending.action, pending.sentAt = "more", nil
         return
     end
     local snapshot, errorMessage = self:ReadSnapshot(kind)

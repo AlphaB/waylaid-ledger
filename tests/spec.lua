@@ -8,12 +8,13 @@ local function test(name, fn)
     passed = passed + 1
     print("PASS " .. name)
 end
+strmatch=string.match
 local addon = {}
 local function loadModule(name)
     local chunk = assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/" .. name .. ".lua"))
     chunk("WaylaidLedger", addon)
 end
-for _, name in ipairs({ "Data", "Catalog", "Pricing", "Providers", "Scanner" }) do loadModule(name) end
+for _, name in ipairs({ "Libs/LibStub", "Libs/LibAHTab", "Data", "WritData", "Catalog", "Inventory", "Pricing", "Providers", "WritPricing", "Scanner" }) do loadModule(name) end
 local P = addon.Pricing
 local function commodity(offers, at) return {kind="commodity", offers=offers, scannedAt=at or 100} end
 local function item(offers) return {kind="item", offers=offers, scannedAt=100} end
@@ -118,6 +119,8 @@ local function scannerFixture()
     return state
 end
 
+TEST_SCANNER_FIXTURE=scannerFixture
+
 test("scanner requires auction house and nonempty queue",function()
     local f=scannerFixture();f.scanner:SetOpen(false)
     equal(f.scanner:Start({1}),false)
@@ -127,8 +130,8 @@ test("deduplicated queue is serialized and paced",function()
     local f=scannerFixture();f.scanner:Start({1,1,2})
     equal(#f.calls,1);equal(f.calls[1].id,1)
     f.full=true;f.scanner:Results("commodity",1)
-    f.now=0.7;f.scanner:Tick();equal(#f.calls,1)
-    f.now=0.8;f.scanner:Tick();equal(#f.calls,2);equal(f.calls[2].id,2)
+    f.now=0.04;f.scanner:Tick();equal(#f.calls,1)
+    f.now=0.05;f.scanner:Tick();equal(#f.calls,2);equal(f.calls[2].id,2)
     f.scanner:Results("commodity",2)
     equal(f.scanner.active,false);equal(f.scanner.completed,2);equal(f.scanner.failed,0)
 end)
@@ -215,16 +218,28 @@ function methods:RegisterEvent(event) self.events[event]=true end
 function methods:UnregisterEvent(event) self.events[event]=nil end
 function methods:CreateFontString() return setmetatable({scripts={},events={}}, {__index=methods}) end
 function methods:SetText(text) self.text=text end
-function methods:Show() self.shown=true end
-function methods:Hide() self.shown=false end
-function methods:IsShown() return self.shown end
-function methods:SetShown(shown) self.shown=shown end
+function methods:Show() local changed=not self.shown;self.shown=true;if changed and self.scripts.OnShow then self.scripts.OnShow(self) end end
+function methods:Hide() local changed=self.shown;self.shown=false;if changed and self.scripts.OnHide then self.scripts.OnHide(self) end end
+function methods:IsShown() local parent=rawget(self,"parent");return self.shown and (not parent or not parent.IsShown or parent:IsShown()) end
+function methods:SetShown(shown) if shown then self:Show() else self:Hide() end end
 function methods:AddLine(text,...) self.lines[#self.lines+1]={text,...} end
 function methods:AddDoubleLine(left,right,...) self.lines[#self.lines+1]={left,right,...} end
 function methods:HasScript() return true end
+function methods:SetParent(parent) self.parent=parent end
+function methods:GetParent() return rawget(self,"parent") end
+function methods:SetSize(w,h) self.width,self.height=w,h end
+function methods:GetWidth() return rawget(self,"width") or 140 end
+function methods:GetHeight() return rawget(self,"height") or 140 end
+function methods:GetFrameLevel() return 1 end
+function methods:IsObjectType(kind) return kind=="Frame" end
+function methods:CreateTexture() return self:CreateFontString() end
+function methods:SetPoint(...) self.point={...} end
+function methods:SetEnabled(value) self.enabled=value end
+function methods:SetChecked(value) self.checked=value end
+function methods:GetChecked() return self.checked end
 setmetatable(methods,{__index=function() return function() end end})
-function CreateFrame(kind,name)
-    local f=setmetatable({scripts={},events={},shown=false,lines={}}, {__index=methods})
+function CreateFrame(kind,name,parent)
+    local f=setmetatable({scripts={},events={},shown=true,lines={},parent=parent}, {__index=methods})
     f.TitleText=f:CreateFontString()
     frames[#frames+1]=f
     if name then _G[name]=f end
@@ -248,7 +263,7 @@ NUM_TOTAL_EQUIPPED_BAG_SLOTS=5
 local bags={[0]={248682,248683,248682,999},[5]={248684}}
 C_Container={GetContainerNumSlots=function(bag) return bags[bag] and #bags[bag] or 0 end,
     GetContainerItemID=function(bag,slot) return bags[bag][slot] end}
-for _, name in ipairs({"Tooltip","UI","Core"}) do loadModule(name) end
+for _, name in ipairs({"Tooltip","UI","Minimap","Core"}) do loadModule(name) end
 local host=frames[1]
 host.scripts.OnEvent(host,"ADDON_LOADED","WaylaidLedger")
 
@@ -269,9 +284,9 @@ test("tooltip lists every bundle, highlights cheapest and avoids duplicates",fun
         market.items[option.itemID]=commodity({{quantity=100,unitPrice=i*10}})
     end
     TooltipDataProcessor.callback(tooltip,{id=248682})
-    local count=#tooltip.lines;equal(count,9)
+    local count=#tooltip.lines;equal(count,8)
     local best=0
-    for _,line in ipairs(tooltip.lines) do if line[1]:match("^Cheapest:") then best=best+1 end end
+    for _,line in ipairs(tooltip.lines) do if line[3]==0.25 and line[4]==1 then best=best+1 end end
     equal(best,1);equal(addon.lastCrateID,248682)
     TooltipDataProcessor.callback(tooltip,{id=248682});equal(#tooltip.lines,count)
     tooltip.scripts.OnTooltipCleared(tooltip);tooltip.lines={}
@@ -282,8 +297,8 @@ test("unknown alternatives are labelled lowest verified, failures remain visible
     local tooltip=CreateFrame("GameTooltip")
     local market=addon:GetMarket();market.items[2770]=commodity({{quantity=100,unitPrice=1}});market.failures[2771]="timeout"
     TooltipDataProcessor.callback(tooltip,{id=248683})
-    equal(tooltip.lines[3][1]:sub(1,16),"Lowest verified:")
-    assert(tooltip.lines[4][2]:match("scan failed"))
+    equal(tooltip.lines[3][3],0.25);equal(tooltip.lines[3][4],1)
+    assert(tooltip.lines[4][2]:match("failed"))
 end)
 test("unidentified crates explain identification without guessing a filling price",function()
     local tooltip=CreateFrame("GameTooltip")
@@ -309,5 +324,7 @@ test("diagnostic report and current-profile clear work",function()
     addon:Command("clear");equal(next(addon:GetMarket().items),nil)
 end)
 assert(loadfile(PROJECT_ROOT .. "/tests/integrations.lua"))(addon, test, equal, host)
+assert(loadfile(PROJECT_ROOT .. "/tests/features.lua"))(addon, test, equal, host)
+assert(loadfile(PROJECT_ROOT .. "/tests/writs.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/upstream_contracts.lua"))(addon, test, equal)
 print(string.format("\n%d tests passed on %s",passed,_VERSION))

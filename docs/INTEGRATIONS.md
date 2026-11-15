@@ -38,8 +38,8 @@ checks database-key matching, not whether the bundle can be bought for the quote
 
 ## TradeSkillMaster
 
-Uses only `TSM_API.GetCustomPriceValue(key, "i:<item ID>")`. Raw materials have
-no relevant suffix/item-level distinctions. Default key: `DBMinBuyout`.
+Uses only `TSM_API.GetCustomPriceValue(key, "i:<item ID>")` for base-item
+estimates of crate materials and finished writ goods. Default key: `DBMinBuyout`.
 The optional `DBMarket` key is labelled **TSM market**. No automatic fallback
 between these two price definitions occurs.
 
@@ -69,8 +69,8 @@ TSM age remains explicitly unknown. Estimates are never assigned a fabricated
 
 The smallest usable own-scan cost is highlighted green. The smallest usable
 estimate is highlighted amber. These are separate comparisons, with ties allowed.
-Only a crate whose alternatives are all verified can say **Cheapest**; otherwise
-it says **Lowest verified** and/or **Lowest estimate**.
+The compact tooltip uses color and short source badges; Shift reveals the
+comparison legend and price age.
 
 Provider reads, including misses, are cached on demand for 15 seconds, keyed by
 market context, provider, item ID, and TSM price definition. Replacing the provider
@@ -102,7 +102,7 @@ user to retry instead of searching with the wrong language.
 
 ## Validation performed
 
-- 53 standard Lua 5.1 tests execute the production modules.
+- 74 standard Lua 5.1 tests execute the production modules.
 - Two optional tests execute the **unmodified public API source** from Auctionator
   347 and TSM 4.15.7, with their internal services and UI stubbed.
 - Auctionator contract check: returned copper and day age, update registration,
@@ -113,3 +113,14 @@ user to retry instead of searching with the wrong language.
 Actual in-game addon scheduling, UI layout and third-party interactions still
 require a live Forever test. `/wll report` includes provider capabilities, source
 policy, selected TSM key, per-row provenance and recent API errors.
+
+## Writ policy and AH tabs (v0.3.0)
+
+Writs use the same provider APIs, cache, stale handling, and TSM key as crates,
+with a separate Auto/Auctionator/TSM/Off preference. They never start queries.
+A writ price is the full delivery quantity times a cached base-item unit price.
+
+LibStub and LibAHTab 1.0 minor 5 are bundled with their own licenses. LibAHTab
+shares a single extra-tab row with compatible addons, including Auctionator 347,
+without appending to Blizzard's `AuctionHouseFrame.Tabs` array. The actual
+unmodified library is executed by the integration tests.

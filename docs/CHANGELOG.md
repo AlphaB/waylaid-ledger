@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0
+
+- AH-integrated Waylaid tab using the shared LibAHTab row.
+- Optional, draggable minimap button and settings window.
+- Server-ready scanning with a rolling request budget instead of a fixed 0.8s delay.
+- Compact, consistent scan/provider tooltips; hold Shift for details.
+- Configurable bag, visited-bank, shared-bank and alt inventory snapshots.
+- Automatic refresh of missing/stale tracked crate prices in the AH panel.
+- Provider-only hover estimates for 150 Forever Craftsman's Writs.
+- Exact Wowhead objectives; 148 new goods kept out of the own-scan queue.
+- Clean install ZIP and downloadable CI artifact.
+- 74 default Lua 5.1 tests; 76 with upstream public API contracts.
+
 ## 0.2.0
 
 - Optional Auctionator and TSM price providers, defaulting to Auto.

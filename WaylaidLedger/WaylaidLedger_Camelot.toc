@@ -2,16 +2,22 @@
 ## Title: Waylaid Ledger
 ## Notes: Compare auction costs for every Waylaid Crate filling option.
 ## Author: Mikhail Salosin
-## Version: 0.2.0
+## Version: 0.3.0
 ## OptionalDeps: Auctionator, TradeSkillMaster
 ## SavedVariables: WaylaidLedgerDB
 ## Category: Auction & Economy
 
+Libs/LibStub.lua
+Libs/LibAHTab.lua
 Data.lua
+WritData.lua
 Catalog.lua
+Inventory.lua
 Pricing.lua
 Providers.lua
+WritPricing.lua
 Scanner.lua
 Tooltip.lua
 UI.lua
+Minimap.lua
 Core.lua
