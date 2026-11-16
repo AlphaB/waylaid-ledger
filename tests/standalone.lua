@@ -22,6 +22,8 @@ local function fixture(action)
         jump = SmartNavigation_AddJumpNavigationOverride,
         directions = SMART_NAV_INPUT_DIRECTION,
         registered = addon.Navigation.registered,
+        auctionView = addon.Navigation.auctionView,
+        callbackOwner = addon.Navigation.callbackOwner,
         views = addon.BrowseUI.views,
         uiHost = addon.UI.auctionHost,
         hosts = addon.UI.auctionHosts,
@@ -143,6 +145,13 @@ local function fixture(action)
             row.overrides[direction] = callback
         end
         SmartNavigation = {
+            RegisterCallback = function(_, event, callback, owner)
+                equal(event, "SelectedButtonUpdated")
+                f.selectionCallback = function()
+                    callback(owner)
+                end
+                f.callbackCount = (f.callbackCount or 0) + 1
+            end,
             GetCurrentButton = function()
                 return f.current
             end,
@@ -158,11 +167,23 @@ local function fixture(action)
                 if target then
                     f.targets[#f.targets + 1] = target
                     if f.focus == owner then
-                        f.current = target
+                        f.select(target)
                     end
                 end
             end,
         }
+        function f.select(button)
+            f.current = button
+            if f.selectionCallback then
+                f.selectionCallback()
+            end
+        end
+        function f.navigate(direction)
+            local target = f.current.overrides[direction]()
+            if target and target ~= true then
+                f.select(target)
+            end
+        end
         GamepadMode = {
             FrameControlsManager = {
                 GetActiveFrame = function()
@@ -210,6 +231,7 @@ local function fixture(action)
         old.clock, old.nav, old.input, old.gamepad, old.combat
     SmartNavigation_MarkFrameIgnored, SmartNavigation_AddJumpNavigationOverride = old.ignored, old.jump
     SMART_NAV_INPUT_DIRECTION, addon.Navigation.registered = old.directions, old.registered
+    addon.Navigation.auctionView, addon.Navigation.callbackOwner = old.auctionView, old.callbackOwner
     addon.BrowseUI.views, addon.UI.auctionHost, addon.UI.auctionHosts = old.views, old.uiHost, old.hosts
     addon.db.browserTab, addon.Providers.Read = old.browserTab, old.read
     addon.autoPaused = false
@@ -479,11 +501,14 @@ test("native controller can move through virtual rows and retains item identity 
         local view = f.browser("writs")
         addon.BrowseUI.Refresh(view)
         equal(view.headers[1].navIgnored, true)
-        equal(f.scroll, view.scroll)
+        equal(f.scroll, nil)
         equal(f.scrollOwner, AuctionHouseFrame)
-        f.current = view.scroll.rows[1]
+        f.select(view.search)
+        f.navigate("down")
+        equal(f.current, view.scroll.rows[1])
+        equal(f.scroll, view.scroll)
         for index = 2, 25 do
-            f.current = f.current.overrides.down()
+            f.navigate("down")
             equal(f.current.entry.listIndex, index)
         end
         local itemID = f.current.entry.itemID
@@ -506,8 +531,223 @@ test("native controller can move through virtual rows and retains item identity 
         view.search.scripts.OnTextChanged(view.search)
         equal(#view.visibleEntries, 0)
         equal(f.current, view.search)
+        equal(f.scroll, nil)
     end)
 end)
+
+test("controller scroll is limited to focused rows and controls enter without scrolling", function()
+    fixture(function(f)
+        f.navigation()
+        local view = f.browser("writs")
+        addon.BrowseUI.Refresh(view)
+        equal(view.scrollBar.navIgnored, true)
+        for _, control in ipairs({ view.search, view.refreshButton, view.settingsButton, AuctionHouseFrame.Tabs[1] }) do
+            f.select(control)
+            equal(f.scroll, nil)
+            addon.BrowseUI.Refresh(view)
+            equal(f.current, control)
+            equal(f.scroll, nil)
+            equal(view.scroll.offset, 0)
+        end
+        for _, control in ipairs({ view.search, view.refreshButton, view.settingsButton }) do
+            f.select(control)
+            f.navigate("down")
+            equal(f.current.entry.listIndex, 1)
+            equal(view.scroll.offset, 0)
+            equal(f.scroll, view.scroll)
+        end
+        f.select(nil)
+        equal(f.scroll, nil)
+        addon.Navigation.Install()
+        equal(f.callbackCount, 1)
+    end)
+end)
+
+test("controller traverses both list boundaries and only scrolls when selection leaves the viewport", function()
+    fixture(function(f)
+        f.navigation()
+        local view = f.browser("crates")
+        addon.BrowseUI.Refresh(view)
+        f.select(view.search)
+        f.navigate("down")
+        for index = 2, #view.visibleEntries do
+            f.navigate("down")
+            equal(f.current.entry.listIndex, index)
+            equal(view.scroll.offset, math.max(0, index - 10))
+        end
+        local last = f.current
+        f.navigate("down")
+        equal(f.current, last)
+        for index = #view.visibleEntries - 1, 1, -1 do
+            f.navigate("up")
+            equal(f.current.entry.listIndex, index)
+        end
+        equal(view.scroll.offset, 0)
+        f.navigate("up")
+        equal(f.current, view.search)
+        equal(f.scroll, nil)
+        view.search:SetText("no matching crate")
+        view.search.scripts.OnTextChanged(view.search)
+        f.navigate("down")
+        equal(f.current, view.search)
+        equal(f.scroll, nil)
+    end)
+end)
+
+test("controller focus changes clear old lists and resume safely after combat and late loading", function()
+    fixture(function(f)
+        local first = f.browser("writs")
+        addon.BrowseUI.Refresh(first)
+        f.navigation()
+        equal(f.scroll, nil)
+        f.select(first.scroll.rows[1])
+        equal(f.scroll, first.scroll)
+        first.host:Hide()
+        local second = f.browser("crates")
+        addon.BrowseUI.Refresh(second)
+        equal(f.current, second.search)
+        equal(f.scroll, nil)
+        f.select(second.scroll.rows[1])
+        equal(f.scroll, second.scroll)
+        f.combat = true
+        f.select(second.refreshButton)
+        f.combat = false
+        host.scripts.OnEvent(host, "PLAYER_REGEN_ENABLED")
+        equal(f.scroll, nil)
+        f.select(second.scroll.rows[1])
+        second.host:Hide()
+        addon.Navigation.LeaveAuction()
+        f.select(AuctionHouseFrame.Tabs[1])
+        equal(f.scroll, nil)
+    end)
+end)
+
+if UPSTREAM_FOREVER_NAVIGATION then
+    test(
+        "unmodified Forever navigation selects virtual rows without native centering or unfocused scrolling",
+        function()
+            fixture(function(f)
+                f.navigation()
+                local noop = function() end
+                local secure = {
+                    RegisterKey = noop,
+                    WrapFunction = function(_, fn)
+                        return fn
+                    end,
+                    SetSecureValue = function(_, frame, key, value)
+                        frame[key] = value
+                    end,
+                    SecureCallOptionalFunction = function(frame, key, ...)
+                        local fn = rawget(frame, key)
+                        if fn then
+                            return fn(...)
+                        end
+                    end,
+                }
+                local env = setmetatable({
+                    import = function()
+                        return secure
+                    end,
+                    issecure = function()
+                        return true
+                    end,
+                    securecallfunction = function(fn, ...)
+                        return fn(...)
+                    end,
+                    secureexecuterange = function(values, fn)
+                        if type(values) == "table" then
+                            for index, value in ipairs(values) do
+                                fn(index, value)
+                            end
+                        end
+                    end,
+                    C_RestrictedActions = {
+                        IsAddOnRestrictionActive = function()
+                            return false
+                        end,
+                    },
+                    Enum = { AddOnRestrictionType = { Combat = 1 } },
+                    CallbackRegistryMixin = { GenerateCallbackEvents = noop },
+                    CreateFromMixins = function(mixin)
+                        local copy = {}
+                        for key, value in pairs(mixin) do
+                            copy[key] = value
+                        end
+                        return copy
+                    end,
+                    CreateVector2D = function(x, y)
+                        return {
+                            x = x,
+                            y = y,
+                            Normalize = function(self)
+                                return self
+                            end,
+                            GetLength = function()
+                                return 1
+                            end,
+                        }
+                    end,
+                }, { __index = _G })
+                for _, name in ipairs({ "Utility.lua", "SmartNavigation.lua" }) do
+                    setfenv(assert(loadstring(UPSTREAM_FOREVER_NAVIGATION[name])), env)()
+                end
+                SMART_NAV_INPUT_DIRECTION = env.SMART_NAV_INPUT_DIRECTION
+                SmartNavigation_AddJumpNavigationOverride = env.SmartNavigation_AddJumpNavigationOverride
+                local native = env.SmartNavigationMixin
+                local nav = SmartNavigation
+                nav.activeInfo = { frame = AuctionHouseFrame }
+                nav.RunCurrentButtonEnterScript, nav.RunCurrentButtonLeaveScript = noop, noop
+                nav.TrackButtonEnabledState, nav.UpdateCursorPosition = noop, noop
+                nav.TriggerEvent = function()
+                    f.current = nav.currentButton
+                    f.selectionCallback()
+                end
+                nav.SelectButton = native.SelectButton
+                nav.IsButtonValid = function(_, button)
+                    return button and button:IsVisible()
+                end
+                nav.GetButtonInfoInDirection = function()
+                    error("row navigation must bypass native centering")
+                end
+                nav.SetScrollFrameForFrame = native.SetScrollFrameForFrame
+                nav.GetPanelInfo = function()
+                    return nav.activeInfo
+                end
+                nav.SetRightStickScrollingEnabled = native.SetRightStickScrollingEnabled
+                nav.GetCurrentButton = function()
+                    return nav.currentButton
+                end
+                local view = f.browser("writs")
+                addon.BrowseUI.Refresh(view)
+                -- Native Navigate requires laid-out frames; the harness only models
+                -- viewport rows and leaves geometry/rendering to the client.
+                view.search.IsRectValid = function()
+                    return true
+                end
+                view.scroll:ForEachFrame(function(row)
+                    row.IsRectValid = function()
+                        return true
+                    end
+                end)
+                nav:SelectButton(view.search)
+                equal(nav.activeInfo.currentScrollFrame, nil)
+                for index = 1, 25 do
+                    native.Navigate(nav, SMART_NAV_INPUT_DIRECTION.DOWN)
+                    equal(nav.currentButton.entry.listIndex, index)
+                    equal(nav.activeInfo.currentScrollFrame, view.scroll)
+                    equal(view.scroll.offset, math.max(0, index - 10))
+                end
+                for index = 24, 1, -1 do
+                    native.Navigate(nav, SMART_NAV_INPUT_DIRECTION.UP)
+                    equal(nav.currentButton.entry.listIndex, index)
+                end
+                native.Navigate(nav, SMART_NAV_INPUT_DIRECTION.UP)
+                equal(nav.currentButton, view.search)
+                equal(nav.activeInfo.currentScrollFrame, nil)
+            end)
+        end
+    )
+end
 
 test("controller windows register on show and hide, support late gamepad load and defer combat changes", function()
     fixture(function(f)
@@ -543,8 +783,8 @@ test("controller handoff uses wrapped lifecycle methods and leaving Waylaid clea
         f.navigation()
         local view = f.browser("writs")
         addon.BrowseUI.Refresh(view)
+        f.select(view.scroll.rows[1])
         equal(f.scroll, view.scroll)
-        f.current = view.scroll.rows[1]
         view.host:Hide()
         addon.Navigation.LeaveAuction()
         addon.Navigation.CleanupAuction()

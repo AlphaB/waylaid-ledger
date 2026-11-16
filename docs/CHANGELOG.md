@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.2
+
+- Enable controller list scrolling only while a row in the active list has focus.
+- Move down from Search, Refresh/Stop or Settings directly into a visible row without scrolling first.
+- Exclude scrollbar arrow/thumb controls from gamepad focus; mouse scrolling remains available.
+- Preserve D-pad row selection across virtual-row boundaries, filtering, price updates and category changes.
+- Add focus/viewport/boundary regressions and an optional test using unmodified Forever navigation code.
+- 209 default Lua 5.1 regression tests; live in-game controller verification remains required.
+
 ## 0.8.1
 
 - Stop processing Auctionator’s full snapshot alongside its autoscan; pause discovery until completion/failure.

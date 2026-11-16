@@ -32,7 +32,11 @@ and rolling request budget gates opening a basket item.
 Native controller support uses Blizzard security-wrapped `RefreshButtonGroups`,
 `SetScrollFrameForFrame`, `SetTargetButtonForFrame`, and FrameControlsManager
 show/hide/focus entry points. Dynamic directional overrides resolve virtual rows
-after synchronous nearest scrolling. No bindings or native internal tables are
+after synchronous nearest scrolling. `SelectedButtonUpdated` limits the active
+scroll frame to the focused Waylaid list; outside rows, it is cleared. Search,
+Refresh/Stop and Settings have explicit Down overrides into the first visible row
+so native geometric navigation cannot center/scroll a row before entering the list.
+Scrollbar controls are excluded from gamepad focus. No bindings or native internal tables are
 modified. Calls wait until out of combat and tolerate late gamepad addon loading.
 
 Contracts checked against the Forever branch on 2026-11-16:
