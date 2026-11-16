@@ -16,12 +16,16 @@ local function amount(value)
 end
 
 local function quoteLabel(quote)
-    if not quote or quote.status ~= "ok" then return L["No price"] end
+    if not quote or quote.status ~= "ok" then
+        return L["No price"]
+    end
     return amount(quote.cost) .. " - " .. (quote.sourceLabel or quote.source)
 end
 
 function Browse.ShowTooltip(row)
-    if not GameTooltip then return end
+    if not GameTooltip then
+        return
+    end
     local entry = row.entry
     GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
     GameTooltip:SetItemByID(entry.itemID)
@@ -29,8 +33,16 @@ function Browse.ShowTooltip(row)
     GameTooltip:AddLine(L["Purchase + delivery"], 1, 0.82, 0)
     GameTooltip:AddDoubleLine(L["Purchase (1)"], quoteLabel(entry.purchaseQuote), 1, 1, 1, 1, 1, 1)
     for _, quote in ipairs(entry.deliveryRows) do
-        GameTooltip:AddDoubleLine(quote.quantity .. "x " .. addon.Catalog.ItemName(quote.itemID),
-            quoteLabel(quote), 0.85, 0.85, 0.85, 0.85, 0.85, 0.85)
+        GameTooltip:AddDoubleLine(
+            quote.quantity .. "x " .. addon.Catalog.ItemName(quote.itemID),
+            quoteLabel(quote),
+            0.85,
+            0.85,
+            0.85,
+            0.85,
+            0.85,
+            0.85
+        )
     end
     GameTooltip:AddDoubleLine(L["Total"], amount(entry.total), 1, 0.82, 0, 1, 0.82, 0)
     GameTooltip:Show()
@@ -70,9 +82,15 @@ local function initializeRow(view, row, entry)
         row.purchase = text(row, "GameFontHighlightSmall", "RIGHT")
         row.delivery = text(row, "GameFontHighlightSmall", "RIGHT")
         row.total = text(row, "GameFontHighlightSmall", "RIGHT")
-        row:SetScript("OnClick", function(self) addon:ShopEntry(self.entry.kind, self.entry.itemID) end)
+        row:SetScript("OnClick", function(self)
+            addon:ShopEntry(self.entry.kind, self.entry.itemID)
+        end)
         row:SetScript("OnEnter", Browse.ShowTooltip)
-        row:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+        row:SetScript("OnLeave", function()
+            if GameTooltip then
+                GameTooltip:Hide()
+            end
+        end)
     end
     row.entry = entry
     addon.Navigation.BindRow(view, row)
@@ -83,7 +101,9 @@ local function initializeRow(view, row, entry)
     row.delivery:SetText(amount(entry.delivery))
     row.total:SetText(amount(entry.total))
     local color = entry.total and 1 or 0.65
-    for _, label in ipairs({ row.name, row.purchase, row.delivery, row.total }) do label:SetTextColor(color, color, color) end
+    for _, label in ipairs({ row.name, row.purchase, row.delivery, row.total }) do
+        label:SetTextColor(color, color, color)
+    end
     local icon = C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(entry.itemID)
     row.icon:SetTexture(icon or "Interface\\Icons\\INV_Misc_QuestionMark")
     layoutRow(row, view.scroll:GetWidth())
@@ -99,7 +119,9 @@ function Browse.Layout(view)
         header:SetWidth(index == 1 and (width - 3 * column) or column)
         addon.Localization.ButtonText(header, header:GetText())
     end
-    view.scroll:ForEachFrame(function(row) layoutRow(row, width) end)
+    view.scroll:ForEachFrame(function(row)
+        layoutRow(row, width)
+    end)
 end
 
 function Browse.ScanStatus()
@@ -109,7 +131,9 @@ function Browse.ScanStatus()
         if job.received and job.count > 0 then
             return string.format(L["Auctions %d/%d"], job.index, job.count), true
         end
-        if job.received then return L["Finishing full scan"], true end
+        if job.received then
+            return L["Finishing full scan"], true
+        end
         return job.own and L["Full scan: waiting"] or L["Shared scan: waiting"], true
     end
     if scanner.active then
@@ -123,13 +147,17 @@ end
 
 function Browse.UpdateStatus(view)
     local status, busy = Browse.ScanStatus()
-    view.summary:SetText(status or string.format(L["%d priced / %d items"], view.priced or 0, #(view.visibleEntries or {})))
+    view.summary:SetText(
+        status or string.format(L["%d priced / %d items"], view.priced or 0, #(view.visibleEntries or {}))
+    )
     addon.Localization.ButtonText(view.refreshButton, busy and L["Stop"] or L["Refresh"])
 end
 
 function Browse.UpdateScanStatus()
     for _, view in pairs(Browse.views) do
-        if view.host:IsVisible() then Browse.UpdateStatus(view) end
+        if view.host:IsVisible() then
+            Browse.UpdateStatus(view)
+        end
     end
 end
 
@@ -138,11 +166,16 @@ function Browse.Render(view, resetFocus)
     local query = addon.DiscoveryLocales.Key(view.query or "")
     local visible, priced = {}, 0
     for _, entry in ipairs(view.entries or {}) do
-        if query == "" or addon.DiscoveryLocales.Key(entry.name):find(query, 1, true)
-            or addon.DiscoveryLocales.Key(addon.Shopping.DeliveryLabel(entry)):find(query, 1, true) then
+        if
+            query == ""
+            or addon.DiscoveryLocales.Key(entry.name):find(query, 1, true)
+            or addon.DiscoveryLocales.Key(addon.Shopping.DeliveryLabel(entry)):find(query, 1, true)
+        then
             visible[#visible + 1] = entry
             entry.listIndex = #visible
-            if entry.total then priced = priced + 1 end
+            if entry.total then
+                priced = priced + 1
+            end
         end
     end
     view.visibleEntries = visible
@@ -160,11 +193,14 @@ function Browse.Refresh(view)
 end
 
 function Browse.UpdateVisible()
-    if Browse.updating or not addon.scanner.open
-        or (AuctionHouseFrame and not AuctionHouseFrame:IsShown()) then return end
+    if Browse.updating or not addon.scanner.open or (AuctionHouseFrame and not AuctionHouseFrame:IsShown()) then
+        return
+    end
     Browse.updating = true
     for _, view in pairs(Browse.views) do
-        if view.host:IsVisible() then Browse.Refresh(view) end
+        if view.host:IsVisible() then
+            Browse.Refresh(view)
+        end
     end
     Browse.updating = false
 end
@@ -182,39 +218,69 @@ function Browse.Create(host, kind)
         view.scroll:ScrollToBegin()
         Browse.Render(view, true)
     end)
-    search:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    search:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus()
+    end)
     view.search = search
     view.summary = text(host, "GameFontDisableSmall")
     view.summary:SetPoint("TOPLEFT", 215, -13)
     local refresh = CreateFrame("Button", nil, host, "UIPanelButtonTemplate")
-    refresh:SetSize(75, 22); refresh:SetPoint("TOPRIGHT", -100, -8); addon.Localization.ButtonText(refresh, L["Refresh"])
+    refresh:SetSize(75, 22)
+    refresh:SetPoint("TOPRIGHT", -100, -8)
+    addon.Localization.ButtonText(refresh, L["Refresh"])
     refresh:SetScript("OnClick", function()
         local _, busy = Browse.ScanStatus()
-        if busy then addon:StopScan() else addon:RefreshList(view) end
+        if busy then
+            addon:StopScan()
+        else
+            addon:RefreshList(view)
+        end
     end)
     refresh:SetScript("OnEnter", function(self)
-        if not GameTooltip then return end
+        if not GameTooltip then
+            return
+        end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         local _, busy = Browse.ScanStatus()
         GameTooltip:AddLine(busy and L["Stop scan"] or L["Refresh prices"], 1, 0.82, 0)
         if busy then
-            GameTooltip:AddLine(L["Stop Waylaid's scan or snapshot processing; keep saved prices. Other addons' scans continue."], 1, 1, 1, true)
+            GameTooltip:AddLine(
+                L["Stop Waylaid's scan or snapshot processing; keep saved prices. Other addons' scans continue."],
+                1,
+                1,
+                1,
+                true
+            )
         elseif addon.BulkScan.Supported(addon.scanner.api) then
-            GameTooltip:AddLine(L["Request one full auction-house snapshot to update both lists. The search filter only changes the displayed rows."], 1, 1, 1, true)
+            GameTooltip:AddLine(
+                L["Request one full auction-house snapshot to update both lists. The search filter only changes the displayed rows."],
+                1,
+                1,
+                1,
+                true
+            )
         else
             GameTooltip:AddLine(L["Scan purchases and delivery goods for the filtered list."], 1, 1, 1, true)
         end
         GameTooltip:Show()
     end)
-    refresh:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    refresh:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
     view.refreshButton = refresh
     local settings = CreateFrame("Button", nil, host, "UIPanelButtonTemplate")
-    settings:SetSize(75, 22); settings:SetPoint("TOPRIGHT", -15, -8); addon.Localization.ButtonText(settings, L["Settings"])
-    settings:SetScript("OnClick", function() addon.UI.ToggleSettings() end)
+    settings:SetSize(75, 22)
+    settings:SetPoint("TOPRIGHT", -15, -8)
+    addon.Localization.ButtonText(settings, L["Settings"])
+    settings:SetScript("OnClick", function()
+        addon.UI.ToggleSettings()
+    end)
     view.inset = CreateFrame("Frame", nil, host, "InsetFrameTemplate")
     view.inset:SetPoint("TOPLEFT", 10, -40)
     view.inset:SetPoint("BOTTOMRIGHT", -10, -4)
-    for index, title in ipairs({L["Item / delivery goods"], L["Purchase"], L["Delivery"], L["Total (lowest first)"]}) do
+    for index, title in ipairs({ L["Item / delivery goods"], L["Purchase"], L["Delivery"], L["Total (lowest first)"] }) do
         local header = CreateFrame("Button", nil, view.inset, "ColumnDisplayButtonNoScriptsTemplate")
         header:SetText(title)
         header:EnableMouse(false)
@@ -232,12 +298,16 @@ function Browse.Create(host, kind)
     view.scrollBar:SetPoint("BOTTOMLEFT", view.scroll, "BOTTOMRIGHT", 5, -4)
     local list = CreateScrollBoxListLinearView()
     list:SetElementExtent(ROW_HEIGHT)
-    list:SetElementInitializer("Button", function(row, entry) initializeRow(view, row, entry) end)
+    list:SetElementInitializer("Button", function(row, entry)
+        initializeRow(view, row, entry)
+    end)
     ScrollUtil.InitScrollBoxListWithScrollBar(view.scroll, view.scrollBar, list)
     view.empty = text(view.inset, "GameFontDisable")
     view.empty:SetPoint("TOPLEFT", 18, -55)
     view.empty:SetText(L["No matching items. For first-time discovery, run /wll scan all at the AH."])
     view.empty:Hide()
-    host:SetScript("OnSizeChanged", function() Browse.Layout(view) end)
+    host:SetScript("OnSizeChanged", function()
+        Browse.Layout(view)
+    end)
     return view
 end

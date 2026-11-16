@@ -34,19 +34,21 @@ test("shared snapshots show progress while the own scanner is idle and restore l
         addon.scanner.active = false
         addon.BulkScan.engine = { job = { own = false } }
         addon.BrowseUI.Render(view)
-        equal(view.summary.text, "Shared scan: waiting");equal(view.refreshButton.text, "Stop")
+        equal(view.summary.text, "Shared scan: waiting")
+        equal(view.refreshButton.text, "Stop")
         addon.BulkScan.engine.job = { own = false, received = true, index = 500, count = 12000 }
         addon.BrowseUI.UpdateScanStatus()
         equal(view.summary.text, "Auctions 500/12000")
         addon.BulkScan.engine.job = nil
         addon.BrowseUI.UpdateScanStatus()
-        equal(view.summary.text, "0 priced / 0 items");equal(view.refreshButton.text, "Refresh")
+        equal(view.summary.text, "0 priced / 0 items")
+        equal(view.refreshButton.text, "Refresh")
     end)
 end)
 
 test("detailed scans retain per-item progress and never overflow their item total", function()
     fixture(function(view)
-        addon.scanner.bulkMode, addon.scanner.queue, addon.scanner.index = false, {11, 12}, 2
+        addon.scanner.bulkMode, addon.scanner.queue, addon.scanner.index = false, { 11, 12 }, 2
         addon.BrowseUI.Render(view)
         equal(view.summary.text, "Items 2/2")
         addon.scanner.index = 3

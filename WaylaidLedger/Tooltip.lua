@@ -17,18 +17,26 @@ local function appendRows(tooltip, rows, detailed, compare)
     local owned = addon.Inventory.Totals().items
     for _, row in ipairs(rows) do
         local label = string.format("%dx %s", row.quantity, addon.Catalog.ItemName(row.itemID))
-        if (owned[row.itemID] or 0) > 0 then label = label .. string.format(L[" (%d owned)"], owned[row.itemID]) end
+        if (owned[row.itemID] or 0) > 0 then
+            label = label .. string.format(L[" (%d owned)"], owned[row.itemID])
+        end
         local value, red, green, blue = L["Not scanned"], 0.65, 0.65, 0.65
         if row.status == "ok" then
             value = money(row.cost)
             red, green, blue = 1, 1, 1
-            if row.purchased and row.purchased > row.quantity then value = value .. string.format(L[" (buy %d)"], row.purchased) end
+            if row.purchased and row.purchased > row.quantity then
+                value = value .. string.format(L[" (buy %d)"], row.purchased)
+            end
         elseif row.status == "short" then
             value = row.available == 0 and L["None listed"] or string.format(L["Only %d"], row.available)
             red, green, blue = 1, 0.45, 0.35
-        elseif row.source ~= "own" then value = L["No price"] end
+        elseif row.source ~= "own" then
+            value = L["No price"]
+        end
         if row.stale or row.error then
-            if row.error then value = value .. L[" failed"] end
+            if row.error then
+                value = value .. L[" failed"]
+            end
             red, green, blue = 0.65, 0.65, 0.65
         end
         local winner = best and row.status == "ok" and not row.error and row.cost == best.cost
@@ -37,10 +45,16 @@ local function appendRows(tooltip, rows, detailed, compare)
         end
         if detailed then
             value = value .. " - " .. (row.sourceLabel or row.source)
-            if row.age then value = value .. ", " .. string.format(L["%dm"], math.floor(row.age / 60))
-            elseif row.ageDays ~= nil then value = value .. ", " .. string.format(L["%dd"], row.ageDays)
-            elseif row.estimated then value = value .. L[", age unknown"] end
-            if row.scanError then value = value .. L[", own scan failed"] end
+            if row.age then
+                value = value .. ", " .. string.format(L["%dm"], math.floor(row.age / 60))
+            elseif row.ageDays ~= nil then
+                value = value .. ", " .. string.format(L["%dd"], row.ageDays)
+            elseif row.estimated then
+                value = value .. L[", age unknown"]
+            end
+            if row.scanError then
+                value = value .. L[", own scan failed"]
+            end
         end
         if winner then
             -- GetMoneyString can embed white color codes that override the
@@ -54,12 +68,17 @@ local function appendRows(tooltip, rows, detailed, compare)
 end
 
 function Tooltip.Append(tooltip, itemID, data)
-    if tooltip.waylaidLedgerItemID == itemID then return end
+    if tooltip.waylaidLedgerItemID == itemID then
+        return
+    end
     addon.Discovery.Observe(itemID)
     addon.Discovery.Read(itemID, data and data.lines and data)
     local writ = addon.Writs[itemID]
-    if not addon.db or (writ and addon.db.writSource == "off")
-        or (not writ and not addon.Crates[itemID] and itemID ~= 248549) then
+    if
+        not addon.db
+        or (writ and addon.db.writSource == "off")
+        or (not writ and not addon.Crates[itemID] and itemID ~= 248549)
+    then
         return
     end
     if not watched[tooltip] then
@@ -80,7 +99,13 @@ function Tooltip.Append(tooltip, itemID, data)
     if definition and definition.unresolved then
         tooltip:AddLine(" ")
         tooltip:AddLine("Waylaid Ledger", 1, 0.82, 0)
-        tooltip:AddLine(L["Delivery requirements unresolved. Run a full AH scan, then hover this item again."], 0.75, 0.75, 0.75, true)
+        tooltip:AddLine(
+            L["Delivery requirements unresolved. Run a full AH scan, then hover this item again."],
+            0.75,
+            0.75,
+            0.75,
+            true
+        )
         return
     end
     if writ then
@@ -91,8 +116,16 @@ function Tooltip.Append(tooltip, itemID, data)
         tooltip:AddLine(L["Waylaid Ledger - delivery estimate"], 1, 0.82, 0)
         appendRows(tooltip, rows, detailed)
         if #rows > 1 then
-            tooltip:AddDoubleLine(L["Total"], total and money(total) or L["Incomplete prices"],
-                0.75, 0.75, 0.75, 0.75, 0.75, 0.75)
+            tooltip:AddDoubleLine(
+                L["Total"],
+                total and money(total) or L["Incomplete prices"],
+                0.75,
+                0.75,
+                0.75,
+                0.75,
+                0.75,
+                0.75
+            )
         end
         return
     end
