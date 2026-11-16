@@ -83,6 +83,20 @@ Navigate methods, then checks row entry without native centering, traversal in b
 past the virtual pool, and focus-scoped scrolling. Rendering, input dispatch and
 secure execution still require the live-client checklist in README.
 
+## Settings version (0.9.6)
+
+The settings heading displays `Waylaid Ledger  v` followed by `addon.version`,
+using the same installed version as diagnostics. It remains a noninteractive
+font string in the existing heading space; the initial controller target stays
+on Crate prices. Controller settings open/reopen checks and all ten localized
+startup checks cover the version display. Release validation passed: 236 default
+Lua checks, 238 each with freshly fetched pinned/latest Forever navigation
+sources, Lua formatting, Python lint/format checks, and install ZIP integrity.
+
+Live verification remains unperformed for 0.9.6: check the heading at supported
+UI scales and complete [CONTROLLER.md](CONTROLLER.md)'s live-client checklist,
+including mouse/keyboard, hardware controller input and secure/taint behavior.
+
 ## AddOns list icon (0.9.5)
 
 Both install manifests declare `IconTexture: Interface\Icons\INV_Crate_05`,

@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The lowest known filling cost is highlighted in green for all price sources,
 including cached prices. Auctionator and TSM are optional price providers. Own scans support both crate and writ costs.
 
-Version **0.9.5** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.9.6** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
