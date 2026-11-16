@@ -14,8 +14,15 @@ local RESPONSE_TIMEOUT = 15
 local JOB_TIMEOUT = 90
 
 function Scanner.New(api, runtime, callbacks)
-    return setmetatable({ api = api, runtime = runtime, callbacks = callbacks,
-        active = false, open = false, nextSend = 0, requests = {} }, Scanner)
+    return setmetatable({
+        api = api,
+        runtime = runtime,
+        callbacks = callbacks,
+        active = false,
+        open = false,
+        nextSend = 0,
+        requests = {},
+    }, Scanner)
 end
 
 function Scanner:Notify()
@@ -76,7 +83,9 @@ function Scanner:Stop(message)
 end
 
 function Scanner:ExternalQuery()
-    if self.issuing then return end
+    if self.issuing then
+        return
+    end
     self:RecordRequest()
     if self.active then
         self:Stop(L["Scan stopped because another auction search started. Scan again when the auction house is idle."])
@@ -136,8 +145,13 @@ function Scanner:Tick()
     local now = self.runtime.now()
     if not self.pending then
         local itemID = self.queue[self.index]
-        self.pending = { itemID = itemID, key = self.api.MakeItemKey(itemID),
-            startedAt = now, attempt = 1, action = "search" }
+        self.pending = {
+            itemID = itemID,
+            key = self.api.MakeItemKey(itemID),
+            startedAt = now,
+            attempt = 1,
+            action = "search",
+        }
     end
     local pending = self.pending
     if now - pending.startedAt > JOB_TIMEOUT then
@@ -154,18 +168,33 @@ function Scanner:Tick()
             return
         end
     end
-    if not pending.action or now < self.nextSend or not self:BudgetReady(now) or not self.api.IsThrottledMessageSystemReady() then
+    if
+        not pending.action
+        or now < self.nextSend
+        or not self:BudgetReady(now)
+        or not self.api.IsThrottledMessageSystemReady()
+    then
         return
     end
     local action = pending.action
     if action == "search" and (self.api.GetItemKeyInfo or self.runtime.isEquipment) and not pending.infoChecked then
         local ok, info = true, nil
-        if self.api.GetItemKeyInfo then ok, info = pcall(self.api.GetItemKeyInfo, pending.key) end
-        if not ok then self:Fail("Could not read item classification: " .. tostring(info)); return end
+        if self.api.GetItemKeyInfo then
+            ok, info = pcall(self.api.GetItemKeyInfo, pending.key)
+        end
+        if not ok then
+            self:Fail("Could not read item classification: " .. tostring(info))
+            return
+        end
         if not info and self.runtime.isEquipment then
             local classified, equipment = pcall(self.runtime.isEquipment, pending.itemID)
-            if not classified then self:Fail("Could not classify item: " .. tostring(equipment)); return end
-            if equipment ~= nil then info = { isEquipment = equipment } end
+            if not classified then
+                self:Fail("Could not classify item: " .. tostring(equipment))
+                return
+            end
+            if equipment ~= nil then
+                info = { isEquipment = equipment }
+            end
         end
         if not info then
             if not pending.metadataRequested and self.runtime.loadItem then
@@ -176,7 +205,10 @@ function Scanner:Tick()
         end
         pending.infoChecked = true
         pending.searchMethod = info.isEquipment and "SendSellSearchQuery" or "SendSearchQuery"
-        if not self.api[pending.searchMethod] then self:Fail("Required equipment search API unavailable."); return end
+        if not self.api[pending.searchMethod] then
+            self:Fail("Required equipment search API unavailable.")
+            return
+        end
     end
     -- Set the state before sending: event callbacks may run synchronously.
     pending.action, pending.sentAt = nil, now
@@ -215,7 +247,9 @@ function Scanner:ReadSnapshot(kind)
                 offers[#offers + 1] = { quantity = quantity, unitPrice = row.unitPrice }
             end
         end
-        table.sort(offers, function(a, b) return a.unitPrice < b.unitPrice end)
+        table.sort(offers, function(a, b)
+            return a.unitPrice < b.unitPrice
+        end)
     else
         local seen = {}
         for index = 1, self.api.GetNumItemSearchResults(pending.key) do
@@ -226,8 +260,14 @@ function Scanner:ReadSnapshot(kind)
             if row.itemKey.itemID ~= pending.itemID then
                 return nil, "Auction response item mismatch."
             end
-            if not seen[row.auctionID] and not row.containsOwnerItem and not row.containsAccountItem
-                and row.buyoutAmount and row.buyoutAmount > 0 and row.quantity > 0 then
+            if
+                not seen[row.auctionID]
+                and not row.containsOwnerItem
+                and not row.containsAccountItem
+                and row.buyoutAmount
+                and row.buyoutAmount > 0
+                and row.quantity > 0
+            then
                 seen[row.auctionID] = true
                 offers[#offers + 1] = { quantity = row.quantity, buyoutAmount = row.buyoutAmount }
             end
@@ -245,9 +285,14 @@ function Scanner:Results(kind, item)
     if itemID ~= pending.itemID then
         return -- Late/unrelated events must never populate the current item.
     end
-    if type(item) == "table" and ((item.itemLevel or 0) ~= (pending.key.itemLevel or 0)
-        or (item.itemSuffix or 0) ~= (pending.key.itemSuffix or 0)
-        or (item.battlePetSpeciesID or 0) ~= (pending.key.battlePetSpeciesID or 0)) then
+    if
+        type(item) == "table"
+        and (
+            (item.itemLevel or 0) ~= (pending.key.itemLevel or 0)
+            or (item.itemSuffix or 0) ~= (pending.key.itemSuffix or 0)
+            or (item.battlePetSpeciesID or 0) ~= (pending.key.battlePetSpeciesID or 0)
+        )
+    then
         return
     end
     local full

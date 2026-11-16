@@ -52,8 +52,14 @@ function Catalog.AllContracts(kind)
     local ids = {}
     for _, definitions in ipairs({ addon.Crates, addon.Writs }) do
         for id in pairs(definitions) do
-            if not kind or kind == "all" or (kind == "crates" and addon.Crates[id])
-                or (kind == "writs" and addon.Writs[id]) then ids[#ids + 1] = id end
+            if
+                not kind
+                or kind == "all"
+                or (kind == "crates" and addon.Crates[id])
+                or (kind == "writs" and addon.Writs[id])
+            then
+                ids[#ids + 1] = id
+            end
         end
     end
     table.sort(ids)
@@ -71,7 +77,9 @@ function Catalog.ScanItems(contractIDs)
             end
         end
     end
-    for id in pairs(quantities) do items[#items + 1] = id end
+    for id in pairs(quantities) do
+        items[#items + 1] = id
+    end
     table.sort(items)
     return items, quantities
 end
@@ -81,10 +89,14 @@ function Catalog.BagContracts()
     for bag = 0, NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS or 4 do
         for slot = 1, C_Container.GetContainerNumSlots(bag) do
             local id = C_Container.GetContainerItemID(bag, slot)
-            if addon.Crates[id] or addon.Writs[id] then found[id] = true end
+            if addon.Crates[id] or addon.Writs[id] then
+                found[id] = true
+            end
         end
     end
-    for id in pairs(found) do ids[#ids + 1] = id end
+    for id in pairs(found) do
+        ids[#ids + 1] = id
+    end
     table.sort(ids)
     return ids
 end
@@ -110,12 +122,15 @@ function Catalog.SearchName(itemID)
     -- the old English catalog fallback these are valid localized search terms.
     local store = addon.Discovery and addon.Discovery.locale == GetLocale() and addon.Discovery.store
     local observed = store and store.names[itemID]
-    if type(observed) == "string" and observed ~= "" then return observed end
+    if type(observed) == "string" and observed ~= "" then
+        return observed
+    end
     -- Shopping is name-based. An English display fallback is unsuitable for a
     -- localized auction search; wait for the client's name on other locales.
     local locale = GetLocale()
     if locale == "enUS" or locale == "enGB" then
-        return addon.MaterialNames[itemID] or addon.WritMaterialNames[itemID]
+        return addon.MaterialNames[itemID]
+            or addon.WritMaterialNames[itemID]
             or (addon.Writs[itemID] and addon.Writs[itemID].name)
             or (addon.Crates[itemID] and addon.Crates[itemID].name)
     end

@@ -25,9 +25,12 @@ end
 function addon:MarketBaseKey()
     -- Realm/faction isolation is deliberately conservative, even where multiple
     -- realms share an AH. Profiles let neutral/different houses be kept separate.
-    return table.concat({ tostring(GetCurrentRegion and GetCurrentRegion() or 0),
+    return table.concat({
+        tostring(GetCurrentRegion and GetCurrentRegion() or 0),
         GetNormalizedRealmName() or GetRealmName() or "unknown",
-        UnitFactionGroup("player") or "unknown", tostring(WOW_PROJECT_ID or 0) }, ":")
+        UnitFactionGroup("player") or "unknown",
+        tostring(WOW_PROJECT_ID or 0),
+    }, ":")
 end
 
 function addon:MarketKey()
@@ -59,19 +62,27 @@ function addon:UpdateScheduler()
 end
 
 function addon:CanAutoScan(reason)
-    if self.autoPaused or self.providerDue or not self.scanner.open or self.scanner.active then return false end
+    if self.autoPaused or self.providerDue or not self.scanner.open or self.scanner.active then
+        return false
+    end
     if reason == "browse" then
         local kind = self.UI.VisibleBrowserTab()
         local source = kind and self.Shopping.Source(kind)
         return source == "auto" or source == "own"
     end
-    if self.db.source ~= "auto" and self.db.source ~= "own" then return false end
-    if reason == "open" then return self.db.scanOnOpen end
+    if self.db.source ~= "auto" and self.db.source ~= "own" then
+        return false
+    end
+    if reason == "open" then
+        return self.db.scanOnOpen
+    end
     return self.db.tracking.enabled and self.db.tracking.autoScan and self.UI.IsScanPanelVisible()
 end
 
 function addon:RequestBrowseScan()
-    if self.autoReason == "open" or not self:CanAutoScan("browse") then return end
+    if self.autoReason == "open" or not self:CanAutoScan("browse") then
+        return
+    end
     self.autoReason, self.autoDue = "browse", GetTime() + 0.5
     self:UpdateScheduler()
 end
@@ -79,10 +90,16 @@ end
 function addon:RequestAutoScan(onOpen)
     -- An opening scan has priority over tab-driven refresh until it starts or
     -- is cancelled. The delay lets another addon's startup scan take the house.
-    if not onOpen and self.autoReason == "open" then return end
-    if not onOpen and self.UI.VisibleBrowserTab() then return self:RequestBrowseScan() end
+    if not onOpen and self.autoReason == "open" then
+        return
+    end
+    if not onOpen and self.UI.VisibleBrowserTab() then
+        return self:RequestBrowseScan()
+    end
     local reason = onOpen and "open" or "panel"
-    if not self:CanAutoScan(reason) then return end
+    if not self:CanAutoScan(reason) then
+        return
+    end
     self.autoReason = reason
     self.autoDue = GetTime() + (onOpen and 2 or 0.5)
     self:UpdateScheduler()
@@ -91,7 +108,9 @@ end
 function addon:AutoScan()
     local reason = self.autoReason or "panel"
     self.autoReason = nil
-    if not self:CanAutoScan(reason) then return end
+    if not self:CanAutoScan(reason) then
+        return
+    end
     local quietPeriod = reason == "open" and 2 or 1
     if self.lastExternalAt and GetTime() - self.lastExternalAt < quietPeriod then
         self.autoReason, self.autoDue = reason, self.lastExternalAt + quietPeriod
@@ -111,7 +130,9 @@ function addon:AutoScan()
         end
     end
     if #items == 0 then
-        if reason == "open" then self:RequestBrowseScan() end
+        if reason == "open" then
+            self:RequestBrowseScan()
+        end
         return
     end
     self:BeginScan(items, reason, reason == "browse" and self.UI.VisibleBrowserTab() or "crates")
@@ -119,8 +140,14 @@ end
 
 -- All scopes use one lifecycle and retain which preference governs the work.
 function addon:BeginScan(items, jobOrReason, category)
-    if not self.scanner.open then self:Print(L["Open the auction house first."]); return false end
-    if self.scanner.active then self:Print(L["A scan is already running. Stop it before starting another."]); return false end
+    if not self.scanner.open then
+        self:Print(L["Open the auction house first."])
+        return false
+    end
+    if self.scanner.active then
+        self:Print(L["A scan is already running. Stop it before starting another."])
+        return false
+    end
     local job = type(jobOrReason) == "table" and jobOrReason or nil
     local reason = type(jobOrReason) == "string" and jobOrReason or "manual"
     self.scanContext = { reason = reason, category = category or (job and job.kind) or "all" }
@@ -130,7 +157,10 @@ function addon:BeginScan(items, jobOrReason, category)
     self.autoPaused, self.autoDue, self.autoReason = false, nil, nil
     self.pendingProviderScan, self.providerDue, self.refreshJob = nil, nil, job
     local ok, message = self.scanner:Start(items)
-    if not ok then self.refreshJob = nil; self:Print(message) end
+    if not ok then
+        self.refreshJob = nil
+        self:Print(message)
+    end
     self.UI.Update()
     return ok
 end
@@ -158,21 +188,32 @@ function addon:SetFeature(feature, enabled)
         end
     elseif feature == "auctionatorfollowup" then
         self.db.refreshAuctionator = enabled
-        if not enabled then self.pendingProviderScan, self.providerDue = nil, nil end
-        if self.refreshJob then self.refreshJob.auctionator = enabled and self.db.profile == "default"
-            and self.Providers.ShoppingAvailable(true) end
+        if not enabled then
+            self.pendingProviderScan, self.providerDue = nil, nil
+        end
+        if self.refreshJob then
+            self.refreshJob.auctionator = enabled
+                and self.db.profile == "default"
+                and self.Providers.ShoppingAvailable(true)
+        end
     elseif feature == "details" then
         self.db.tooltipDetails = enabled
     else
         local keys = { tracking = "enabled", banks = "bank", alts = "alts", autoscan = "autoScan" }
         self.db.tracking[keys[feature]] = enabled
         if not enabled and (feature == "tracking" or feature == "autoscan") then
-            if self.autoReason ~= "open" then self.autoDue, self.autoReason = nil, nil end
-            if self.scanAutomatic and not self.scanOnOpen and not self.scanBrowser then self:StopScan(L["Automatic refresh disabled."]) end
+            if self.autoReason ~= "open" then
+                self.autoDue, self.autoReason = nil, nil
+            end
+            if self.scanAutomatic and not self.scanOnOpen and not self.scanBrowser then
+                self:StopScan(L["Automatic refresh disabled."])
+            end
         end
         self.Inventory.CaptureBags()
         self.Inventory.CaptureBank()
-        if enabled then self.autoPaused = false end
+        if enabled then
+            self.autoPaused = false
+        end
     end
     self:UpdateScheduler()
     self.UI.Update()
@@ -194,11 +235,20 @@ end
 
 function addon:ResolveRows(options, source)
     local market = self:GetMarket()
-    return self.Pricing.Resolve({ options = options }, market.items, time(), self.db.maxAge,
-        market.failures, source, function(provider, itemID)
-            if self.db.profile ~= "default" then return nil end
+    return self.Pricing.Resolve(
+        { options = options },
+        market.items,
+        time(),
+        self.db.maxAge,
+        market.failures,
+        source,
+        function(provider, itemID)
+            if self.db.profile ~= "default" then
+                return nil
+            end
             return self.Providers.Read(provider, itemID)
-        end)
+        end
+    )
 end
 
 function addon:GetRows(crateID)
@@ -228,7 +278,9 @@ function addon:SourceChanged(category)
     if source ~= "auto" and source ~= "own" then
         local pendingCategory = self.autoReason == "browse" and self.UI.VisibleBrowserTab()
             or (self.autoReason and "crates")
-        if pendingCategory == category then self.autoDue, self.autoReason = nil, nil end
+        if pendingCategory == category then
+            self.autoDue, self.autoReason = nil, nil
+        end
         if self.scanAutomatic and self.scanContext and self.scanContext.category == category then
             self:StopScan(L["Automatic scan stopped for the selected price source."])
             -- A source change cancels only its category, not the whole AH visit.
@@ -280,12 +332,16 @@ function addon:Shop(allOptions, optionIndex)
                     self:Print(L["An item name is still loading. Try the search again in a moment."])
                     return false
                 end
-                terms[#terms + 1] = { searchString = name, categoryKey = "", isExact = true, quantity = option.quantity }
+                terms[#terms + 1] =
+                    { searchString = name, categoryKey = "", isExact = true, quantity = option.quantity }
             end
         end
     end
     if not self.Providers.ShoppingAvailable() then
-        if not self.NativeShopping.Available() then self:Print(L["The auction house's buying UI is unavailable."]); return false end
+        if not self.NativeShopping.Available() then
+            self:Print(L["The auction house's buying UI is unavailable."])
+            return false
+        end
         self:StopScan(L["Stopped to open the built-in shopping basket."])
         return self.NativeShopping.Show(requirements, allOptions)
     end
@@ -293,7 +349,8 @@ function addon:Shop(allOptions, optionIndex)
     -- scanners concurrently, even if its first query is deferred until later.
     self:StopScan(L["Stopped to hand the search to Auctionator."])
     self.NativeShopping.Close()
-    local listName = "Waylaid Ledger - " .. self.lastCrateID
+    local listName = "Waylaid Ledger - "
+        .. self.lastCrateID
         .. (allOptions and " - alternatives" or (" - option " .. optionIndex))
     local ok, reason = self.Providers.Search(terms, listName)
     if not ok then
@@ -301,8 +358,10 @@ function addon:Shop(allOptions, optionIndex)
         return false
     end
     self:Log("Auctionator handoff: " .. #terms .. " search terms")
-    self:Print(allOptions and L["Searching all alternatives in Auctionator. Buy only one bundle to fill the crate."]
-        or L["Opened the selected bundle in Auctionator. Review the listings before buying."])
+    self:Print(
+        allOptions and L["Searching all alternatives in Auctionator. Buy only one bundle to fill the crate."]
+            or L["Opened the selected bundle in Auctionator. Review the listings before buying."]
+    )
     return true
 end
 
@@ -315,20 +374,35 @@ function addon:ShopEntry(kind, itemID)
     local entry = self.Shopping.Entry(kind, itemID)
     if not self.Providers.ShoppingAvailable(true) then
         local requirements, reason = self.Shopping.Requirements(entry)
-        if not requirements then self:Print(reason); return false end
-        if not self.NativeShopping.Available() then self:Print(L["The auction house's buying UI is unavailable."]); return false end
+        if not requirements then
+            self:Print(reason)
+            return false
+        end
+        if not self.NativeShopping.Available() then
+            self:Print(L["The auction house's buying UI is unavailable."])
+            return false
+        end
         self:StopScan(L["Stopped to open the built-in shopping basket."])
         local ok, errorMessage = self.NativeShopping.Show(requirements)
-        if not ok then self:Print(errorMessage); return false end
+        if not ok then
+            self:Print(errorMessage)
+            return false
+        end
         self.lastBasket = entry
         return true
     end
     local terms, reason = self.Shopping.Terms(entry)
-    if not terms then self:Print(reason); return false end
+    if not terms then
+        self:Print(reason)
+        return false
+    end
     self:StopScan(L["Stopped to hand the complete basket to Auctionator."])
     self.NativeShopping.Close()
     local ok, errorMessage = self.Providers.Search(terms, "Waylaid Ledger - basket - " .. itemID, true)
-    if not ok then self:Print(errorMessage); return false end
+    if not ok then
+        self:Print(errorMessage)
+        return false
+    end
     self.lastBasket = entry
     self:Log("Basket handoff: " .. kind .. " " .. itemID .. "; " .. #terms .. " search terms")
     return true
@@ -339,25 +413,46 @@ function addon:ListScope(kind)
     local view = self.BrowseUI.views[kind]
     if view and view.visibleEntries then
         local ids = {}
-        for _, entry in ipairs(view.visibleEntries) do ids[#ids + 1] = entry.itemID end
+        for _, entry in ipairs(view.visibleEntries) do
+            ids[#ids + 1] = entry.itemID
+        end
         return self.Catalog.ScanItems(ids)
     end
     return self.Catalog.ScanItems(self.Catalog.AllContracts(kind))
 end
 
 function addon:RefreshList(view)
-    if not self.scanner.open then self:Print(L["Open the auction house first."]); return false end
+    if not self.scanner.open then
+        self:Print(L["Open the auction house first."])
+        return false
+    end
     local kind = view and view.kind or self.db.browserTab or "crates"
     local items, quantities = self:ListScope(kind)
-    if #items == 0 then self:Print(L["No matching writs or crates to scan."]); return false end
+    if #items == 0 then
+        self:Print(L["No matching writs or crates to scan."])
+        return false
+    end
     self:StopScan(L["Starting a new scoped refresh."])
     self.Providers.Invalidate()
-    local job = { kind = kind, items = items, quantities = quantities, market = self:MarketKey(),
-        auctionator = self.db.refreshAuctionator and self.db.profile == "default" and self.Providers.ShoppingAvailable(true) }
+    local job = {
+        kind = kind,
+        items = items,
+        quantities = quantities,
+        market = self:MarketKey(),
+        auctionator = self.db.refreshAuctionator and self.db.profile == "default" and self.Providers.ShoppingAvailable(
+            true
+        ),
+    }
     local ok = self:BeginScan(items, job)
     if ok then
         local source = kind == "writs" and self.db.writSource or self.db.source
-        self:Print(string.format(L["Refreshing %d unique items for the current %s list."], #items, L[kind == "writs" and L["Craftsman's Writs"] or L["Waylaid Crates"]]))
+        self:Print(
+            string.format(
+                L["Refreshing %d unique items for the current %s list."],
+                #items,
+                L[kind == "writs" and L["Craftsman's Writs"] or L["Waylaid Crates"]]
+            )
+        )
         if source ~= "auto" and source ~= "own" then
             self:Print(L["Select Auto or Own to display our scan results; the selected provider keeps its own data."])
         end
@@ -366,39 +461,72 @@ function addon:RefreshList(view)
 end
 
 function addon:StartAuctionatorScan(items, quantities)
-    if #items == 0 then self:Print(L["No matching items to scan."]); return false end
-    if not self.scanner.open then self:Print(L["Open the auction house first."]); return false end
-    if self.db.profile ~= "default" then self:Print(L["Auctionator scans are disabled for custom market profiles."]); return false end
+    if #items == 0 then
+        self:Print(L["No matching items to scan."])
+        return false
+    end
+    if not self.scanner.open then
+        self:Print(L["Open the auction house first."])
+        return false
+    end
+    if self.db.profile ~= "default" then
+        self:Print(L["Auctionator scans are disabled for custom market profiles."])
+        return false
+    end
     if not self.Providers.ShoppingAvailable(true) then
-        self:Print(L["Auctionator's limited-search API is unavailable."]); return false
+        self:Print(L["Auctionator's limited-search API is unavailable."])
+        return false
     end
     local terms, reason = self.Providers.ScanTerms(items, quantities)
-    if not terms then self:Print(reason); return false end
+    if not terms then
+        self:Print(reason)
+        return false
+    end
     self:StopScan(L["Handing the limited item search to Auctionator."])
-    local ok, reason = self.Providers.Search(terms, "Waylaid Ledger - scoped refresh", true)
-    if not ok then self:Print(reason); return false end
+    local ok, searchReason = self.Providers.Search(terms, "Waylaid Ledger - scoped refresh", true)
+    if not ok then
+        self:Print(searchReason)
+        return false
+    end
     self:Print(string.format(L["Started a limited search in Auctionator Shopping (%d items)."], #items))
     return true
 end
 
 function addon:ExportTSM(kind)
     local items = self:ListScope(kind)
-    if #items == 0 then self:Print(L["No matching items to export."]); return end
+    if #items == 0 then
+        self:Print(L["No matching items to export."])
+        return
+    end
     local parts = { "group:Waylaid Ledger - " .. (kind or self.db.browserTab or "crates") }
-    for _, id in ipairs(items) do parts[#parts + 1] = "i:" .. id end
-    self.UI.ShowReport(table.concat(parts, ","), L["TSM import - copy, import into a group, then run its Shopping scan"])
-    self:Print(string.format(L["Exported %d items. Import into TSM and start its group Shopping scan manually."], #items))
+    for _, id in ipairs(items) do
+        parts[#parts + 1] = "i:" .. id
+    end
+    self.UI.ShowReport(
+        table.concat(parts, ","),
+        L["TSM import - copy, import into a group, then run its Shopping scan"]
+    )
+    self:Print(
+        string.format(L["Exported %d items. Import into TSM and start its group Shopping scan manually."], #items)
+    )
 end
 
 function addon:StartScan(scope)
     local contracts
-    if scope == "all" or scope == "writs" or scope == "crates" then contracts = self.Catalog.AllContracts(scope)
+    if scope == "all" or scope == "writs" or scope == "crates" then
+        contracts = self.Catalog.AllContracts(scope)
     elseif scope == "hovered" then
         local id = self.lastContractID or self.lastCrateID
         contracts = id and { id } or {}
-    elseif scope == "tracked" then self.Inventory.CaptureBags(); contracts = self.Inventory.ContractIDs()
-    elseif scope == "bags" then contracts = self.Catalog.BagContracts()
-    else self:Print(L["Use /wll scan bags, hovered, tracked, all, crates, or writs."]); return false end
+    elseif scope == "tracked" then
+        self.Inventory.CaptureBags()
+        contracts = self.Inventory.ContractIDs()
+    elseif scope == "bags" then
+        contracts = self.Catalog.BagContracts()
+    else
+        self:Print(L["Use /wll scan bags, hovered, tracked, all, crates, or writs."])
+        return false
+    end
     local items = self.Catalog.ScanItems(contracts)
     return self:BeginScan(items, "manual", scope == "writs" and "writs" or (scope == "crates" and "crates" or "all"))
 end
@@ -409,7 +537,10 @@ function addon:StartBrowseScan(kind)
         return false
     end
     local items = self.Shopping.ScanItems(kind, true)
-    if #items == 0 then self:Print(L["Choose Auto or Own scans for this category in Settings."]); return false end
+    if #items == 0 then
+        self:Print(L["Choose Auto or Own scans for this category in Settings."])
+        return false
+    end
     return self:BeginScan(items, "manual", kind)
 end
 
@@ -424,29 +555,51 @@ function addon:Report()
         "Waylaid Ledger " .. self.version,
         string.format("Client %s build %s (%s), interface %s", version, build, buildDate, interface),
         "Locale " .. GetLocale() .. "; market " .. self:MarketKey(),
-        string.format("Catalog: %d learned crates / %d delivery items; cached: %d; stale after: %ds",
-            #self.Catalog.AllCrates(), #self.Catalog.Materials(self.Catalog.AllCrates()), count, self.db.maxAge),
+        string.format(
+            "Catalog: %d learned crates / %d delivery items; cached: %d; stale after: %ds",
+            #self.Catalog.AllCrates(),
+            #self.Catalog.Materials(self.Catalog.AllCrates()),
+            count,
+            self.db.maxAge
+        ),
         "Auction API: " .. tostring(C_AuctionHouse and type(C_AuctionHouse.SendSearchQuery)),
         "Modern tooltips: " .. tostring(TooltipDataProcessor ~= nil),
         "Auction house open: " .. tostring(self.scanner.open),
         "Scanner: " .. (self.scanner.message or "Idle"),
-        "Scan scope: " .. tostring(self.scanContext and self.scanContext.category)
-            .. "; reason: " .. tostring(self.scanContext and self.scanContext.reason),
+        "Scan scope: " .. tostring(self.scanContext and self.scanContext.category) .. "; reason: " .. tostring(
+            self.scanContext and self.scanContext.reason
+        ),
         "Last hovered crate: " .. tostring(self.lastCrateID),
         "Writ source: " .. self.db.writSource .. "; last hovered writ: " .. tostring(self.lastWritID),
-        string.format("Tracking: enabled=%s banks=%s alts=%s autoRefresh=%s paused=%s",
-            tostring(self.db.tracking.enabled), tostring(self.db.tracking.bank), tostring(self.db.tracking.alts),
-            tostring(self.db.tracking.autoScan), tostring(self.autoPaused)),
-        "AH tab: " .. tostring(self.UI.auctionHost ~= nil) .. "; active: " .. tostring(self.db.browserTab) .. "; minimap hidden: " .. tostring(self.db.minimap.hide),
-        "Last basket: " .. tostring(self.lastBasket and self.lastBasket.itemID)
-            .. "; total: " .. tostring(self.lastBasket and self.lastBasket.total),
-        "Auctionator after Refresh: " .. tostring(self.db.refreshAuctionator) .. "; pending: " .. tostring(self.providerDue ~= nil),
+        string.format(
+            "Tracking: enabled=%s banks=%s alts=%s autoRefresh=%s paused=%s",
+            tostring(self.db.tracking.enabled),
+            tostring(self.db.tracking.bank),
+            tostring(self.db.tracking.alts),
+            tostring(self.db.tracking.autoScan),
+            tostring(self.autoPaused)
+        ),
+        "AH tab: "
+            .. tostring(self.UI.auctionHost ~= nil)
+            .. "; active: "
+            .. tostring(self.db.browserTab)
+            .. "; minimap hidden: "
+            .. tostring(self.db.minimap.hide),
+        "Last basket: " .. tostring(self.lastBasket and self.lastBasket.itemID) .. "; total: " .. tostring(
+            self.lastBasket and self.lastBasket.total
+        ),
+        "Auctionator after Refresh: " .. tostring(self.db.refreshAuctionator) .. "; pending: " .. tostring(
+            self.providerDue ~= nil
+        ),
         "Auction-open scan: " .. tostring(self.db.scanOnOpen) .. "; pending reason: " .. tostring(self.autoReason),
         "Scan requests retained in rolling window: " .. #self.scanner.requests,
         "Price policy: " .. self.db.source .. "; TSM key: " .. self.db.tsmKey,
-        "Auctionator price API: " .. tostring(self.Providers.Available("auctionator"))
-            .. "; shopping API: " .. tostring(self.Providers.ShoppingAvailable())
-            .. "; update callback: " .. tostring(self.Providers.boundAPI ~= nil),
+        "Auctionator price API: "
+            .. tostring(self.Providers.Available("auctionator"))
+            .. "; shopping API: "
+            .. tostring(self.Providers.ShoppingAvailable())
+            .. "; update callback: "
+            .. tostring(self.Providers.boundAPI ~= nil),
         "TSM price API: " .. tostring(self.Providers.Available("tsm")),
         "Provider prices enabled for this profile: " .. tostring(self.db.profile == "default"),
         "Auctionator last error: " .. tostring(self.Providers.errors.auctionator),
@@ -454,11 +607,25 @@ function addon:Report()
     }
     if rows then
         for _, row in ipairs(rows) do
-            lines[#lines + 1] = string.format("  %d x %d %s: %s cost=%s available=%s age=%s error=%s",
-                row.quantity, row.itemID, self.Catalog.ItemName(row.itemID), row.status, tostring(row.cost),
-                tostring(row.available), tostring(row.age), tostring(row.error))
-            lines[#lines + 1] = string.format("    source=%s estimated=%s ageDays=%s stale=%s scanError=%s",
-                tostring(row.source), tostring(row.estimated), tostring(row.ageDays), tostring(row.stale), tostring(row.scanError))
+            lines[#lines + 1] = string.format(
+                "  %d x %d %s: %s cost=%s available=%s age=%s error=%s",
+                row.quantity,
+                row.itemID,
+                self.Catalog.ItemName(row.itemID),
+                row.status,
+                tostring(row.cost),
+                tostring(row.available),
+                tostring(row.age),
+                tostring(row.error)
+            )
+            lines[#lines + 1] = string.format(
+                "    source=%s estimated=%s ageDays=%s stale=%s scanError=%s",
+                tostring(row.source),
+                tostring(row.estimated),
+                tostring(row.ageDays),
+                tostring(row.stale),
+                tostring(row.scanError)
+            )
         end
     end
     lines[#lines + 1] = self.Inventory.Report()
@@ -502,7 +669,7 @@ function addon:Command(text)
     elseif command == "scan" then
         self:StartScan(rest == "" and "bags" or rest:lower())
     elseif command == "refresh" then
-        self:RefreshList({kind = rest ~= "" and rest:lower() or (self.db.browserTab or "crates")})
+        self:RefreshList({ kind = rest ~= "" and rest:lower() or (self.db.browserTab or "crates") })
     elseif command == "auctionscan" then
         local items, quantities = self:ListScope(rest ~= "" and rest:lower() or nil)
         self:StartAuctionatorScan(items, quantities)
@@ -515,8 +682,13 @@ function addon:Command(text)
             self:SetSource(rest:lower())
         end
     elseif command == "writsource" then
-        if rest == "" then self:Print(string.format(L["Writ source: %s. Options: auto, auctionator, tsm, own, off."], self.db.writSource))
-        else self:SetWritSource(rest:lower()) end
+        if rest == "" then
+            self:Print(
+                string.format(L["Writ source: %s. Options: auto, auctionator, tsm, own, off."], self.db.writSource)
+            )
+        else
+            self:SetWritSource(rest:lower())
+        end
     elseif command == "tsmkey" then
         if rest == "" then
             self:Print(string.format(L["TSM source: %s. Options: DBMinBuyout, DBMarket."], self.db.tsmKey))
@@ -537,8 +709,16 @@ function addon:Command(text)
         self.UI.ToggleSettings()
     elseif command == "inventory" then
         self.UI.ShowReport(self.Inventory.Report())
-    elseif command == "minimap" or command == "tracking" or command == "banks" or command == "alts"
-        or command == "autoscan" or command == "scanopen" or command == "auctionatorfollowup" or command == "details" then
+    elseif
+        command == "minimap"
+        or command == "tracking"
+        or command == "banks"
+        or command == "alts"
+        or command == "autoscan"
+        or command == "scanopen"
+        or command == "auctionatorfollowup"
+        or command == "details"
+    then
         rest = rest:lower()
         if rest ~= "on" and rest ~= "off" then
             self:Print(string.format(L["Use /wll %s on or off, or /wll settings."], command))
@@ -577,9 +757,13 @@ function addon:Command(text)
             self:Print(L["Use a profile name of 1-40 letters, digits, underscores or hyphens."])
         end
     else
-        self:Print("/wll - window | scan bags/hovered/crates/writs/all | source auto/auctionator/tsm/own | tsmkey DBMinBuyout/DBMarket")
+        self:Print(
+            "/wll - window | scan bags/hovered/crates/writs/all | source auto/auctionator/tsm/own | tsmkey DBMinBuyout/DBMarket"
+        )
         self:Print("search | shop [option number] | stop | report | debug | inspect [item ID] | market <name> | clear")
-        self:Print("writsource auto/own/auctionator/tsm/off | refresh [crates/writs/all] | auctionscan [scope] | tsmexport [scope] | settings | controls | inventory | minimap/tracking/banks/alts/autoscan/scanopen/details on/off | scan tracked")
+        self:Print(
+            "writsource auto/own/auctionator/tsm/off | refresh [crates/writs/all] | auctionscan [scope] | tsmexport [scope] | settings | controls | inventory | minimap/tracking/banks/alts/autoscan/scanopen/details on/off | scan tracked"
+        )
     end
     self.UI.Update()
 end
@@ -598,10 +782,16 @@ local function initialize()
     addon.db.inventory.sharedBanks = addon.db.inventory.sharedBanks or {}
     addon.db.tracking = addon.db.tracking or {}
     for _, key in ipairs({ "enabled", "bank", "alts", "autoScan" }) do
-        if type(addon.db.tracking[key]) ~= "boolean" then addon.db.tracking[key] = true end
+        if type(addon.db.tracking[key]) ~= "boolean" then
+            addon.db.tracking[key] = true
+        end
     end
-    if type(addon.db.refreshAuctionator) ~= "boolean" then addon.db.refreshAuctionator = true end
-    if type(addon.db.scanOnOpen) ~= "boolean" then addon.db.scanOnOpen = false end
+    if type(addon.db.refreshAuctionator) ~= "boolean" then
+        addon.db.refreshAuctionator = true
+    end
+    if type(addon.db.scanOnOpen) ~= "boolean" then
+        addon.db.scanOnOpen = false
+    end
     addon.db.minimap = addon.db.minimap or { angle = 225, hide = false }
     addon.db.minimap.angle = tonumber(addon.db.minimap.angle) or 225
     addon.db.writSource = WRIT_SOURCES[addon.db.writSource] and addon.db.writSource or "auto"
@@ -613,16 +803,27 @@ local function initialize()
         addon:Print(L["This client has no supported C_AuctionHouse API. Please send its /dump GetBuildInfo() output."])
         return
     end
-    addon.scanner = addon.Scanner.New(api, { now = GetTime, wallTime = time, loadItem = function(id)
-        if C_Item and C_Item.RequestLoadItemDataByID then C_Item.RequestLoadItemDataByID(id) end
-    end, isEquipment = function(id)
-        local getInfo = C_Item and C_Item.GetItemInfoInstant or GetItemInfoInstant
-        if not getInfo then return nil end
-        local _, _, _, _, _, classID = getInfo(id)
-        if classID == nil then return nil end
-        local classes = Enum and Enum.ItemClass
-        return classID == (classes and classes.Weapon or 2) or classID == (classes and classes.Armor or 4)
-    end }, {
+    addon.scanner = addon.Scanner.New(api, {
+        now = GetTime,
+        wallTime = time,
+        loadItem = function(id)
+            if C_Item and C_Item.RequestLoadItemDataByID then
+                C_Item.RequestLoadItemDataByID(id)
+            end
+        end,
+        isEquipment = function(id)
+            local getInfo = C_Item and C_Item.GetItemInfoInstant or GetItemInfoInstant
+            if not getInfo then
+                return nil
+            end
+            local _, _, _, _, _, classID = getInfo(id)
+            if classID == nil then
+                return nil
+            end
+            local classes = Enum and Enum.ItemClass
+            return classID == (classes and classes.Weapon or 2) or classID == (classes and classes.Armor or 4)
+        end,
+    }, {
         saved = function(itemID, snapshot)
             addon.scanMarket.items[itemID] = snapshot
             addon.scanMarket.failures[itemID] = nil
@@ -630,7 +831,9 @@ local function initialize()
         failed = function(itemID, reason)
             addon.scanMarket.failures[itemID] = reason
         end,
-        log = function(message) addon:Log(message) end,
+        log = function(message)
+            addon:Log(message)
+        end,
         changed = function(scanner)
             addon.UI.Update()
             if not scanner.active then
@@ -641,8 +844,12 @@ local function initialize()
                     addon.pendingProviderScan, addon.providerDue = job, GetTime() + 0.1
                 end
                 addon.Tooltip.Refresh()
-                if scanner.message and not addon.scanAutomatic then addon:Print(scanner.message) end
-                if not addon.scanBrowser then addon:RequestBrowseScan() end
+                if scanner.message and not addon.scanAutomatic then
+                    addon:Print(scanner.message)
+                end
+                if not addon.scanBrowser then
+                    addon:RequestBrowseScan()
+                end
             end
             addon:UpdateScheduler()
         end,
@@ -656,8 +863,15 @@ local function initialize()
     if not addon.Tooltip.Install() then
         addon:Print(L["No supported tooltip hook found. Use /wll report to collect diagnostics."])
     end
-    for _, method in ipairs({ "SendSearchQuery", "SendSellSearchQuery", "SendBrowseQuery", "SearchForItemKeys", "ReplicateItems",
-        "RequestMoreCommoditySearchResults", "RequestMoreItemSearchResults" }) do
+    for _, method in ipairs({
+        "SendSearchQuery",
+        "SendSellSearchQuery",
+        "SendBrowseQuery",
+        "SearchForItemKeys",
+        "ReplicateItems",
+        "RequestMoreCommoditySearchResults",
+        "RequestMoreItemSearchResults",
+    }) do
         if api[method] then
             hooksecurefunc(api, method, function(argument)
                 if not addon.scanner.issuing then
@@ -678,16 +892,32 @@ local function initialize()
             end)
         end
     end
-    for _, event in ipairs({ "AUCTION_HOUSE_SHOW", "AUCTION_HOUSE_CLOSED", "COMMODITY_SEARCH_RESULTS_UPDATED",
-        "COMMODITY_SEARCH_RESULTS_ADDED", "ITEM_SEARCH_RESULTS_UPDATED", "ITEM_SEARCH_RESULTS_ADDED",
-        "AUCTION_HOUSE_THROTTLED_SYSTEM_READY", "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "BAG_UPDATE_DELAYED",
-        "BANKFRAME_OPENED", "BANKFRAME_CLOSED", "BANK_TABS_CHANGED", "PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED",
-        "MODIFIER_STATE_CHANGED", "PLAYER_LOGOUT", "PLAYER_REGEN_ENABLED" }) do
+    for _, event in ipairs({
+        "AUCTION_HOUSE_SHOW",
+        "AUCTION_HOUSE_CLOSED",
+        "COMMODITY_SEARCH_RESULTS_UPDATED",
+        "COMMODITY_SEARCH_RESULTS_ADDED",
+        "ITEM_SEARCH_RESULTS_UPDATED",
+        "ITEM_SEARCH_RESULTS_ADDED",
+        "AUCTION_HOUSE_THROTTLED_SYSTEM_READY",
+        "PLAYER_LOGIN",
+        "PLAYER_ENTERING_WORLD",
+        "BAG_UPDATE_DELAYED",
+        "BANKFRAME_OPENED",
+        "BANKFRAME_CLOSED",
+        "BANK_TABS_CHANGED",
+        "PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED",
+        "MODIFIER_STATE_CHANGED",
+        "PLAYER_LOGOUT",
+        "PLAYER_REGEN_ENABLED",
+    }) do
         frame:RegisterEvent(event)
     end
     addon.BulkScan.Install(addon.scanner)
     SLASH_WAYLAIDLEDGER1, SLASH_WAYLAIDLEDGER2 = "/wll", "/waylaidledger"
-    SlashCmdList.WAYLAIDLEDGER = function(text) addon:Command(text) end
+    SlashCmdList.WAYLAIDLEDGER = function(text)
+        addon:Command(text)
+    end
     addon:Log("Loaded on interface " .. tostring(select(4, GetBuildInfo())))
     addon.initialized = true
     addon:Print(L["Loaded. /wll opens scans, price sources, and shopping."])
@@ -705,13 +935,18 @@ frame:SetScript("OnEvent", function(_, event, argument)
             addon.Providers.Install()
             addon.UI.Update()
             addon.Tooltip.Refresh()
-        elseif addon.initialized and (argument == "Blizzard_GamepadSmartNavigation" or argument == "Blizzard_GamepadSharedUtility") then
+        elseif
+            addon.initialized
+            and (argument == "Blizzard_GamepadSmartNavigation" or argument == "Blizzard_GamepadSharedUtility")
+        then
             addon.Navigation.Install()
         end
         return
     end
     local scanner = addon.scanner
-    if not scanner then return end
+    if not scanner then
+        return
+    end
     if event == "AUCTION_HOUSE_SHOW" then
         scanner:SetOpen(true)
         addon.autoPaused, addon.autoDue, addon.autoReason = false, nil, nil
@@ -753,7 +988,9 @@ frame:SetScript("OnEvent", function(_, event, argument)
         addon.Inventory.CaptureBags()
         addon.Inventory.CaptureBank()
     elseif event == "MODIFIER_STATE_CHANGED" then
-        if argument == "LSHIFT" or argument == "RSHIFT" then addon.Tooltip.Refresh() end
+        if argument == "LSHIFT" or argument == "RSHIFT" then
+            addon.Tooltip.Refresh()
+        end
     elseif event == "COMMODITY_SEARCH_RESULTS_UPDATED" or event == "COMMODITY_SEARCH_RESULTS_ADDED" then
         addon.NativeShopping.Results(argument)
         scanner:Results("commodity", argument)

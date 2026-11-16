@@ -87,6 +87,12 @@ no mutable global namespace beyond the SavedVariables table and registered slash
 commands/UI frame names. Runtime modules take `addonName, addon` from WoW's addon
 loader. Tests execute the actual production modules without transformed code.
 
+CI enforces Luacheck 1.2.0, StyLua 2.6.0, and the Ruff version pinned in
+`requirements-dev.txt`. Run the lint/format commands in the README before sending
+a change. Add newly used WoW globals to `.luacheckrc`; keep production APIs
+read-only and allow writable mocks only in tests. Unused positional callback
+arguments use `_` placeholders. Vendored `Libs` stay unchanged.
+
 Catalog discovery happens in game. The addon has no HTTP capability and uses only
 WoW APIs. There are no web import/build scripts.
 

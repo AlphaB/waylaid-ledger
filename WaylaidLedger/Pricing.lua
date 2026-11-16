@@ -11,8 +11,7 @@ local Pricing = addon.Pricing
 function Pricing.LowestKnown(rows)
     local best, bestIndex
     for index, row in ipairs(rows) do
-        if row.status == "ok" and not row.error and row.cost
-            and (not best or row.cost < best.cost) then
+        if row.status == "ok" and not row.error and row.cost and (not best or row.cost < best.cost) then
             best, bestIndex = row, index
         end
     end
@@ -58,8 +57,11 @@ function Pricing.Quote(snapshot, required)
                 local nextCount = math.min(required, count + offer.quantity)
                 local nextCost = costs[count] + offer.buyoutAmount
                 local nextQuantity = quantities[count] + offer.quantity
-                if not costs[nextCount] or nextCost < costs[nextCount]
-                    or (nextCost == costs[nextCount] and nextQuantity < quantities[nextCount]) then
+                if
+                    not costs[nextCount]
+                    or nextCost < costs[nextCount]
+                    or (nextCost == costs[nextCount] and nextQuantity < quantities[nextCount])
+                then
                     costs[nextCount] = nextCost
                     quantities[nextCount] = nextQuantity
                 end
@@ -87,8 +89,7 @@ function Pricing.Evaluate(crate, snapshots, now, maxAge, failures)
         rows[#rows + 1] = quote
     end
     for _, row in ipairs(rows) do
-        row.best = bestCost ~= nil and row.status == "ok" and not row.stale
-            and not row.error and row.cost == bestCost
+        row.best = bestCost ~= nil and row.status == "ok" and not row.stale and not row.error and row.cost == bestCost
     end
     return rows, allKnown
 end
@@ -100,8 +101,8 @@ function Pricing.Resolve(crate, snapshots, now, maxAge, failures, mode, lookup)
     local scanRows = Pricing.Evaluate(crate, snapshots, now, maxAge, failures)
     local rows, allVerified = {}, true
     for index, scan in ipairs(scanRows) do
-        scan.source, scan.sourceLabel = scan.estimated and "replicate" or "own",
-            scan.estimated and L["AH full scan"] or L["Own scan"]
+        scan.source, scan.sourceLabel =
+            scan.estimated and "replicate" or "own", scan.estimated and L["AH full scan"] or L["Own scan"]
         scan.best = false
         local freshScan = scan.status ~= "unknown" and not scan.stale and not scan.error
         local row = scan
@@ -120,13 +121,26 @@ function Pricing.Resolve(crate, snapshots, now, maxAge, failures, mode, lookup)
             end
             estimate = estimate or staleEstimate
             if estimate then
-                row = { itemID = scan.itemID, quantity = scan.quantity, status = "ok", estimated = true,
-                    cost = math.ceil(estimate.unitPrice * scan.quantity), source = estimate.source,
-                    sourceLabel = estimate.sourceLabel, ageDays = estimate.ageDays, stale = estimate.stale,
-                    scanError = mode == "auto" and scan.error or nil }
+                row = {
+                    itemID = scan.itemID,
+                    quantity = scan.quantity,
+                    status = "ok",
+                    estimated = true,
+                    cost = math.ceil(estimate.unitPrice * scan.quantity),
+                    source = estimate.source,
+                    sourceLabel = estimate.sourceLabel,
+                    ageDays = estimate.ageDays,
+                    stale = estimate.stale,
+                    scanError = mode == "auto" and scan.error or nil,
+                }
             elseif mode ~= "auto" then
-                row = { itemID = scan.itemID, quantity = scan.quantity, status = "unknown", source = mode,
-                    sourceLabel = mode == "auctionator" and "Auctionator" or "TSM" }
+                row = {
+                    itemID = scan.itemID,
+                    quantity = scan.quantity,
+                    status = "unknown",
+                    source = mode,
+                    sourceLabel = mode == "auctionator" and "Auctionator" or "TSM",
+                }
             end
         end
         if row.estimated or row.status == "unknown" or row.stale or row.error then
