@@ -3,10 +3,11 @@ local L = addon.L
 
 -- Price and shopping adapters use released public APIs. Provider values
 -- are estimates, never fabricated order-book snapshots or exact scan times.
-addon.Providers = { cache = {}, errors = {}, boundAPI = nil }
+addon.Providers = { cache = {}, cacheSize = 0, errors = {}, boundAPI = nil }
 local Providers = addon.Providers
 local CALLER = "WaylaidLedger"
 local CACHE_SECONDS = 15
+local CACHE_LIMIT = 2048
 local MAX_UNIT_PRICE = 9007199254740 -- Keep even a 1000-unit bundle within exact integer range.
 
 local function trace(...)
@@ -48,6 +49,7 @@ end
 
 function Providers.Invalidate()
     Providers.cache = {}
+    Providers.cacheSize = 0
 end
 
 local function validPrice(price)
@@ -100,6 +102,12 @@ function Providers.Read(source, itemID)
     elseif price ~= nil then
         Providers.errors[source] = "Invalid or non-positive price returned."
     end
+    if not Providers.cache[key] then
+        if Providers.cacheSize >= CACHE_LIMIT then
+            Providers.Invalidate()
+        end
+        Providers.cacheSize = Providers.cacheSize + 1
+    end
     Providers.cache[key] = { api = api, readAt = now, value = value }
     if Providers.errors[source] then
         trace("provider.error", 5, "%s item=%d: %s", source, itemID, Providers.errors[source])
@@ -116,6 +124,9 @@ local function wake()
 end
 
 function Providers.ScheduleRefresh()
+    if Providers.scan then
+        return -- Completion performs one invalidation and refresh.
+    end
     Providers.refreshAt = GetTime() + 0.25
     wake()
 end
@@ -143,7 +154,9 @@ function Providers.BeginExternalScan(origin)
     if addon.UpdateScheduler and addon.scanner then
         addon:UpdateScheduler()
     end
-    if addon.Discovery and addon.Discovery.frame then
+    if addon.Discovery and addon.Discovery.SetSuspended then
+        addon.Discovery.SetSuspended(true)
+    elseif addon.Discovery and addon.Discovery.frame then
         addon.Discovery.frame:SetScript("OnUpdate", nil)
     end
     if addon.BrowseUI then
@@ -170,6 +183,9 @@ function Providers.EndExternalScan(reason)
     Providers.Invalidate()
     -- One retry after the item-data stream has settled, never an own AH query.
     if addon.Discovery then
+        if addon.Discovery.SetSuspended then
+            addon.Discovery.SetSuspended(false)
+        end
         addon.Discovery.Retry(true)
     end
     if addon.BrowseUI then
@@ -214,7 +230,9 @@ function Providers.Install()
                 "Price database updated; externalActive=%s",
                 tostring(Providers.scan ~= nil)
             )
-            Providers.Invalidate()
+            if not Providers.scan then
+                Providers.Invalidate()
+            end
             -- Older Auctionator builds expose only the public DB callback.
             if not Providers.boundScanBus then
                 Providers.EndExternalScan("database callback (no scan-event adapter)")

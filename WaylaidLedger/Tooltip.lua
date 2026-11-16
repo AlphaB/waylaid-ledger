@@ -4,6 +4,16 @@ addon.Tooltip = {}
 local Tooltip = addon.Tooltip
 local watched = setmetatable({}, { __mode = "k" })
 
+local function watch(tooltip)
+    if watched[tooltip] then
+        return
+    end
+    watched[tooltip] = true
+    tooltip:HookScript("OnTooltipCleared", function(self)
+        self.waylaidLedgerItemID, self.waylaidLedgerDeferred = nil, nil
+    end)
+end
+
 local function money(copper)
     if GetMoneyString then
         return GetMoneyString(copper, true)
@@ -68,13 +78,22 @@ local function appendRows(tooltip, rows, detailed, compare)
 end
 
 function Tooltip.Append(tooltip, itemID, data)
+    if addon.Providers and addon.Providers.scan then
+        -- The global hook also sees scanning tooltips. Do no pricing, parsing,
+        -- inventory totals or settings work while Auctionator owns the scan.
+        -- Post-call can precede Show(), so remember relevant tooltips weakly
+        -- even when hidden. Never retain their item-data payloads.
+        if addon.Crates[itemID] or addon.Writs[itemID] or itemID == 248549 then
+            watch(tooltip)
+            tooltip.waylaidLedgerDeferred = true
+        end
+        return
+    end
     if tooltip.waylaidLedgerItemID == itemID then
         return
     end
-    if not (addon.Providers and addon.Providers.scan) then
-        addon.Discovery.Observe(itemID, nil, true)
-        addon.Discovery.Read(itemID, data and data.lines and data)
-    end
+    addon.Discovery.Observe(itemID, nil, true)
+    addon.Discovery.Read(itemID, data and data.lines and data)
     local writ = addon.Writs[itemID]
     if
         not addon.db
@@ -83,12 +102,8 @@ function Tooltip.Append(tooltip, itemID, data)
     then
         return
     end
-    if not watched[tooltip] then
-        watched[tooltip] = true
-        tooltip:HookScript("OnTooltipCleared", function(self)
-            self.waylaidLedgerItemID = nil
-        end)
-    end
+    watch(tooltip)
+    tooltip.waylaidLedgerDeferred = nil
     tooltip.waylaidLedgerItemID = itemID
     if itemID == 248549 then
         tooltip:AddLine(" ")
@@ -132,9 +147,6 @@ function Tooltip.Append(tooltip, itemID, data)
         return
     end
     addon.lastCrateID = itemID
-    if addon.UI and addon.UI.Update then
-        addon.UI.Update(false)
-    end
     local rows = addon:GetRows(itemID)
     local detailed = addon.db.tooltipDetails or (IsShiftKeyDown and IsShiftKeyDown())
     tooltip:AddLine(" ")
@@ -143,9 +155,16 @@ function Tooltip.Append(tooltip, itemID, data)
 end
 
 function Tooltip.Refresh()
+    if addon.Providers and addon.Providers.scan then
+        return
+    end
     for tooltip in pairs(watched) do
-        if tooltip.waylaidLedgerItemID and tooltip:IsShown() and tooltip.RebuildFromTooltipInfo then
-            tooltip.waylaidLedgerItemID = nil
+        if
+            (tooltip.waylaidLedgerItemID or tooltip.waylaidLedgerDeferred)
+            and tooltip:IsShown()
+            and tooltip.RebuildFromTooltipInfo
+        then
+            tooltip.waylaidLedgerItemID, tooltip.waylaidLedgerDeferred = nil, nil
             tooltip:RebuildFromTooltipInfo()
         end
     end

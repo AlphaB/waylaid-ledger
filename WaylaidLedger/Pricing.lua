@@ -98,9 +98,13 @@ end
 -- (including known shortages) takes precedence over any imported estimate.
 -- The lookup is injected so provider behavior can be tested independently.
 function Pricing.Resolve(crate, snapshots, now, maxAge, failures, mode, lookup)
-    local scanRows = Pricing.Evaluate(crate, snapshots, now, maxAge, failures)
+    -- Forced providers never use the order book. In particular, do not run the
+    -- stack-selection DP over a potentially large saved snapshot just to discard it.
+    local scanRows = (mode == "own" or mode == "auto") and Pricing.Evaluate(crate, snapshots, now, maxAge, failures)
     local rows, allVerified = {}, true
-    for index, scan in ipairs(scanRows) do
+    for index, option in ipairs(crate.options) do
+        local scan = scanRows and scanRows[index]
+            or { itemID = option.itemID, quantity = option.quantity, status = "unknown" }
         scan.source, scan.sourceLabel =
             scan.estimated and "replicate" or "own", scan.estimated and L["AH full scan"] or L["Own scan"]
         scan.best = false

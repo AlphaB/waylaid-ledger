@@ -321,13 +321,33 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         equal(a.autoDue, nil)
         equal(a:StartScan("all"), false)
         local discovery = a.Discovery.frame
+        equal(discovery.events.ITEM_DATA_LOAD_RESULT, nil)
+        equal(discovery.events.TOOLTIP_DATA_UPDATE, nil)
+        local deferredTooltip = CreateFrame("GameTooltip")
+        deferredTooltip:Hide()
+        local rebuilt = 0
+        function deferredTooltip:RebuildFromTooltipInfo()
+            rebuilt = rebuilt + 1
+            TooltipDataProcessor.callback(self, { id = 21 })
+        end
+        TooltipDataProcessor.callback(deferredTooltip, { id = 21 })
+        equal(rawget(deferredTooltip, "waylaidLedgerItemID"), nil)
+        equal(deferredTooltip.waylaidLedgerDeferred, true)
+        deferredTooltip:Show()
+        a.Tooltip.Refresh()
+        equal(rebuilt, 0)
+        local providerCache = a.Providers.cache
         local rendersBefore = redraws
         collectgarbage("collect")
         local memoryBefore = collectgarbage("count")
         for tick = 1, 600 do
             for id = 1, 100 do
-                discovery.scripts.OnEvent(discovery, "ITEM_DATA_LOAD_RESULT", 10000 + tick * 100 + id, true)
-                discovery.scripts.OnEvent(discovery, "TOOLTIP_DATA_UPDATE", 1000 + id)
+                if discovery.events.ITEM_DATA_LOAD_RESULT then
+                    discovery.scripts.OnEvent(discovery, "ITEM_DATA_LOAD_RESULT", 10000 + tick * 100 + id, true)
+                end
+                if discovery.events.TOOLTIP_DATA_UPDATE then
+                    discovery.scripts.OnEvent(discovery, "TOOLTIP_DATA_UPDATE", 1000 + id)
+                end
             end
             listener:ReceiveEvent(events.ScanProgress, 0.2 + tick / 600 * 0.79)
             a.Providers.frame.scripts.OnUpdate()
@@ -345,17 +365,25 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         equal(frame.scripts.OnUpdate, nil)
         equal(requests, externalRequests)
         dbUpdate()
+        equal(a.Providers.cache, providerCache)
         assert(a.Providers.scan, "price callbacks must not unlock an active full scan")
         listener:ReceiveEvent(events.ScanComplete, { { replicateInfo = {} } })
         local diagnostics = table.concat(a.db.log, "\n")
         assert(diagnostics:find("[auctionator.progress]", 1, true))
         assert(diagnostics:find("ScanComplete", 1, true))
-        assert(diagnostics:find("ignoredDiscoveryEvents=120000", 1, true))
+        assert(diagnostics:find("ignoredDiscoveryEvents=0", 1, true))
         assert(#a.db.log < 60, "diagnostics flooded the log during Auctionator's event storm")
         equal(a.Providers.scan, nil)
         equal(a.autoDue, nil)
         equal(requests, externalRequests)
         equal(a.BrowseUI.views.crates.refreshButton.enabled, true)
+        equal(discovery.events.ITEM_DATA_LOAD_RESULT, true)
+        equal(discovery.events.TOOLTIP_DATA_UPDATE, true)
+        a.Providers.refreshAt = GetTime()
+        a.Providers.frame.scripts.OnUpdate()
+        equal(rebuilt, 1)
+        equal(deferredTooltip.waylaidLedgerItemID, 21)
+        equal(rawget(deferredTooltip, "waylaidLedgerDeferred"), nil)
         -- Refresh after autoscan reuses public prices, never requests another snapshot.
         for _, source in ipairs({ "auto", "auctionator" }) do
             a.db.source, a.db.writSource = source, source

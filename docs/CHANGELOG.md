@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.6
+
+- Suspend tooltip price calculation and automatic list rebuilding throughout Auctionator full scans, then restore visible tooltip costs once.
+- Unregister discovery's item/tooltip/bag/browse events during external scans; reconcile bags and pending descriptions when subscriptions resume.
+- Stop crate tooltips from rebuilding settings menus and defer hidden settings updates until the page opens.
+- Coalesce provider cache invalidations during scans, cap cache retention at 2,048 quotes, and skip unused own order-book calculations for forced providers.
+- Add retained-data counts to diagnostics and a debug-enabled external-scan allocation benchmark to CI.
+- The synthetic 20,000-tooltip workload drops from about 0.46s CPU / 65 MiB temporary allocations to 0.007s / 2 KiB; live-client impact still requires verification.
+
 ## 0.8.5
 
 - Make Refresh reload public cached prices in Auto/provider modes instead of requesting a second full snapshot after Auctionator autoscan.

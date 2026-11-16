@@ -16,6 +16,10 @@ local SOURCE_ORDER = { "auto", "own", "auctionator", "tsm" }
 local SOURCE_LABELS = { auto = "Auto", own = "Own scans", auctionator = "Auctionator", tsm = "TSM", off = "Off" }
 
 function UI.Update(refreshBrowse)
+    if addon.Providers and addon.Providers.scan then
+        UI.UpdateSettings() -- Explicit settings changes still apply if the page is visible.
+        return -- Completion refreshes once; progress has its own status-only path.
+    end
     if addon.Trace then
         addon:Trace(
             "ui.update",
@@ -232,7 +236,7 @@ local function choice(parent, title, y, values, labels, get, set, description)
 end
 
 function UI.UpdateSettings()
-    if not UI.settingsChecks then
+    if not UI.settingsChecks or not UI.settings:IsVisible() then
         return
     end
     UI.crateSourceButton:GenerateMenu()

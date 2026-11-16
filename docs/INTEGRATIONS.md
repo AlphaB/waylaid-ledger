@@ -1,6 +1,6 @@
 # Auction addon integrations
 
-## Current behavior (0.8.5)
+## Current behavior (0.8.6)
 
 Auctionator and TSM supply optional cached price estimates. Auto reuses fresh
 own snapshots, then provider estimates. Tab switches, missing prices, and unresolved
@@ -15,8 +15,13 @@ Auctionator autoscan is observed without reading or retaining its raw snapshot.
 The public DB callback carries no progress, so a capability-checked adapter uses
 `Auctionator.EventBus:Register` with `FullScan.Events.ScanStart`, `ScanProgress`,
 `ScanComplete`, and `ScanFailed`. Only the numeric progress value is retained;
-the completion event's auction-data payload is ignored. Discovery and provider
-redraws remain paused until completion/failure. Refresh is disabled meanwhile.
+the completion event's auction-data payload is ignored. Discovery unregisters
+item/tooltip/bag/browse events until completion/failure, then restores subscriptions,
+reconciles bags and retries pending descriptions once. Tooltip cost calculation
+and automatic list rebuilding are deferred; visible tooltips resume at completion.
+Database callbacks during an active scan do not repeatedly discard provider
+caches. Refresh is disabled meanwhile. The price cache is capped at 2,048 entries;
+forced provider pricing never computes an unused own order-book quote.
 
 This optional event-bus adapter is version-sensitive, unlike the public price API.
 Tests execute Auctionator 347's unmodified event bus, event constants and DB callback.

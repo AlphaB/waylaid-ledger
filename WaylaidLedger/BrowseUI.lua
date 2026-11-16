@@ -203,6 +203,10 @@ function Browse.Render(view, resetFocus)
 end
 
 function Browse.Refresh(view)
+    if addon.Providers.scan then
+        Browse.UpdateStatus(view)
+        return -- Keep existing rows while Auctionator's database is changing.
+    end
     view.entries = addon.Shopping.Entries(view.kind)
     Browse.Render(view)
 end
