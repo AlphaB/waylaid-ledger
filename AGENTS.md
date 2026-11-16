@@ -38,12 +38,31 @@ the repository's established release destination and workflow.
 - Keep unrelated workspace changes out of the release. Do not discard or
   overwrite other work to prepare it.
 - Do not bypass failing checks or claim unperformed in-game checks passed.
-  Record outstanding manual verification in the release notes. If a genuine
-  blocker prevents release, report the specific blocker and release status;
+  Record outstanding manual verification in the PR and development documentation.
+  If a genuine blocker prevents release, report the specific blocker and release status;
   ask only for missing access or a decision needed to resolve it, not whether
   the user wants a release.
 - An explicit user instruction to stop before release or keep a task local
   overrides this default for that task.
+
+## Player-facing release descriptions
+
+Write GitHub release descriptions for players, in plain, concise language.
+Lead with the user-visible improvement, then list meaningful new features,
+fixes or changed behavior. Include simple installation steps when useful.
+
+- Do not include development information: tests or test counts, linting,
+  formatting, CI, source/API contracts, implementation internals, commit/PR
+  details, packaging checks, repository policies or release workflow changes.
+- Keep validation results and pending verification in PR descriptions and
+  development documentation. Mention a known limitation in release notes only
+  when it affects players, explaining its practical effect or workaround in
+  ordinary language. Do not turn unperformed verification into a generic warning.
+- Do not invent user-facing changes or claim compatibility beyond the evidence.
+- When the task only changes release descriptions and their writing guidance,
+  update the existing published description and merge the guidance. That fulfills
+  the release step; retain the existing version, tag and install asset instead
+  of publishing an identical addon under a new version.
 
 ## Native controller support
 
