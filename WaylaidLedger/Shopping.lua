@@ -149,6 +149,27 @@ function Shopping.Less(left, right)
     return left.itemID < right.itemID
 end
 
+Shopping.SortKeys = { name = true, purchase = true, delivery = true, total = true, unitCost = true }
+
+function Shopping.Compare(left, right, key, descending)
+    key = Shopping.SortKeys[key] and key or "unitCost"
+    local a, b = left[key], right[key]
+    -- Missing prices/rewards stay last in either direction.
+    if a ~= b then
+        if a == nil then
+            return false
+        end
+        if b == nil then
+            return true
+        end
+        if descending then
+            return a > b
+        end
+        return a < b
+    end
+    return Shopping.Less(left, right)
+end
+
 function Shopping.Entries(kind)
     local definitions = kind == "writs" and addon.Writs or addon.Crates
     local entries = {}

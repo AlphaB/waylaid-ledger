@@ -1880,3 +1880,16 @@ for locale, labels in pairs(rewardLabels) do
         addon.Locales[locale][key] = labels[index]
     end
 end
+
+local sortHelp = {
+    deDE = "Zum Sortieren klicken; erneut klicken, um die Reihenfolge umzukehren.",
+    frFR = "Cliquez pour trier ; cliquez à nouveau pour inverser l’ordre.",
+    esES = "Haz clic para ordenar; vuelve a hacer clic para invertir el orden.",
+    ptBR = "Clique para ordenar; clique novamente para inverter a ordem.",
+    ruRU = "Нажмите для сортировки; нажмите ещё раз, чтобы изменить порядок.",
+    koKR = "클릭하여 정렬하고 다시 클릭하여 순서를 반대로 바꿉니다.",
+    zhTW = "點擊以排序；再次點擊可反轉順序。",
+}
+for locale, label in pairs(sortHelp) do
+    addon.Locales[locale]["Click to sort; click again to reverse."] = label
+end

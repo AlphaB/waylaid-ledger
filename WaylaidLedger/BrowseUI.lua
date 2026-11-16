@@ -151,7 +151,8 @@ function Browse.Layout(view)
         header:ClearAllPoints()
         header:SetPoint("TOPLEFT", view.inset, "TOPLEFT", index == 1 and 4 or (width - (6 - index) * column + 4), -3)
         header:SetWidth(index == 1 and (width - 4 * column) or column)
-        addon.Localization.ButtonText(header, header:GetText())
+        local arrow = header.sortKey == view.sortKey and (view.sortDescending and " ↓" or " ↑") or ""
+        addon.Localization.ButtonText(header, header.sortTitle .. arrow)
     end
     view.scroll:ForEachFrame(function(row)
         layoutRow(row, width)
@@ -221,11 +222,16 @@ function Browse.Render(view, resetFocus)
             or addon.DiscoveryLocales.Key(addon.Shopping.DeliveryLabel(entry)):find(query, 1, true)
         then
             visible[#visible + 1] = entry
-            entry.listIndex = #visible
             if entry.total then
                 priced = priced + 1
             end
         end
+    end
+    table.sort(visible, function(left, right)
+        return addon.Shopping.Compare(left, right, view.sortKey, view.sortDescending)
+    end)
+    for index, entry in ipairs(visible) do
+        entry.listIndex = index
     end
     view.visibleEntries = visible
     view.scroll:SetDataProvider(CreateDataProvider(visible), true)
@@ -234,6 +240,16 @@ function Browse.Render(view, resetFocus)
     view.empty:SetShown(#visible == 0)
     Browse.Layout(view)
     addon.Navigation.RefreshView(view, previous)
+end
+
+function Browse.Sort(view, key)
+    if not addon.Shopping.SortKeys[key] then
+        return
+    end
+    view.sortDescending = view.sortKey == key and not view.sortDescending or false
+    view.sortKey = key
+    view.scroll:ScrollToBegin()
+    Browse.Render(view)
 end
 
 function Browse.Refresh(view)
@@ -259,7 +275,7 @@ function Browse.UpdateVisible()
 end
 
 function Browse.Create(host, kind)
-    local view = { host = host, kind = kind, headers = {} }
+    local view = { host = host, kind = kind, headers = {}, sortKey = "unitCost", sortDescending = false }
     Browse.views[kind] = view
     local search = CreateFrame("EditBox", nil, host, "SearchBoxTemplate")
     search:SetSize(180, 22)
@@ -341,9 +357,27 @@ function Browse.Create(host, kind)
     view.inset:SetPoint("BOTTOMRIGHT", -10, -4)
     for index, title in ipairs({ L["Item / delivery goods"], L["Purchase"], L["Delivery"], L["Total"], unitTitle(kind) }) do
         local header = CreateFrame("Button", nil, view.inset, "ColumnDisplayButtonNoScriptsTemplate")
+        header.sortKey = ({ "name", "purchase", "delivery", "total", "unitCost" })[index]
+        header.sortTitle = title
         header:SetText(title)
-        header:EnableMouse(false)
-        addon.Navigation.Ignore(header)
+        header:EnableMouse(true)
+        header:SetScript("OnClick", function(self)
+            Browse.Sort(view, self.sortKey)
+        end)
+        header:SetScript("OnEnter", function(self)
+            if not GameTooltip then
+                return
+            end
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:AddLine(self.sortTitle, 1, 0.82, 0)
+            GameTooltip:AddLine(L["Click to sort; click again to reverse."], 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        header:SetScript("OnLeave", function()
+            if GameTooltip then
+                GameTooltip:Hide()
+            end
+        end)
         view.headers[index] = header
     end
     view.scroll = CreateFrame("Frame", nil, view.inset, "WowScrollBoxList")

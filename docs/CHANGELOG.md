@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.1
+
+- Make all five table columns sortable; clicking the same header reverses the direction.
+- Keep lowest cost per reputation/Favor as the default for both tables on each addon load.
+- Display an arrow on the active column and keep unknown numeric values last in either direction.
+- Retain each table's session selection through filtering, Refresh and tab changes without starting a scan.
+- Make sort headers accessible through native controller navigation and retain focus after sorting.
+- Translate sorting guidance into every supported client language.
+
 ## 0.9.0
 
 - Rank complete writ baskets by cost per base reputation and crate baskets by cost per Merchant's Favor.
