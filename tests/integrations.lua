@@ -94,6 +94,38 @@ test("provider cache bounds retained missing quotes across many item IDs", funct
     equal(next(Providers.cache), nil)
 end)
 
+test("Auto skips discarded stale and failed order books but retains provider-free fallback", function()
+    local original, quotes = Pricing.Quote, 0
+    Pricing.Quote = function(...)
+        quotes = quotes + 1
+        return original(...)
+    end
+    local ok, err = pcall(function()
+        local snapshots = {
+            [1] = fresh({ { quantity = 20, unitPrice = 3 } }, 1),
+            [2] = fresh({}),
+            [3] = fresh({ { quantity = 5, unitPrice = 8 } }),
+        }
+        local rows = resolve(snapshots, "auto", function(source)
+            return estimate(source, 7, 0)
+        end, { [3] = "failed" })
+        equal(quotes, 1, "only the fresh shortage should need its own quote")
+        equal(rows[1].cost, 140)
+        equal(rows[2].status, "short")
+        equal(rows[3].scanError, "failed")
+        quotes = 0
+        rows = resolve(snapshots, "auto")
+        equal(quotes, 3)
+        equal(rows[1].cost, 60)
+        equal(rows[1].stale, true)
+        equal(rows[1].source, "own")
+        equal(rows[2].status, "short")
+        equal(rows[3].cost, 40)
+    end)
+    Pricing.Quote = original
+    assert(ok, err)
+end)
+
 test("older Auctionator scans finish through the public callback or timeout without starting our scanner", function()
     reset()
     local f = fakeAuctionator({})

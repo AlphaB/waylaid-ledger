@@ -71,15 +71,22 @@ function Pricing.Quote(snapshot, required)
     return { status = "ok", cost = costs[required], purchased = quantities[required], available = available }
 end
 
+local function scanQuote(option, snapshot, now, maxAge, failures)
+    local quote = Pricing.Quote(snapshot, option.quantity)
+    quote.itemID, quote.quantity = option.itemID, option.quantity
+    quote.age = snapshot and math.max(0, now - snapshot.scannedAt) or nil
+    quote.stale = quote.age and quote.age > maxAge or false
+    quote.error = (failures and failures[option.itemID]) or (snapshot and snapshot.error) or nil
+    quote.source, quote.sourceLabel =
+        quote.estimated and "replicate" or "own", quote.estimated and L["AH full scan"] or L["Own scan"]
+    return quote
+end
+
 function Pricing.Evaluate(crate, snapshots, now, maxAge, failures)
     local rows, bestCost, allKnown = {}, nil, true
     for _, option in ipairs(crate.options) do
         local snapshot = snapshots[option.itemID]
-        local quote = Pricing.Quote(snapshot, option.quantity)
-        quote.itemID, quote.quantity = option.itemID, option.quantity
-        quote.age = snapshot and math.max(0, now - snapshot.scannedAt) or nil
-        quote.stale = quote.age and quote.age > maxAge or false
-        quote.error = (failures and failures[option.itemID]) or (snapshot and snapshot.error) or nil
+        local quote = scanQuote(option, snapshot, now, maxAge, failures)
         if quote.status == "unknown" or quote.stale or quote.error then
             allKnown = false
         end
@@ -98,15 +105,24 @@ end
 -- (including known shortages) takes precedence over any imported estimate.
 -- The lookup is injected so provider behavior can be tested independently.
 function Pricing.Resolve(crate, snapshots, now, maxAge, failures, mode, lookup)
-    -- Forced providers never use the order book. In particular, do not run the
-    -- stack-selection DP over a potentially large saved snapshot just to discard it.
-    local scanRows = (mode == "own" or mode == "auto") and Pricing.Evaluate(crate, snapshots, now, maxAge, failures)
+    -- Choose the source before pricing a detailed order book. After Auctionator
+    -- completes, Auto may refresh the whole catalog against large, old saved
+    -- snapshots. Their stack-selection DP is wasted when a provider replaces it.
     local rows, allVerified = {}, true
     for index, option in ipairs(crate.options) do
-        local scan = scanRows and scanRows[index]
-            or { itemID = option.itemID, quantity = option.quantity, status = "unknown" }
-        scan.source, scan.sourceLabel =
-            scan.estimated and "replicate" or "own", scan.estimated and L["AH full scan"] or L["Own scan"]
+        local snapshot = snapshots[option.itemID]
+        local errorMessage = (failures and failures[option.itemID]) or (snapshot and snapshot.error)
+        local fresh = snapshot and not errorMessage and now - snapshot.scannedAt <= maxAge
+        local scan = {
+            itemID = option.itemID,
+            quantity = option.quantity,
+            status = "unknown",
+            source = "own",
+            sourceLabel = L["Own scan"],
+        }
+        if mode == "own" or (mode == "auto" and fresh) then
+            scan = scanQuote(option, snapshot, now, maxAge, failures)
+        end
         scan.best = false
         local freshScan = scan.status ~= "unknown" and not scan.stale and not scan.error
         local row = scan
@@ -135,8 +151,12 @@ function Pricing.Resolve(crate, snapshots, now, maxAge, failures, mode, lookup)
                     sourceLabel = estimate.sourceLabel,
                     ageDays = estimate.ageDays,
                     stale = estimate.stale,
-                    scanError = mode == "auto" and scan.error or nil,
+                    scanError = mode == "auto" and errorMessage or nil,
                 }
+            elseif mode == "auto" then
+                -- Preserve cached prices/shortages when neither provider knows
+                -- the item, including isolated custom market profiles.
+                row = scanQuote(option, snapshot, now, maxAge, failures)
             elseif mode ~= "auto" then
                 row = {
                     itemID = scan.itemID,

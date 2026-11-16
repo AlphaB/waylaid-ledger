@@ -9,6 +9,7 @@ local function fixture(action, locale)
         C_Container = C_Container,
         debugprofilestop = debugprofilestop,
         GetTime = GetTime,
+        C_AuctionHouse = C_AuctionHouse,
     }
     local a = { db = {}, Crates = {}, Writs = {}, MaterialNames = {}, WritMaterialNames = {} }
     local names, tips = {}, {}
@@ -62,8 +63,142 @@ local function fixture(action, locale)
     C_Container = saved.C_Container
     C_TooltipInfo = saved.C_TooltipInfo
     debugprofilestop = saved.debugprofilestop
+    C_AuctionHouse = saved.C_AuctionHouse
     assert(ok, err)
 end
+
+test("browse bursts defer native reads and unchanged results do not reparse contracts", function()
+    fixture(function(a, names, tips)
+        debugprofilestop = nil
+        local rows, reads, snapshots, lookups = {}, 0, 0, 0
+        for id = 100, 249 do
+            names[id] = "Craftsman's Writ: Browse " .. id
+            tips[id] = { lines = { { leftText = "Deliver 3 Herb" } } }
+            a.Discovery.Observe(id)
+            rows[#rows + 1] = { itemKey = { itemID = id } }
+        end
+        a.Discovery.Observe(11, "Herb")
+        for id = 1000, 6999 do
+            names[id] = "Other item " .. id
+            rows[#rows + 1] = { itemKey = { itemID = id } }
+        end
+        a.Discovery.Retry()
+        a.drain()
+        C_TooltipInfo.GetItemByID = function(id)
+            reads = reads + 1
+            return tips[id]
+        end
+        C_Item.GetItemNameByID = function(id)
+            lookups = lookups + 1
+            return names[id]
+        end
+        C_AuctionHouse = {
+            GetBrowseResults = function()
+                snapshots = snapshots + 1
+                return rows
+            end,
+        }
+        local frame = a.Discovery.frame
+        for _ = 1, 100 do
+            frame.scripts.OnEvent(frame, "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED")
+            a.advance(0.01)
+            frame.scripts.OnUpdate()
+        end
+        equal(snapshots, 0)
+        equal(lookups, 0)
+        a.advance(0.3)
+        while frame.scripts.OnUpdate do
+            local previous = lookups
+            frame.scripts.OnUpdate()
+            assert(lookups - previous <= 50, "browse names exceeded their frame budget")
+        end
+        equal(snapshots, 1)
+        equal(lookups, 6000)
+        equal(reads, 0, "unchanged contract names must not restart all description reads")
+        for _ = 1, 10 do
+            frame.scripts.OnEvent(frame, "AUCTION_HOUSE_BROWSE_RESULTS_ADDED")
+            a.drain()
+        end
+        equal(lookups, 6000)
+        equal(reads, 0)
+    end)
+end)
+
+test("browse discovery keeps new requirements and yields slow native names", function()
+    fixture(function(a, names, tips)
+        local elapsed, lookups = 0, 0
+        debugprofilestop = function()
+            return elapsed
+        end
+        names[31], names[11] = "Craftsman's Writ: New browse item", "New Herb"
+        tips[31] = { lines = { { leftText = "Deliver 7 New Herb" } } }
+        C_Item.GetItemNameByID = function(id)
+            elapsed, lookups = elapsed + 2, lookups + 1
+            return names[id]
+        end
+        C_AuctionHouse = {
+            GetBrowseResults = function()
+                return { { itemKey = { itemID = 31 } }, { itemKey = { itemID = 11 } } }
+            end,
+        }
+        local frame = a.Discovery.frame
+        frame.scripts.OnEvent(frame, "AUCTION_HOUSE_BROWSE_RESULTS_ADDED")
+        a.advance(0.3)
+        frame.scripts.OnUpdate()
+        equal(lookups, 1)
+        frame.scripts.OnUpdate()
+        equal(lookups, 2)
+        a.drain()
+        equal(a.Writs[31].requirements[1].quantity, 7)
+        equal(a.Writs[31].requirements[1].itemID, 11)
+        equal(a.Discovery.IsWorking(), false)
+    end)
+end)
+
+test("closing or suspending discovery discards pending browse snapshots", function()
+    fixture(function(a)
+        C_AuctionHouse = {
+            GetBrowseResults = function()
+                error("cancelled browse snapshot was read")
+            end,
+        }
+        local frame = a.Discovery.frame
+        frame.scripts.OnEvent(frame, "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED")
+        frame.scripts.OnEvent(frame, "AUCTION_HOUSE_CLOSED")
+        a.drain()
+        frame.scripts.OnEvent(frame, "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED")
+        a.Discovery.SetSuspended(true)
+        equal(frame.scripts.OnUpdate, nil)
+        a.Discovery.SetSuspended(false)
+        a.drain()
+        equal(a.Discovery.IsWorking(), false)
+    end)
+end)
+
+test("a replaced browse snapshot still resolves contracts found in the interrupted pass", function()
+    fixture(function(a, names, tips)
+        names[31], names[11] = "Craftsman's Writ: Interrupted", "Herb"
+        tips[31] = { lines = { { leftText = "Deliver 9 Herb" } } }
+        local rows = { { itemKey = { itemID = 31 } } }
+        for _ = 1, 100 do
+            rows[#rows + 1] = { itemKey = { itemID = 11 } }
+        end
+        C_AuctionHouse = {
+            GetBrowseResults = function()
+                return rows
+            end,
+        }
+        local frame = a.Discovery.frame
+        frame.scripts.OnEvent(frame, "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED")
+        a.advance(0.3)
+        frame.scripts.OnUpdate()
+        rows = { { itemKey = { itemID = 31 } }, { itemKey = { itemID = 11 } } }
+        frame.scripts.OnEvent(frame, "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED")
+        a.drain()
+        equal(a.Writs[31].requirements[1].quantity, 9)
+        equal(a.Discovery.IsWorking(), false)
+    end)
+end)
 
 test("tooltip refresh feedback settles when the delivery definition is unchanged", function()
     fixture(function(a, names, tips)

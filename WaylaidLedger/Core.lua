@@ -1,6 +1,6 @@
 local addonName, addon = ...
 local L = addon.L
-addon.version = "0.9.6"
+addon.version = "0.9.7"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -107,6 +107,15 @@ end
 -- Automatic scanning is an explicit AH-open preference. Browsing lists,
 -- changing a source and receiving bag/item events must never launch queries.
 function addon:CanAutoScan(reason)
+    -- Auto with a usable price provider follows the same policy as Refresh:
+    -- consume its cache instead of starting a second market-wide scan on open.
+    if
+        self.db.source == "auto"
+        and self.db.profile == "default"
+        and (self.Providers.Available("auctionator") or self.Providers.Available("tsm"))
+    then
+        return false
+    end
     return reason == "open"
         and self.db.scanOnOpen
         and not self.autoPaused
