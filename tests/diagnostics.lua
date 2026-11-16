@@ -51,6 +51,7 @@ test("debug event storms are summarized before formatting and retained logs are 
         equal(#f.messages, 1)
         equal(#addon.db.log, 1)
         assert(addon:Report():find("Debug messages suppressed since last ui.update: 60000", 1, true))
+        assert(addon:Report():find("Retained data: markets=", 1, true))
         f.now = 5
         addon:Trace("ui.update", 5, "next update")
         equal(#f.messages, 2)

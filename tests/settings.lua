@@ -1,5 +1,32 @@
 local addon, test, equal = ...
 
+test("hidden settings defer menu rebuilding until the page is opened", function()
+    HideUIPanel(SettingsPanel)
+    addon.UI.settings:Hide()
+    local builds, old = 0, {}
+    local controls = { addon.UI.crateSourceButton, addon.UI.writSourceButton, addon.UI.settingsTSM }
+    for _, control in ipairs(controls) do
+        old[control] = control.GenerateMenu
+        control.GenerateMenu = function(self)
+            builds = builds + 1
+            return old[self](self)
+        end
+    end
+    local ok, err = pcall(function()
+        for _ = 1, 100 do
+            addon.UI.Update(false)
+        end
+        equal(builds, 0)
+        addon.UI.ToggleSettings()
+        assert(builds >= 3)
+    end)
+    for control, method in pairs(old) do
+        control.GenerateMenu = method
+    end
+    HideUIPanel(SettingsPanel)
+    assert(ok, err)
+end)
+
 test("settings register once on WoW's AddOns page and every entry point opens that category", function()
     local category = addon.UI.settingsCategory
     assert(category)
@@ -47,8 +74,8 @@ end)
 test("slash settings use the same labels and obsolete controls open official settings", function()
     local oldSource = addon.db.source
     addon:Command("source own")
-    equal(addon.UI.crateSourceButton.text, "Own scans")
     addon:Command("controls")
+    equal(addon.UI.crateSourceButton.text, "Own scans")
     equal(Settings.opened, addon.UI.settingsCategory:GetID())
     equal(addon.UI.frame, nil)
     equal(addon.UI.refreshModeButton, nil)

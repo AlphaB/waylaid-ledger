@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The lowest known filling cost is highlighted in green for all price sources,
 including cached prices. Auctionator and TSM are optional price providers. Own scans support both crate and writ costs.
 
-Version **0.8.5** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.8.6** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -218,7 +218,10 @@ and scroll position.
 During Auctionator scans, the list displays **Auctionator: N%** from its scan
 progress events. Refresh is disabled until completion or failure; Waylaid cannot
 stop another addon's scan. Older builds without progress events show a waiting
-message. Completion refreshes prices once; switching tabs never restarts scanning.
+message. During the scan, cached rows remain stable and tooltip cost additions
+are deferred. Completion restores visible tooltip costs and refreshes prices once;
+switching tabs never restarts scanning. Hidden settings pages do not regenerate
+menus in response to tooltip or auction updates.
 
 Own Refresh on clients without replication support retains filtered per-item scans and
 an optional Auctionator follow-up controlled by `/wll auctionatorfollowup on|off`.
@@ -391,8 +394,9 @@ Please start with a small test:
    they include the addon version/settings, scan detection, progress, completion/failure,
    timeouts, own-scan stages, tab selections, description retries, and UI refreshes.
    Progress and repeated events are rate-limited; suppressed counts and the latest
-   100 log entries appear in the report. Item/tooltip storms increment one counter
-   instead of printing individual events. Unknown progress means Auctionator has
+   100 log entries appear in the report. Discovery unsubscribes from item/tooltip events during Auctionator scans;
+   tooltip pricing and list rebuilding resume after completion. The report also
+   includes retained price/offer/name counts for memory investigations. Unknown progress means Auctionator has
    not supplied a percentage; it is not an invented estimate.
 9. If something fails, send the exact error and **`/wll report`** output. Include
    the crate item ID and **`/wll inspect <ID>`** output if its requirements differ.
@@ -420,6 +424,7 @@ python3 -m ruff check .
 python3 -m ruff format --check .
 python3 tests/run.py
 python3 tests/scan_performance.py --verify
+python3 tests/scan_performance.py --scenario auctionator --verify
 python3 tools/package.py
 ```
 
@@ -432,8 +437,8 @@ depth, indivisible auctions, randomized exhaustive cross-checks, stale/unknown
 results, pagination, throttling, retry timeouts, interruptions, owned-stock
 filtering, profile isolation, full bootstrap, tooltip text, provider priorities,
 source settings, API errors, price-age semantics, callbacks, and shopping handoff.
-The default suite has 217 tests. Four additional contract tests run the actual
-unmodified provider API and Auctionator event-bus Lua from separately downloaded release ZIPs (221 total):
+The default suite has 220 tests. Four additional contract tests run the actual
+unmodified provider API and Auctionator event-bus Lua from separately downloaded release ZIPs (224 total):
 
 ```sh
 python3 tests/run.py --auctionator /path/to/Auctionator-347.zip --tsm /path/to/TradeSkillMaster.zip

@@ -119,8 +119,8 @@ from saved market profiles, preserving relevant prices and detailed snapshots.
 Localized-name collisions remain ambiguous after cleanup.
 
 Item/tooltip retries and Auctionator update redraws wait for 250 ms of quiet.
-Auctionator price updates invalidate the price cache immediately but do not
-retry delivery parsing. Ending an external full scan retries pending descriptions
+Auctionator price updates invalidate the price cache immediately when idle,
+but coalesce during full scans and do not retry delivery parsing. Ending an external full scan retries pending descriptions
 once. Unchanged descriptions do not redraw lists or rebuild tooltips, preventing
 the tooltip → discovery → redraw feedback loop. Missing tooltip data requests
 an item load only once until actual tooltip data arrives. Consumed discovery queue entries are periodically
@@ -131,6 +131,22 @@ benchmark (100,000 auction rows, 20,000 unique items per scan). It reports CPU
 time, peak Lua memory growth and retained growth after garbage collection, and
 checks that unrelated market data is released. These figures exclude WoW's
 native auction API costs and are not an in-game FPS or memory measurement.
+
+Run `python3 tests/scan_performance.py --scenario auctionator --verify` for
+20,000 known-item tooltip updates, 40,000 potential discovery events, and 200
+UI/database updates during an external scan, with debug logging enabled. This
+uses production tooltip, pricing, discovery, UI and provider code with mocked
+native APIs. It checks zero tooltip quotes, hidden-menu builds, list rebuilds,
+and discovery event deliveries during the scan. It pauses GC only in the harness
+to measure cumulative temporary allocations, then measures retained growth.
+
+On the development machine, the same workload against 0.8.5 took about 0.46s CPU
+and allocated 66,424 KiB, retaining 2 KiB after GC. With 0.8.6 it took about 0.007s,
+allocated 2 KiB, and retained 1 KiB. These are synthetic Lua-work measurements,
+not a claim about live-client CPU percentages or an addon memory ceiling. WoW's
+native menu/tooltip work is excluded. Production code leaves garbage collection
+to the client. `/wll report` counts saved markets, snapshots, offer rows, localized
+names and provider cache entries on demand to help investigate retained data.
 
 Replication prices are labelled AH full-scan estimates. They do not establish
 buyable stock, owner/account filtering, stack outlay, or availability at every
@@ -153,8 +169,8 @@ ten variants. Delivery-clause examples are constructed syntax tests, not capture
 live-client descriptions. Localized plurals without links are tested as unresolved.
 The bulk test feeds 6,000 auctions in 24 batches using one replication request;
 this is a request-count/batching regression, not a measured live-server timing.
-Tests also cover passive reuse, minimum prices, fresh-shortage preservation,
-immediate repeat refreshes, ignored old lockouts, cancellation and timeout. Event-burst tests cover 180 unresolved
+Tests also cover external snapshot isolation, minimum prices, fresh-shortage preservation,
+provider refreshes, shared cooldowns, ignored old lockouts, cancellation and timeout. Event-burst tests cover 180 unresolved
 descriptions, targeted tooltip updates, retry coalescing, reentry and elapsed-time
 budgets using a simulated clock. These do not measure live client frame times.
 Legacy UI/pricing tests use synthetic catalogs

@@ -54,6 +54,46 @@ local function fakeAuctionator(prices)
     return state
 end
 
+test("forced providers skip unused own order-book pricing", function()
+    local original = Pricing.Quote
+    Pricing.Quote = function()
+        error("unused own order book was priced")
+    end
+    local ok, err = pcall(function()
+        for _, mode in ipairs({ "auctionator", "tsm" }) do
+            local rows = resolve({ [1] = fresh({}) }, mode, function(source)
+                return estimate(source, 7, 0)
+            end)
+            equal(rows[1].cost, 140)
+            equal(rows[1].source, mode)
+            equal(rows[1].estimated, true)
+            equal(resolve({}, mode)[1].status, "unknown")
+        end
+    end)
+    Pricing.Quote = original
+    assert(ok, err)
+end)
+
+test("provider cache bounds retained missing quotes across many item IDs", function()
+    reset()
+    fakeAuctionator({})
+    for id = 1, 5000 do
+        Providers.Read("auctionator", id)
+    end
+    local count = 0
+    for _ in pairs(Providers.cache) do
+        count = count + 1
+    end
+    assert(count <= 2048)
+    equal(count, Providers.cacheSize)
+    local retained = Providers.cacheSize
+    Providers.Read("auctionator", 5000)
+    equal(Providers.cacheSize, retained)
+    Providers.Invalidate()
+    equal(Providers.cacheSize, 0)
+    equal(next(Providers.cache), nil)
+end)
+
 test("older Auctionator scans finish through the public callback or timeout without starting our scanner", function()
     reset()
     local f = fakeAuctionator({})

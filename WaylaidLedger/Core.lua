@@ -1,6 +1,6 @@
 local addonName, addon = ...
 local L = addon.L
-addon.version = "0.8.5"
+addon.version = "0.8.6"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -632,6 +632,25 @@ function addon:Report()
     for _ in pairs(market.items) do
         count = count + 1
     end
+    -- Count retained structures only on explicit report requests, never in the
+    -- scan/event hot path. This distinguishes old saved order books from churn.
+    local markets, snapshots, offers, names, locales, cached = 0, 0, 0, 0, 0, 0
+    for _, saved in pairs(self.db.markets or {}) do
+        markets = markets + 1
+        for _, snapshot in pairs(saved.items or {}) do
+            snapshots = snapshots + 1
+            offers = offers + #(snapshot.offers or {})
+        end
+    end
+    for _, saved in pairs(self.db.discovery and self.db.discovery.locales or {}) do
+        locales = locales + 1
+        for _ in pairs(saved.names or {}) do
+            names = names + 1
+        end
+    end
+    for _ in pairs(self.Providers.cache) do
+        cached = cached + 1
+    end
     local rows = self.lastCrateID and self:GetRows(self.lastCrateID) or nil
     local lines = {
         "Waylaid Ledger " .. self.version,
@@ -649,6 +668,16 @@ function addon:Report()
         "Auction house open: " .. tostring(self.scanner.open),
         "Scanner: " .. (self.scanner.message or "Idle"),
         "Debug chat: " .. tostring(self.db.debug == true),
+        string.format(
+            "Retained data: markets=%d snapshots=%d offerRows=%d discoveryNames=%d locales=%d providerCache=%d",
+            markets,
+            snapshots,
+            offers,
+            names,
+            locales,
+            cached
+        ),
+        "Discovery event subscriptions paused: " .. tostring(self.Discovery.suspended == true),
         "Auctionator scan: " .. tostring(self.Providers.scan ~= nil) .. "; progress events: " .. tostring(
             self.Providers.boundScanBus ~= nil
         ) .. "; percent: " .. tostring(self.Providers.scan and self.Providers.scan.percent),

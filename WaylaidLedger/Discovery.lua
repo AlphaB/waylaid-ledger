@@ -12,12 +12,19 @@ local waveDone, waveTotal = 0, 0
 local requested = {}
 local retryAt
 local QUIET_SECONDS = 0.25
+local EVENTS = {
+    "ITEM_DATA_LOAD_RESULT",
+    "TOOLTIP_DATA_UPDATE",
+    "BAG_UPDATE_DELAYED",
+    "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED",
+    "AUCTION_HOUSE_BROWSE_RESULTS_ADDED",
+}
 local reading, tooltipItems, itemTooltips = {}, {}, {}
 local neededNames = {}
 local process
 
 local function wake()
-    if Discovery.frame then
+    if Discovery.frame and not Discovery.suspended then
         Discovery.frame:SetScript("OnUpdate", process)
     end
 end
@@ -298,7 +305,7 @@ end
 
 function Discovery.Read(itemID, data)
     local kind = Discovery.candidates[itemID]
-    if not kind or reading[itemID] then
+    if Discovery.suspended or not kind or reading[itemID] then
         return false
     end
     reading[itemID] = true
@@ -553,6 +560,31 @@ function Discovery.Bags()
     Discovery.Retry()
 end
 
+function Discovery.SetSuspended(suspended)
+    if Discovery.suspended == suspended then
+        return
+    end
+    local wasSuspended = Discovery.suspended
+    Discovery.suspended = suspended
+    local frame = Discovery.frame
+    if not frame then
+        return
+    end
+    for _, event in ipairs(EVENTS) do
+        if suspended then
+            frame:UnregisterEvent(event)
+        else
+            frame:RegisterEvent(event)
+        end
+    end
+    if suspended then
+        frame:SetScript("OnUpdate", nil)
+    elseif wasSuspended then
+        -- Item/bag events missed during the scan are reconciled once at the end.
+        Discovery.Bags()
+    end
+end
+
 function Discovery.Install()
     local locale, build = GetLocale(), select(4, GetBuildInfo())
     Discovery.locale = locale
@@ -599,15 +631,8 @@ function Discovery.Install()
     if retryRequested then
         wake()
     end
-    for _, event in ipairs({
-        "ITEM_DATA_LOAD_RESULT",
-        "TOOLTIP_DATA_UPDATE",
-        "BAG_UPDATE_DELAYED",
-        "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED",
-        "AUCTION_HOUSE_BROWSE_RESULTS_ADDED",
-    }) do
-        frame:RegisterEvent(event)
-    end
+    Discovery.suspended = nil
+    Discovery.SetSuspended(addon.Providers and addon.Providers.scan ~= nil or false)
     frame:SetScript("OnEvent", function(_, event, itemID, success)
         -- Auctionator may load every AH item and update tooltips repeatedly.
         -- Keep our discovery idle until its completion callback, even when its
