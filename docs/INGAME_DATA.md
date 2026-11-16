@@ -9,8 +9,11 @@ for the fallback's provenance.
 
 ## First use and refresh
 
-At an auctioneer, run `/wll scan all` or click **Refresh** in either ranked list.
-Both use one full snapshot on Forever and can discover additional contracts.
+At an auctioneer, run `/wll scan all` for an own full snapshot on Forever, which
+can discover additional contracts. **Refresh** reloads public provider prices for
+Auto with an available provider, Auctionator, or TSM. It requests an own snapshot
+for Own, custom market profiles, or when no provider is available. Missing provider
+quotes remain unknown; use that provider’s scan controls for newer data.
 Tab switches never schedule queries. Auctionator and TSM remain optional:
 their public price APIs supply prices once an item's ID is known.
 
@@ -22,10 +25,14 @@ cached provider quotes. See [INTEGRATIONS.md](INTEGRATIONS.md) for the guarded
 adapter and fallback behavior. New contract discovery from the entire market
 requires an explicit Waylaid scan.
 
-The addon imposes no fixed full-scan cooldown and discards old saved lockout
-timestamps. Once the current scan finishes or is stopped, Refresh may request
-another snapshot. Client readiness, server restrictions and the no-progress
-timeout still apply. `/wll scan deep` requests detailed purchase/delivery prices
+Full snapshots share a 15-minute interval. Ordinary query readiness does not
+indicate that replication is available. The addon records response timestamps
+without reading another addon’s rows, and checks Auctionator’s guarded saved
+last-request timestamp. Both survive reloads; old guessed per-market lockouts are
+still discarded. A known cooldown rejects an own full scan immediately with a
+remaining-time message. An unanswered request reports the missing response rather
+than suggesting that an idle house is sufficient. Unknown server restrictions
+can still cause a request to time out. `/wll scan deep` requests detailed purchase/delivery prices
 with normal pagination and the rolling request budget. Per-item fallback remains
 available on clients without replication support.
 

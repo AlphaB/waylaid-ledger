@@ -21,8 +21,9 @@ to learned definitions. See [INGAME_DATA.md](INGAME_DATA.md).
 
 The baseline full detailed scope is 300 writ purchase/delivery IDs, 126 crate
 purchase/delivery IDs, or 424 combined after deduplication. Runtime discoveries
-can enlarge it. Normal Refresh uses one bulk AH snapshot and has no addon timer
-lockout. Client readiness and server restrictions still apply. `/wll scan deep`
+can enlarge it. Refresh reloads provider prices when available and selected.
+Own full scans request a bulk AH snapshot and respect the known shared 15-minute
+interval after a snapshot response or Auctionator request. `/wll scan deep`
 uses detailed per-item pagination and the rolling search budget.
 
 Prices remain separate from requirements. Market keys partition region, realm,

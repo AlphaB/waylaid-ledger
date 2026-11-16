@@ -315,7 +315,14 @@ function UI.RegisterSettings()
     )
     label(frame, "Display", 18, -202, 270, "GameFontNormal")
     label(frame, "Automatic scans", 18, -306, 270, "GameFontNormal")
-    label(frame, "Switching tabs uses saved prices. Click Refresh to scan.", 18, -378, 270, "GameFontDisableSmall")
+    label(
+        frame,
+        "Switching tabs uses saved prices. Click Refresh to update prices.",
+        18,
+        -378,
+        270,
+        "GameFontDisableSmall"
+    )
     label(frame, "Inventory", 320, -54, 270, "GameFontNormal")
     for _, option in ipairs({
         {

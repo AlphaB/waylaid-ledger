@@ -163,7 +163,7 @@ test("fresh exact shortages survive full-scan estimates", function()
         equal(f.addon.Pricing.Quote(f.market.items[11], 1).status, "short")
     end)
 end)
-test("manual full scans ignore old persisted lockouts and can refresh immediately", function()
+test("full scans ignore old guessed lockouts but respect observed responses", function()
     fixture(function(f)
         equal(f.addon.db.replication, nil)
         f.addon.db.replication = { oldRealm = f.wall }
@@ -175,6 +175,11 @@ test("manual full scans ignore old persisted lockouts and can refresh immediatel
         f.deliver()
         equal(f.market.items[11].unitPrice, 5)
         f.rows = { f.row(11, "Herb", 20, 200) }
+        local ok, reason = f.scanner:Start({ 11 })
+        equal(ok, false)
+        assert(reason:find("900 seconds", 1, true))
+        equal(f.calls, 1)
+        f.wall = f.wall + 901
         equal(f.scanner:Start({ 11 }), true)
         equal(f.calls, 2)
         f.deliver()
@@ -190,8 +195,51 @@ test("another addon's bulk response is not duplicated or retained", function()
         equal(f.market.items[11], nil)
         equal(next(f.observed), nil)
         equal(f.calls, 1)
-        equal(f.scanner:Start({ 11 }), true)
-        equal(f.calls, 2)
+        equal(f.scanner:Start({ 11 }), false)
+        equal(f.calls, 1)
+        equal(f.addon.db.lastReplicateResponseAt, f.wall)
+    end)
+end)
+test("Auctionator's saved request timestamp guards reloads and ignores invalid clock values", function()
+    local original = Auctionator
+    local ok, err = pcall(function()
+        fixture(function(f)
+            Auctionator = { SavedState = { TimeOfLastReplicateScan = f.wall - 100 } }
+            local started, reason = f.scanner:Start({})
+            equal(started, false)
+            assert(reason:find("800 seconds", 1, true))
+            equal(f.calls, 0)
+            Auctionator.SavedState.TimeOfLastReplicateScan = "bad timestamp"
+            equal(f.addon.BulkScan.RemainingCooldown(f.wall), 0)
+            Auctionator.SavedState.TimeOfLastReplicateScan = f.wall + 10000
+            equal(f.addon.BulkScan.RemainingCooldown(f.wall), 0)
+            Auctionator.SavedState = false
+            f.addon.db.lastReplicateResponseAt = f.wall - 50
+            equal(f.addon.BulkScan.RemainingCooldown(f.wall), 850)
+            -- The guard is addon-wide, not reset by switching a market profile.
+            f.addon.db.profile = "neutral"
+            equal(f.scanner:Start({}), false)
+        end)
+    end)
+    Auctionator = original
+    assert(ok, err)
+end)
+test("an external snapshot arriving while waiting for readiness prevents a duplicate request", function()
+    fixture(function(f)
+        f.api.IsThrottledMessageSystemReady = function()
+            return false
+        end
+        equal(f.scanner:Start({}), true)
+        f.frame.scripts.OnEvent(f.frame, "REPLICATE_ITEM_LIST_UPDATE")
+        f.api.IsThrottledMessageSystemReady = function()
+            return true
+        end
+        f.scanner:Tick()
+        equal(f.calls, 0)
+        equal(f.scanner.active, false)
+        equal(f.frame.scripts.OnUpdate, nil)
+        equal(next(f.market.items), nil)
+        assert(f.scanner.message:find("cooldown", 1, true))
     end)
 end)
 test("bulk commits only the scope resolved from descriptions and can be cancelled before commit", function()
@@ -212,7 +260,8 @@ test("bulk commits only the scope resolved from descriptions and can be cancelle
         equal(f.market.items[12], nil)
         equal(f.scanner.completed, 2)
         f.market.items = {}
-        f.scanner:Start({})
+        f.wall = f.wall + 901
+        assert(f.scanner:Start({}))
         f.frame.scripts.OnEvent(f.frame, "REPLICATE_ITEM_LIST_UPDATE")
         f.frame.scripts.OnUpdate()
         f.scanner:Stop()
@@ -243,7 +292,8 @@ test("cancelled and closed full scans ignore late responses", function()
         f.frame.scripts.OnEvent(f.frame, "REPLICATE_ITEM_LIST_UPDATE")
         equal(next(f.market.items), nil)
         equal(f.frame.scripts.OnUpdate, nil)
-        f.scanner:Start({})
+        f.wall = f.wall + 901
+        equal(f.scanner:Start({}), true)
         f.frame.scripts.OnEvent(f.frame, "AUCTION_HOUSE_CLOSED")
         f.frame.scripts.OnEvent(f.frame, "REPLICATE_ITEM_LIST_UPDATE")
         equal(next(f.market.items), nil)
@@ -255,6 +305,8 @@ test("full scan times out without recording missing items as sold out", function
         f.now = 31
         f.scanner:Tick()
         equal(f.scanner.active, false)
+        assert(f.scanner.message:find("No auction snapshot response", 1, true))
+        equal(f.addon.db.lastReplicateResponseAt, nil)
         equal(next(f.market.items), nil)
         equal(f.frame.scripts.OnUpdate, nil)
     end)

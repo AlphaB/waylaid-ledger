@@ -3,6 +3,7 @@ local test, equal = ...
 test("bundled install discovers additional crates and writs using one bulk scan", function()
     local saved = {
         C_AuctionHouse = C_AuctionHouse,
+        time = time,
         C_Item = C_Item,
         C_TooltipInfo = C_TooltipInfo,
         C_Container = C_Container,
@@ -19,6 +20,10 @@ test("bundled install discovers additional crates and writs using one bulk scan"
     }
     local a = {}
     local f = TEST_SCANNER_FIXTURE()
+    f.wall = 1000
+    time = function()
+        return f.wall
+    end
     local names = {
         [21] = "Waylaid Crate: Runtime Test",
         [31] = "Craftsman's Writ: Runtime Test",
@@ -173,6 +178,9 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         a:SetSource("tsm")
         equal(a:GetRows(21)[1].status, "unknown")
         local before = requests
+        equal(a:StartScan("all"), false)
+        equal(requests, before)
+        f.wall = f.wall + 901
         equal(a:StartScan("all"), true)
         equal(requests, before + 1)
         a:StopScan()
@@ -211,6 +219,7 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         equal(requests, beforeAuto)
         equal(a.autoDue, nil)
         a.db.scanOnOpen = true
+        f.wall = f.wall + 901
         a.autoReason, a.autoPaused, a.lastExternalAt = "open", false, nil
         a:AutoScan()
         equal(requests, beforeAuto + 1)
@@ -232,6 +241,7 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         end
         equal(a.scanner.active, false)
         -- A completed automatic opening scan must not own the next manual refresh.
+        f.wall = f.wall + 901
         equal(a:RefreshList(a.BrowseUI.views.writs), true)
         equal(a.scanAutomatic, false)
         equal(a.scanBrowser, false)
@@ -343,6 +353,19 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         equal(a.autoDue, nil)
         equal(requests, externalRequests)
         equal(a.BrowseUI.views.crates.refreshButton.enabled, true)
+        -- Refresh after autoscan reuses public prices, never requests another snapshot.
+        for _, source in ipairs({ "auto", "auctionator" }) do
+            a.db.source, a.db.writSource = source, source
+            equal(a:RefreshList(a.BrowseUI.views.crates), true)
+            equal(a:RefreshList(a.BrowseUI.views.writs), true)
+            equal(requests, externalRequests)
+            equal(rowsRead, 0)
+            equal(a.scanner.active, false)
+            equal(a.BulkScan.engine.job, nil)
+            equal(a.autoDue, nil)
+        end
+        equal(a:GetRows(21)[1].source, "auctionator")
+        equal(a:GetRows(21)[1].cost, 17 * 42)
         -- Failure and AH closure also release status, without resuming queries.
         listener:ReceiveEvent(events.ScanStart)
         listener:ReceiveEvent(events.ScanFailed)

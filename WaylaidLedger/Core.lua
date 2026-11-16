@@ -1,6 +1,6 @@
 local addonName, addon = ...
 local L = addon.L
-addon.version = "0.8.3"
+addon.version = "0.8.4"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -459,7 +459,51 @@ function addon:ListScope(kind)
     return self.Catalog.ScanItems(self.Catalog.AllContracts(kind))
 end
 
+function addon:RefreshPriceProvider(kind)
+    if self.db.profile ~= "default" then
+        return nil
+    end
+    local source = self.Shopping.Source(kind or self.db.browserTab or "crates")
+    if source == "auto" then
+        for _, provider in ipairs({ "auctionator", "tsm" }) do
+            if self.Providers.Available(provider) then
+                return provider
+            end
+        end
+    elseif (source == "auctionator" or source == "tsm") and self.Providers.Available(source) then
+        return source
+    end
+end
+
+-- nil delegates to own scanning; true/false is a handled provider refresh.
+function addon:RefreshProviderPrices(kind)
+    local provider = self:RefreshPriceProvider(kind)
+    if not provider then
+        return nil
+    end
+    if not self.scanner.open then
+        self:Print(L["Open the auction house first."])
+        return false
+    end
+    if self.Providers.scan or self.scanner.active then
+        self:Print(self.Providers.scan and L["Another addon is scanning."] or L["Stop the current scan first."])
+        return false
+    end
+    self:StopScan()
+    self.Providers.Invalidate()
+    self.UI.Update()
+    self.Tooltip.Refresh()
+    local label = provider == "auctionator" and "Auctionator" or "TSM"
+    self:Trace("refresh.provider", 0, "Reloading %s cached prices; no auction query", label)
+    self:Print(string.format(L["Reloaded %s cached prices. Run a scan in that addon for newer data."], label))
+    return true
+end
+
 function addon:RefreshList(view)
+    local refreshed = self:RefreshProviderPrices(view and view.kind)
+    if refreshed ~= nil then
+        return refreshed
+    end
     if not self.scanner.open then
         self:Print(L["Open the auction house first."])
         return false
@@ -635,6 +679,7 @@ function addon:Report()
         ),
         "Auction-open scan: " .. tostring(self.db.scanOnOpen) .. "; pending reason: " .. tostring(self.autoReason),
         "Scan requests retained in rolling window: " .. #self.scanner.requests,
+        "Full-scan cooldown remaining: " .. self.BulkScan.RemainingCooldown(time()) .. "s",
         "Price policy: " .. self.db.source .. "; TSM key: " .. self.db.tsmKey,
         "Auctionator price API: "
             .. tostring(self.Providers.Available("auctionator"))

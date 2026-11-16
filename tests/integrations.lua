@@ -272,7 +272,7 @@ test("Auctionator callback bursts invalidate prices immediately but defer redraw
     Providers.refreshAt = nil
     assert(ok, err)
 end)
-test("list Refresh invalidates provider cache and starts an own scan without clearing snapshots", function()
+test("list Refresh reloads provider prices without auction queries or clearing snapshots", function()
     reset()
     local oldWrit = addon.db.writSource
     addon.db.writSource = "auto"
@@ -296,9 +296,8 @@ test("list Refresh invalidates provider cache and starts an own scan without cle
     equal(view.visibleEntries[2].itemID, 264050)
     equal(view.visibleEntries[2].total, 1000)
     equal(view.scroll.retainScrollPosition, true)
-    assert(#addon.scanner.requests >= before)
-    equal(addon.scanner.active, true)
-    equal(#addon.scanner.queue, 300)
+    equal(#addon.scanner.requests, before)
+    equal(addon.scanner.active, false)
     equal(addon:GetMarket().items[2770], snapshot)
     addon:StopScan()
     frame:Hide()
