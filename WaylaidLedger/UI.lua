@@ -104,7 +104,7 @@ function UI.SelectBrowserTab(kind)
     end
     UI.switchingBrowser = false
     addon.BrowseUI.Refresh(addon.BrowseUI.views[kind])
-    addon.Navigation.RefreshView(addon.BrowseUI.views[kind])
+    addon.Navigation.EnterView(addon.BrowseUI.views[kind])
 end
 
 function UI.AttachAuction()
@@ -152,6 +152,7 @@ function UI.AttachAuction()
         addon.Navigation.LeaveAuction()
     end)
     lib:CreateTab(TAB_ID, host, L["Waylaid"], "Waylaid Ledger")
+    UI.auctionTab = lib:GetButton(TAB_ID)
     hooksecurefunc(AuctionHouseFrame, "SetDisplayMode", function()
         -- LibAHTab hides our host during mode changes. Rebuild only after all
         -- native children have reached their final visibility.

@@ -1,12 +1,21 @@
 # Changelog
 
-## 0.8.4
+## 0.8.5
 
 - Make Refresh reload public cached prices in Auto/provider modes instead of requesting a second full snapshot after Auctionator autoscan.
 - Preserve Own/custom-profile scans and explicit scan commands; missing provider quotes never start an implicit scan.
 - Guard own full scans using observed snapshot response times and Auctionator’s saved request time, independently of ordinary query readiness.
 - Explain the shared cooldown and distinguish an unanswered snapshot request from stalled processing; detailed per-item scans remain available.
 - Localize provider-refresh guidance and new messages; add regression coverage for post-autoscan Refresh, cooldowns, reload state, and scan ownership.
+
+## 0.8.4
+
+- Hand controller focus to Search when opening Waylaid or switching category tabs.
+- Explicitly link the outer auction tab, category tabs, page controls and list rows in all four directions.
+- Prevent tab-entry navigation from falling through to geometric scroll-frame centering.
+- Release tab overrides when Waylaid is hidden, preserving native auction navigation.
+- Extend the native-source test through actual tab clicks and page controls before traversing rows.
+- 213 default Lua 5.1 tests; 219 with native navigation/auction UI and Auctionator contracts. In-game verification remains outstanding.
 
 ## 0.8.3
 

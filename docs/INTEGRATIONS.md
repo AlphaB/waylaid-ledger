@@ -1,6 +1,6 @@
 # Auction addon integrations
 
-## Current behavior (0.8.4)
+## Current behavior (0.8.5)
 
 Auctionator and TSM supply optional cached price estimates. Auto reuses fresh
 own snapshots, then provider estimates. Tab switches, missing prices, and unresolved
@@ -46,6 +46,10 @@ after synchronous nearest scrolling. `SelectedButtonUpdated` limits the active
 scroll frame to the focused Waylaid list; outside rows, it is cleared. Search,
 Refresh/Stop and Settings have explicit Down overrides into the first visible row
 so native geometric navigation cannot center/scroll a row before entering the list.
+Opening Waylaid or selecting a category explicitly targets Search after the
+page becomes visible. The LibAHTab button and both internal tabs link to the
+active page; all page controls and row exits have explicit directional targets.
+Tab overrides yield to native navigation while the page is hidden.
 Scrollbar controls are excluded from gamepad focus. No bindings or native internal tables are
 modified. Calls wait until out of combat and tolerate late gamepad addon loading.
 
