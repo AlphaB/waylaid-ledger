@@ -233,3 +233,7 @@ run inside an own-query callback. It validates the market/open state before
 opening Auctionator Shopping. Every explicit stop/context interruption clears
 active and pending provider jobs. TSM export is copy-only; its import parser is
 validated in an optional release-source contract test.
+
+Native controller support is required for every UI change and release. Follow
+[CONTROLLER.md](CONTROLLER.md) for registration, automated release gates and the
+live-client checklist. Preserve sortable-header and virtual-row navigation.

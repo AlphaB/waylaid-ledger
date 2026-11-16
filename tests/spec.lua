@@ -501,6 +501,23 @@ function methods:GetFrameLevel()
 end
 function methods:IsObjectType(kind)
     return kind == "Frame"
+        or kind == self.kind
+        or (kind == "Button" and (self.kind == "CheckButton" or self.kind == "DropdownButton"))
+end
+function methods:GetSize()
+    return self:GetWidth(), self:GetHeight()
+end
+function methods:GetChildren()
+    local children = {}
+    for _, child in ipairs(frames) do
+        if child:GetParent() == self then
+            children[#children + 1] = child
+        end
+    end
+    return unpack(children)
+end
+function methods:IsEnabled()
+    return self.enabled ~= false
 end
 function methods:CreateTexture()
     return self:CreateFontString()
@@ -527,7 +544,10 @@ function methods:GetChecked()
     return self.checked
 end
 setmetatable(methods, {
-    __index = function()
+    __index = function(_, key)
+        if key == "ScrollTarget" or key:match("^smartNav") or key == "blockSmartNavClick" then
+            return nil
+        end
         return function() end
     end,
 })
@@ -556,11 +576,17 @@ function methods:GenerateMenu()
         end,
     })
 end
-function CreateFrame(_, name, parent, template)
-    local f = setmetatable(
-        { scripts = {}, events = {}, shown = true, lines = {}, parent = parent, template = template },
-        { __index = methods }
-    )
+function CreateFrame(kind, name, parent, template)
+    local f = setmetatable({
+        name = name,
+        kind = kind,
+        scripts = {},
+        events = {},
+        shown = true,
+        lines = {},
+        parent = parent,
+        template = template,
+    }, { __index = methods })
     f.TitleText = f:CreateFontString()
     if template == "WowClassicScrollBar" then
         f.Background = f:CreateFontString()
@@ -572,7 +598,7 @@ function CreateFrame(_, name, parent, template)
     end
     return f
 end
-UIParent = {}
+UIParent = { GetParent = function() end }
 UISpecialFrames = {}
 SlashCmdList = {}
 tinsert = table.insert
@@ -846,6 +872,7 @@ assert(loadfile(PROJECT_ROOT .. "/tests/settings.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/scan_status.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/expanded_scan.lua"))(addon, test, equal, host)
 assert(loadfile(PROJECT_ROOT .. "/tests/standalone.lua"))(addon, test, equal, host)
+assert(loadfile(PROJECT_ROOT .. "/tests/controller.lua"))(addon, test, equal, host)
 assert(loadfile(PROJECT_ROOT .. "/tests/native_contracts.lua"))(addon, test, equal, host)
 assert(loadfile(PROJECT_ROOT .. "/tests/upstream_contracts.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/discovery.lua"))(test, equal)

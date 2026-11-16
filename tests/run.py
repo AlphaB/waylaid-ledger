@@ -24,6 +24,9 @@ parser.add_argument(
     type=pathlib.Path,
     help="Directory containing unmodified Forever commodity list and buy-frame Lua sources",
 )
+parser.add_argument(
+    "--navigation-ui", type=pathlib.Path, help="Directory containing native controller contract sources"
+)
 args = parser.parse_args()
 lua = LuaRuntime(unpack_returned_tuples=True)
 lua.globals().PROJECT_ROOT = str(root)
@@ -35,6 +38,11 @@ for literal in re.findall(r'\[("(?:[^"\\]|\\.)*")\]\s*=', (root / "WaylaidLedger
     localization_keys.add(json.loads(literal))
 lua.globals().LOCALIZATION_KEYS = lua.table_from(sorted(localization_keys))
 try:
+    if args.navigation_ui:
+        names = ["Utility.lua", "SmartNavigation.lua", "FrameControlsManager.lua", "Blizzard_SettingsPanel.lua"]
+        lua.globals().UPSTREAM_NAVIGATION = lua.table_from(
+            {name: (args.navigation_ui / name).read_text() for name in names}
+        )
     if args.forever_navigation:
         lua.globals().UPSTREAM_FOREVER_NAVIGATION = lua.table_from(
             {name: (args.forever_navigation / name).read_text() for name in ["SmartNavigation.lua", "Utility.lua"]}

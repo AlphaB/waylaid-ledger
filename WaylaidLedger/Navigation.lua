@@ -1,25 +1,36 @@
 local _, addon = ...
-addon.Navigation = { windows = {}, ignored = {} }
+addon.Navigation = { windows = {}, ignored = {}, windowOrder = {} }
 local Nav = addon.Navigation
 
 local function available()
     return not (InCombatLockdown and InCombatLockdown())
         and SmartNavigation
+        and SmartNavigation.RefreshButtonGroups
+        and SmartNavigation.SetScrollFrameForFrame
+        and SmartNavigation.SetTargetButtonForFrame
+        and SmartNavigation.GetCurrentButton
         and InputUtil
         and InputUtil.IsGamepadUIEnabled
         and InputUtil.IsGamepadUIEnabled()
 end
 
+local function manager()
+    local controls = GamepadMode and GamepadMode.FrameControlsManager
+    if controls and controls.FrameShown and controls.FrameHidden and controls.GetActiveFrame then
+        return controls
+    end
+end
+
 function Nav.Focus(frame)
-    if frame and frame:IsVisible() and available() and GamepadMode and GamepadMode.FrameControlsManager then
-        local manager = GamepadMode.FrameControlsManager
-        if manager:GetActiveFrame() == frame then
+    if frame and frame:IsVisible() and available() and manager() then
+        local controls = manager()
+        if controls:GetActiveFrame() == frame then
             return
         end
         -- FocusFrame itself is not a security-wrapped addon entry point. Rejoin
         -- through the wrapped lifecycle so native focus activation stays secure.
-        manager:FrameHidden(frame)
-        manager:FrameShown(frame)
+        controls:FrameHidden(frame)
+        controls:FrameShown(frame)
     end
 end
 
@@ -46,20 +57,64 @@ function Nav.Ignore(frame)
     end
 end
 
-function Nav.RegisterWindow(frame)
+function Nav.RefreshWindow(frame)
+    local options = Nav.windows[frame]
+    if not options or not available() then
+        return
+    end
+    local current = SmartNavigation:GetCurrentButton()
+    local ancestor = current
+    while ancestor and ancestor ~= frame do
+        ancestor = ancestor:GetParent()
+    end
+    -- Keep the current control when rebuilding a visible page, including after
+    -- combat. A newly opened page starts at its first useful control.
+    local fallback = options.target
+    if type(fallback) == "function" then
+        fallback = fallback()
+    end
+    local target = ancestor and current:IsVisible() and current or fallback
+    Nav.Refresh(frame, options.scroll, target)
+end
+
+function Nav.RegisterWindow(frame, options)
     if Nav.windows[frame] then
         return
     end
-    Nav.windows[frame] = true
+    Nav.windows[frame] = options or {}
+    table.insert(Nav.windowOrder, frame)
     frame:HookScript("OnShow", function()
-        if available() and GamepadMode and GamepadMode.FrameControlsManager then
-            GamepadMode.FrameControlsManager:FrameShown(frame)
-            Nav.Refresh(frame)
+        -- Keep show order deterministic when gamepad initialization or combat
+        -- defers registration of several overlapping windows.
+        for index, window in ipairs(Nav.windowOrder) do
+            if window == frame then
+                table.remove(Nav.windowOrder, index)
+                break
+            end
+        end
+        table.insert(Nav.windowOrder, frame)
+        if available() and manager() then
+            manager():FrameShown(frame)
+            Nav.RefreshWindow(frame)
+        end
+        if Nav.windows[frame].deferFocus and C_Timer and C_Timer.After then
+            -- Settings finishes ActivateCategory/FocusContainer after the
+            -- canvas OnShow, potentially selecting a hidden SettingsList row.
+            -- Repair once after that native stack finishes, never while hidden.
+            C_Timer.After(0, function()
+                local controls = manager()
+                local active = controls and controls:GetActiveFrame()
+                -- A report or another dialog opened in the same tick wins.
+                if frame:IsVisible() and (not active or active == frame or active == SettingsPanel) then
+                    Nav.Focus(frame)
+                    Nav.RefreshWindow(frame)
+                end
+            end)
         end
     end)
     frame:HookScript("OnHide", function()
-        if available() and GamepadMode and GamepadMode.FrameControlsManager then
-            GamepadMode.FrameControlsManager:FrameHidden(frame)
+        if available() and manager() then
+            manager():FrameHidden(frame)
         end
     end)
 end
@@ -268,7 +323,12 @@ function Nav.Install()
             Nav.Ignore(frame)
         end
     end
-    if InputUtil and InputUtil.RegisterForInterfaceTransitions and not Nav.registered then
+    if
+        InputUtil
+        and InputUtil.RegisterForInterfaceTransitions
+        and InputUtil.RegisterGamepadInit
+        and not Nav.registered
+    then
         Nav.registered = true
         InputUtil.RegisterForInterfaceTransitions(Nav)
         InputUtil.RegisterGamepadInit(Nav, function()
@@ -283,15 +343,22 @@ function Nav.Install()
         Nav.callbackOwner = SmartNavigation
     end
     Nav.CleanupAuction()
-    for frame in pairs(Nav.windows) do
-        if GamepadMode and GamepadMode.FrameControlsManager then
+    local controls = manager()
+    if controls then
+        -- Complete all deferred hides before adding visible windows. Removing
+        -- a stale active window afterwards can otherwise steal restored focus.
+        for _, frame in ipairs(Nav.windowOrder) do
+            if not frame:IsVisible() then
+                controls:FrameHidden(frame)
+            end
+        end
+        local active = controls:GetActiveFrame()
+        for _, frame in ipairs(Nav.windowOrder) do
             if frame:IsVisible() then
-                GamepadMode.FrameControlsManager:FrameShown(frame)
-                Nav.Refresh(frame)
-            else
-                -- A hide during combat was deferred; remove stale focus entries
-                -- before processing visible windows on the next safe transition.
-                GamepadMode.FrameControlsManager:FrameHidden(frame)
+                -- A repair must not take focus from Blizzard's buy screen or
+                -- another open panel. A fresh gamepad session has no active UI.
+                controls:FrameShown(frame, nil, not (active and active:IsVisible()))
+                Nav.RefreshWindow(frame)
             end
         end
     end

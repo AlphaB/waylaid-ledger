@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The lowest known filling cost is highlighted in green for all price sources,
 including cached prices. Auctionator and TSM are optional price providers. Own scans support both crate and writ costs.
 
-Version **0.9.3** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.9.4** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -473,3 +473,12 @@ Complete runtime descriptions update the bundled fallback requirements.
 CI runs the Lua suite and uploads the clean install ZIP as the
 **WaylaidLedger-install** artifact. `python3 tools/package.py` builds the same
 single-folder archive locally. See [docs/INGAME_DATA.md](docs/INGAME_DATA.md).
+
+## Controller release checks
+
+The options page, its native dropdown menus, reports and shopping basket use native
+controller focus and Back handling. Reports support right-stick scrolling.
+Controller regressions run before packaging, and CI checks pinned and current
+Forever navigation sources before producing an install artifact. See the
+[controller release checklist](docs/CONTROLLER.md) for required in-game checks.
+Live hardware and security behavior still require verification in WoW.
