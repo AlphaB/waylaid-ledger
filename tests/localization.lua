@@ -103,6 +103,15 @@ for _, sample in ipairs(locales) do
             GameTooltip.lines = {}
             a.MinimapButton.frame.scripts.OnEnter(a.MinimapButton.frame)
             equal(GameTooltip.lines[2][1], a.L["Left-click: open | Right-click: settings"])
+            -- A writ-only inventory must still enable the hovered scan control.
+            a.Writs[31] = {name="Test writ", requirements={{itemID=11, quantity=200}}}
+            a.lastCrateID, a.lastContractID = nil, 31
+            a.UI.Update(false)
+            equal(a.UI.hovered.enabled, true)
+            a.UI.hovered.scripts.OnClick()
+            equal(#a.scanner.queue, 2)
+            equal(a.scanner.queue[1], 11);equal(a.scanner.queue[2], 31)
+            a:StopScan()
             a.Crates[21] = { name="Test crate", options={{itemID=11, quantity=1}, {itemID=12, quantity=2}} }
             a.MaterialNames[11], a.MaterialNames[12] = "Test goods A", "Test goods B"
             local tip = CreateFrame("GameTooltip", nil, UIParent)
