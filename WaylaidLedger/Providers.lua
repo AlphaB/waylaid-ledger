@@ -103,15 +103,28 @@ function Providers.Install()
     if api and Providers.boundAPI ~= api and type(api.RegisterForDBUpdate) == "function" then
         local ok, errorMessage = pcall(api.RegisterForDBUpdate, CALLER, function()
             Providers.Invalidate()
-            if addon.Discovery then
-                addon.Discovery.Retry()
+            -- Shopping scans can update the database repeatedly. Prices do not
+            -- change delivery descriptions; only redraw once the burst settles.
+            Providers.refreshAt = GetTime() + 0.25
+            if not Providers.frame then
+                Providers.frame = CreateFrame("Frame")
             end
-            if addon.Tooltip then
-                addon.Tooltip.Refresh()
-            end
-            if addon.UI then
-                addon.UI.Update()
-            end
+            Providers.frame:SetScript("OnUpdate", function()
+                if GetTime() < Providers.refreshAt then
+                    return
+                end
+                if addon.BulkScan and addon.BulkScan.engine and addon.BulkScan.engine.job then
+                    return
+                end
+                Providers.frame:SetScript("OnUpdate", nil)
+                Providers.refreshAt = nil
+                if addon.Tooltip then
+                    addon.Tooltip.Refresh()
+                end
+                if addon.UI then
+                    addon.UI.Update()
+                end
+            end)
         end)
         if ok then
             Providers.boundAPI = api

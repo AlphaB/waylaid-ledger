@@ -71,7 +71,7 @@ function Tooltip.Append(tooltip, itemID, data)
     if tooltip.waylaidLedgerItemID == itemID then
         return
     end
-    addon.Discovery.Observe(itemID)
+    addon.Discovery.Observe(itemID, nil, true)
     addon.Discovery.Read(itemID, data and data.lines and data)
     local writ = addon.Writs[itemID]
     if

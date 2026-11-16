@@ -2,13 +2,16 @@ local _, addon = ...
 
 -- Complete client descriptions update the bundled delivery fallback. Indexes
 -- contain localized names observed in bags, tooltips or the auction house.
-addon.Discovery = { names = {}, pending = {}, candidates = {} }
+addon.Discovery = { names = {}, pending = {}, candidates = {}, progress = 0 }
 local Discovery = addon.Discovery
 local Locales = addon.DiscoveryLocales
 local BATCH, BUDGET_MS = 5, 2
 local queue, queued, cursor = {}, {}, 1
 local retryRequested, dirty = false, false
+local retryAt
+local QUIET_SECONDS = 0.25
 local reading, tooltipItems, itemTooltips = {}, {}, {}
+local neededNames = {}
 local process
 
 local function wake()
@@ -46,41 +49,67 @@ local function text(value)
         :gsub("%s+$", "")
 end
 
-local function kindOf(name)
-    local formats = Locales[GetLocale()]
-    if not formats then
-        return
-    end
-    name = Locales.Key(name)
-    -- English fallback text can be supplied by partially localized clients.
-    for _, format in ipairs({ formats, Locales.enUS }) do
-        for _, kind in ipairs({ "crates", "writs" }) do
-            if name:match("^" .. Locales.Key(format[kind]) .. "%s*:%s*%S") then
-                return kind
+local prefixLocale, prefixes
+local function kindOf(key)
+    local locale = GetLocale()
+    if prefixLocale ~= locale then
+        prefixLocale, prefixes = locale, {}
+        local formats = Locales[locale]
+        if formats then
+            -- English fallback text can be supplied by partially localized clients.
+            for _, format in ipairs({ formats, Locales.enUS }) do
+                for _, kind in ipairs({ "crates", "writs" }) do
+                    prefixes[#prefixes + 1] = { kind = kind, pattern = "^" .. Locales.Key(format[kind]) .. "%s*:%s*%S" }
+                end
             end
+        end
+    end
+    for _, prefix in ipairs(prefixes) do
+        if key:match(prefix.pattern) then
+            return prefix.kind
         end
     end
 end
 
-function Discovery.Observe(itemID, name)
+function Discovery.Observe(itemID, name, relevantOnly)
     if type(itemID) ~= "number" or itemID <= 0 then
         return
     end
-    name = text(name or (C_Item and C_Item.GetItemNameByID(itemID)))
+    name = name or (C_Item and C_Item.GetItemNameByID(itemID))
+    if issecretvalue and issecretvalue(name) then
+        return false
+    end
+    if Discovery.store and Discovery.store.names[itemID] == name and name ~= nil then
+        if Discovery.candidates[itemID] then
+            Discovery.pending[itemID] = true
+        end
+        return false
+    end
+    name = text(name)
     if not name or name == "" then
-        if C_Item and C_Item.RequestLoadItemDataByID then
+        if not relevantOnly and C_Item and C_Item.RequestLoadItemDataByID then
             C_Item.RequestLoadItemDataByID(itemID)
         end
         return false
     end
     local key = Locales.Key(name)
+    local kind = kindOf(key)
+    if
+        relevantOnly
+        and not kind
+        and not neededNames[key]
+        and Discovery.names[key] == nil
+        and not addon.MaterialNames[itemID]
+        and not addon.WritMaterialNames[itemID]
+    then
+        return false
+    end
     local previous = Discovery.names[key]
     -- Never guess between distinct items that have the same localized name.
     Discovery.names[key] = previous == nil and itemID or (previous == itemID and itemID or false)
     if Discovery.store then
         Discovery.store.names[itemID] = name
     end
-    local kind = kindOf(name)
     if kind then
         local definitions = kind == "crates" and addon.Crates or addon.Writs
         definitions[itemID] = definitions[itemID]
@@ -102,6 +131,7 @@ end
 
 local function resolve(name, linkID)
     name = cleanName(name)
+    neededNames[name] = true
     if linkID then
         local actual = C_Item and C_Item.GetItemNameByID(linkID)
         if actual then
@@ -328,16 +358,87 @@ end
 
 -- Events only request work. A full scan can load thousands of unrelated items;
 -- never parse the entire pending catalog inside each item/tooltip callback.
-function Discovery.Retry()
+function Discovery.Retry(defer)
     retryRequested = true
+    retryAt = defer and GetTime() + QUIET_SECONDS or nil
     wake()
+end
+
+function Discovery.IsWorking()
+    return retryRequested or cursor <= #queue
+end
+
+-- Only contracts and their delivery goods belong in the saved price database.
+-- The full market name index is temporary, needed to resolve new descriptions
+-- regardless of whether their goods occur before or after them in the snapshot.
+function Discovery.Scope()
+    local scope = {}
+    for _, names in ipairs({ addon.MaterialNames, addon.WritMaterialNames }) do
+        for id in pairs(names) do
+            scope[id] = true
+        end
+    end
+    for _, definitions in ipairs({ addon.Crates, addon.Writs }) do
+        for id, definition in pairs(definitions) do
+            scope[id] = true
+            for _, requirement in ipairs(definition.options or definition.requirements or {}) do
+                scope[requirement.itemID] = true
+            end
+        end
+    end
+    return scope
+end
+
+function Discovery.Prune()
+    local scope = Discovery.Scope()
+    local store = Discovery.store
+    if store then
+        local names, keys, index = {}, {}, {}
+        for id in pairs(scope) do
+            if store.names[id] then
+                keys[Locales.Key(store.names[id])] = true
+            end
+        end
+        for id, name in pairs(store.names) do
+            local key = Locales.Key(name)
+            -- Preserve collisions with relevant names; pruning must never turn
+            -- an ambiguous delivery into a seemingly authoritative item ID.
+            if scope[id] or keys[key] or neededNames[key] then
+                names[id] = name
+                local previous = index[key]
+                index[key] = previous == nil and id or (previous == id and id or false)
+            end
+        end
+        store.names, Discovery.names = names, index
+    end
+    -- Also clean snapshots written by older releases, across market profiles.
+    -- Replace the tables so their oversized Lua hash capacity can be collected.
+    for _, market in pairs(addon.db.markets or {}) do
+        local items, failures = {}, {}
+        for id, snapshot in pairs(market.items or {}) do
+            if scope[id] or snapshot.kind ~= "estimate" then
+                items[id] = snapshot
+            end
+        end
+        for id, reason in pairs(market.failures or {}) do
+            if scope[id] or items[id] then
+                failures[id] = reason
+            end
+        end
+        market.items, market.failures = items, failures
+    end
 end
 
 process = function()
     -- Plain-name requirements need the complete market name index first.
-    if addon.BulkScan and addon.BulkScan.engine and addon.BulkScan.engine.job then
+    local job = addon.BulkScan and addon.BulkScan.engine and addon.BulkScan.engine.job
+    if job and not job.resolving then
         return
     end
+    if retryAt and GetTime() < retryAt then
+        return
+    end
+    retryAt = nil
     if retryRequested then
         retryRequested = false
         for itemID in pairs(Discovery.pending) do
@@ -351,6 +452,7 @@ process = function()
         cursor = cursor + 1
         if Discovery.pending[itemID] then
             Discovery.Read(itemID)
+            Discovery.progress = Discovery.progress + 1
             dirty = true
             attempts = attempts + 1
         end
@@ -360,6 +462,15 @@ process = function()
         end
     end
     if cursor <= #queue or retryRequested then
+        -- Events can arrive between batches. Do not retain an ever-growing
+        -- consumed prefix while a long scan keeps adding targeted retries.
+        if cursor > 100 and cursor > #queue / 2 then
+            local remaining = {}
+            for index = cursor, #queue do
+                remaining[#remaining + 1] = queue[index]
+            end
+            queue, cursor = remaining, 1
+        end
         return
     end
     queue, queued, cursor = {}, {}, 1
@@ -414,7 +525,11 @@ function Discovery.Install()
         end
     end
     store.crates, store.writs = addon.Crates, addon.Writs
-    for itemID, name in pairs(store.names) do
+    Discovery.Prune()
+    -- Prune rebuilt the name index; Observe still needs to register candidates.
+    local savedNames = store.names
+    store.names = {}
+    for itemID, name in pairs(savedNames) do
         Discovery.Observe(itemID, name)
     end
     local english = locale == "enUS" or locale == "enGB"
@@ -448,11 +563,12 @@ function Discovery.Install()
             if not success then
                 return
             end
-            local changed = Discovery.Observe(itemID)
+            local changed = Discovery.Observe(itemID, nil, true)
             if Discovery.candidates[itemID] then
                 enqueue(itemID)
+                retryAt = GetTime() + QUIET_SECONDS
             elseif changed then
-                Discovery.Retry()
+                Discovery.Retry(true)
             end
         elseif event == "TOOLTIP_DATA_UPDATE" then
             if issecretvalue and issecretvalue(itemID) then
@@ -465,6 +581,7 @@ function Discovery.Install()
             end
             Discovery.pending[candidate] = true
             enqueue(candidate)
+            retryAt = GetTime() + QUIET_SECONDS
         elseif event == "BAG_UPDATE_DELAYED" then
             Discovery.Bags()
         elseif event == "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED" or event == "AUCTION_HOUSE_BROWSE_RESULTS_ADDED" then

@@ -37,8 +37,12 @@ function BulkScan.Install(scanner)
         end
     end
     local function cancel()
+        local hadJob = engine.job ~= nil
         engine.job = nil
         frame:SetScript("OnUpdate", nil)
+        if hadJob then
+            addon.Discovery.Prune()
+        end
         updateStatus()
     end
     local function finish(message)
@@ -69,18 +73,55 @@ function BulkScan.Install(scanner)
         if not job.received then
             return
         end
+        if job.resolving then
+            if addon.Discovery.IsWorking() then
+                if job.discoveryProgress ~= addon.Discovery.progress then
+                    job.discoveryProgress, job.progressAt = addon.Discovery.progress, now
+                end
+                return
+            end
+            local scope, count = addon.Discovery.Scope(), 0
+            for itemID in pairs(scope) do
+                local price = job.prices[itemID]
+                if price then
+                    local previous = job.market.items[itemID]
+                    if
+                        not previous
+                        or previous.kind == "estimate"
+                        or previous.error
+                        or job.at - previous.scannedAt > addon.db.maxAge
+                        or job.market.failures[itemID]
+                    then
+                        job.market.items[itemID] = { kind = "estimate", unitPrice = price, scannedAt = job.at }
+                        job.market.failures[itemID] = nil
+                    end
+                    count = count + 1
+                end
+            end
+            job.market.bulkAt = job.at
+            if job.own then
+                scanner.completed = count
+            end
+            finish(
+                string.format(
+                    L["Full scan finished: %d item prices. Delivery requirements learned from game descriptions."],
+                    count
+                )
+            )
+            return
+        end
         local api = scanner.api
         local limit = math.min(job.index + BATCH, job.count)
         local started = debugprofilestop and debugprofilestop()
         for index = job.index, limit - 1 do
-            local ok, info = pcall(function()
-                return { api.GetReplicateItemInfo(index) }
-            end)
+            -- Keep only four returns, without allocating a closure and an
+            -- 18-field tuple table for every auction (including duplicate IDs).
+            local ok, name, _, quantity, _, _, _, _, _, _, buyout, _, _, _, _, _, _, itemID =
+                pcall(api.GetReplicateItemInfo, index)
             if not ok then
-                finish(string.format(L["Full scan data could not be read: %s"], tostring(info)))
+                finish(string.format(L["Full scan data could not be read: %s"], tostring(name)))
                 return
             end
-            local name, quantity, buyout, itemID = info[1], info[3], info[10], info[17]
             if type(itemID) == "number" and itemID > 0 then
                 if not job.seen[itemID] then
                     job.seen[itemID] = true
@@ -117,32 +158,9 @@ function BulkScan.Install(scanner)
         end
         -- Resolve names only after indexing the entire market, so row order does
         -- not make a requirement fail when its goods appear later in the scan.
+        job.resolving, job.seen = true, nil
         addon.Discovery.Retry()
-        local count = 0
-        for itemID, price in pairs(job.prices) do
-            local previous = job.market.items[itemID]
-            if
-                not previous
-                or previous.kind == "estimate"
-                or previous.error
-                or job.at - previous.scannedAt > addon.db.maxAge
-                or job.market.failures[itemID]
-            then
-                job.market.items[itemID] = { kind = "estimate", unitPrice = price, scannedAt = job.at }
-                job.market.failures[itemID] = nil
-            end
-            count = count + 1
-        end
-        job.market.bulkAt = job.at
-        if job.own then
-            scanner.completed = count
-        end
-        finish(
-            string.format(
-                L["Full scan finished: %d item prices. Delivery requirements learned from game descriptions."],
-                count
-            )
-        )
+        updateStatus()
     end
     local function observe(own)
         engine.job = {

@@ -29,7 +29,8 @@ available on clients without replication support.
 ## Requirement learning
 
 Names are indexed from AH replication rows, bags, ordinary AH browse results,
-and item tooltips. Candidate names recognize the localized crate and writ prefixes
+and relevant item tooltips. Unrelated item-load events do not grow the index or
+retry unresolved descriptions. Candidate names recognize the localized crate and writ prefixes
 for every locale listed on the [official Battle.net product page](https://tw.shop.battle.net/en-us/product/world-of-warcraft-forever):
 `enUS`, `enGB`, `deDE`, `frFR`, `esES`, `esMX`, `ptBR`, `ruRU`, `koKR`, and `zhTW`.
 English fallback names are also accepted on these clients. The bundled English
@@ -99,6 +100,24 @@ and the main scheduler. The 30-second timeout measures lack of progress, so a la
 snapshot that continues to advance can finish across more frames. Only
 minimum positive unit prices are retained; bid-only and invalid prices are skipped.
 No missing/partial row becomes a verified sold-out result.
+
+The full market name index and minimum-price map are temporary. Descriptions
+resolve against that complete index before committing prices for contracts and
+their delivery goods. Other item names and prices are released when the scan
+finishes or is cancelled. Upgrades also remove unrelated full-scan estimates
+from saved market profiles, preserving relevant prices and detailed snapshots.
+Localized-name collisions remain ambiguous after cleanup.
+
+Item/tooltip retries and Auctionator update redraws wait for 250 ms of quiet.
+Auctionator price updates invalidate the price cache immediately but do not
+retry delivery parsing. Consumed discovery queue entries are periodically
+compacted during long event streams.
+
+Run `python3 tests/scan_performance.py --verify` for a synthetic three-scan
+benchmark (100,000 auction rows, 20,000 unique items per scan). It reports CPU
+time, peak Lua memory growth and retained growth after garbage collection, and
+checks that unrelated market data is released. These figures exclude WoW's
+native auction API costs and are not an in-game FPS or memory measurement.
 
 Replication prices are labelled AH full-scan estimates. They do not establish
 buyable stock, owner/account filtering, stack outlay, or availability at every

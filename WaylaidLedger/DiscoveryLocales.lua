@@ -97,14 +97,11 @@ for letter in upper:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
     index = index + 1
     folded[letter] = letters[index]
 end
+for byte = 65, 90 do
+    folded[string.char(byte)] = string.char(byte + 32)
+end
 
 function addon.DiscoveryLocales.Key(value)
-    local key = value
-        :gsub("’", "'")
-        :gsub("‘", "'")
-        :gsub("[%z\1-\127\194-\244][\128-\191]*", folded)
-        :gsub("[A-Z]", function(letter)
-            return string.char(letter:byte() + 32)
-        end)
+    local key = value:gsub("’", "'"):gsub("‘", "'"):gsub("[\194-\244][\128-\191]*", folded):gsub("[A-Z]", folded)
     return key
 end
