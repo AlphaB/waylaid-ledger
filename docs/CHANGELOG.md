@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+
+- Put download, installation and update instructions first in the README.
+- Shorten the player guide and link to detailed technical documentation.
+- Thank Aelris for the idea, with a link to his Twitch channel.
+
 ## 1.0.1
 
 - Correct the minimap and login hints: left-click or `/wll` opens saved lists away from the auction house; settings remain on right-click.

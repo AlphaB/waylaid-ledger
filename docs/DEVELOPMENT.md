@@ -1,5 +1,20 @@
 # Implementation notes
 
+## README installation guide (1.0.2)
+
+Reorganized the README around downloading the install asset, locating the Forever
+AddOns folder, enabling the addon, updating and obtaining first prices. Condensed
+everyday use and troubleshooting, linked the existing technical documentation,
+and credited Aelris. Runtime changes are limited to release version metadata.
+
+Validation: 246 default Lua checks and 248 checks against each freshly fetched
+pinned/latest Forever navigation source passed. Python lint/formatting, README
+local-link checks and install ZIP integrity passed.
+
+Manual verification not performed: a fresh installation in a live Forever client
+and the hardware-controller, focus/Back, localized-layout and combat/taint checks
+in CONTROLLER.md. Automated validation cannot establish these results.
+
 ## Player text audit (1.0.1)
 
 Reviewed active player-facing text in minimap, settings, list headers/status and
