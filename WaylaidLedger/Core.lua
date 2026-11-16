@@ -1,6 +1,6 @@
 local addonName, addon = ...
 local L = addon.L
-addon.version = "0.8.2"
+addon.version = "0.8.3"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -13,13 +13,56 @@ end
 
 function addon:Log(message)
     local log = self.db.log
-    log[#log + 1] = date("%H:%M:%S") .. " " .. message
+    local entry = date("%H:%M:%S") .. " " .. message:sub(1, 1000)
+    log[#log + 1] = entry
     if #log > 100 then
         table.remove(log, 1)
     end
     if self.db.debug then
-        self:Print(message)
+        self:Print(entry)
     end
+end
+
+-- Fixed call-site keys, never item IDs. Disabled diagnostics do no formatting;
+-- event storms retain only one counter per category, not individual messages.
+function addon:Trace(key, interval, format, ...)
+    if not self.db or not self.db.debug then
+        return
+    end
+    local suppressed = 0
+    if interval > 0 then
+        self.traceState = self.traceState or {}
+        local now, previous = GetTime(), self.traceState[key]
+        if previous and now - previous.at < interval then
+            previous.suppressed = previous.suppressed + 1
+            return
+        end
+        suppressed = previous and previous.suppressed or 0
+        self.traceState[key] = { at = now, suppressed = 0 }
+    end
+    local message = "[" .. key .. "] " .. string.format(format, ...)
+    if suppressed > 0 then
+        message = message .. string.format(" (%d similar events suppressed)", suppressed)
+    end
+    self:Log(message)
+end
+
+function addon:TraceState()
+    self:Trace(
+        "state",
+        0,
+        "v%s; source=%s; writSource=%s; scanOnOpen=%s; AH=%s; ownActive=%s; paused=%s; Auctionator=%s; progressEvents=%s; DBcallback=%s",
+        self.version,
+        self.db.source,
+        self.db.writSource,
+        tostring(self.db.scanOnOpen),
+        tostring(self.scanner.open),
+        tostring(self.scanner.active),
+        tostring(self.autoPaused),
+        tostring(self.Providers.scan ~= nil),
+        tostring(self.Providers.boundScanBus ~= nil),
+        tostring(self.Providers.boundAPI ~= nil)
+    )
 end
 
 function addon:MarketBaseKey()
@@ -80,9 +123,23 @@ end
 
 function addon:RequestAutoScan(onOpen)
     if not onOpen or not self:CanAutoScan("open") then
+        if onOpen then
+            self:Trace(
+                "auto",
+                0,
+                "AH-open scan skipped; enabled=%s source=%s paused=%s ownActive=%s external=%s followup=%s",
+                tostring(self.db.scanOnOpen),
+                self.db.source,
+                tostring(self.autoPaused),
+                tostring(self.scanner.active),
+                tostring(self.Providers.scan ~= nil),
+                tostring(self.providerDue ~= nil)
+            )
+        end
         return
     end
     self.autoReason, self.autoDue = "open", GetTime() + 2
+    self:Trace("auto", 0, "AH-open scan scheduled after 2 seconds of quiet")
     self:UpdateScheduler()
 end
 
@@ -106,12 +163,15 @@ function addon:AutoScan()
     end
     if #items > 0 then
         self:BeginScan(items, reason, "crates")
+    else
+        self:Trace("auto", 0, "Scan skipped: all material prices are fresh")
     end
 end
 
 -- All scopes use one lifecycle and retain which preference governs the work.
 function addon:BeginScan(items, jobOrReason, category)
     if self.Providers.scan then
+        self:Trace("scan.rejected", 2, "Own scan blocked while Auctionator is scanning")
         return false
     end
     if not self.scanner.open then
@@ -125,6 +185,7 @@ function addon:BeginScan(items, jobOrReason, category)
     local job = type(jobOrReason) == "table" and jobOrReason or nil
     local reason = type(jobOrReason) == "string" and jobOrReason or "manual"
     self.scanContext = { reason = reason, category = category or (job and job.kind) or "all" }
+    self:Trace("scan.request", 0, "reason=%s scope=%s materials=%d", reason, self.scanContext.category, #items)
     self.NativeShopping.pendingQuantity = nil
     self.scanMarket = self:GetMarket()
     self.scanAutomatic, self.scanOnOpen, self.scanBrowser = reason ~= "manual", reason == "open", reason == "browse"
@@ -543,6 +604,10 @@ function addon:Report()
         "Modern tooltips: " .. tostring(TooltipDataProcessor ~= nil),
         "Auction house open: " .. tostring(self.scanner.open),
         "Scanner: " .. (self.scanner.message or "Idle"),
+        "Debug chat: " .. tostring(self.db.debug == true),
+        "Auctionator scan: " .. tostring(self.Providers.scan ~= nil) .. "; progress events: " .. tostring(
+            self.Providers.boundScanBus ~= nil
+        ) .. "; percent: " .. tostring(self.Providers.scan and self.Providers.scan.percent),
         "Scan scope: " .. tostring(self.scanContext and self.scanContext.category) .. "; reason: " .. tostring(
             self.scanContext and self.scanContext.reason
         ),
@@ -606,6 +671,20 @@ function addon:Report()
         end
     end
     lines[#lines + 1] = self.Inventory.Report()
+    if self.Providers.scan then
+        local scan = self.Providers.scan
+        lines[#lines + 1] = string.format(
+            "External scan elapsed: %.1fs; last activity: %.1fs ago; ignored discovery events: %d",
+            GetTime() - scan.startedAt,
+            GetTime() - scan.updatedAt,
+            scan.ignoredEvents
+        )
+    end
+    for key, state in pairs(self.traceState or {}) do
+        if state.suppressed > 0 then
+            lines[#lines + 1] = string.format("Debug messages suppressed since last %s: %d", key, state.suppressed)
+        end
+    end
     lines[#lines + 1] = "--- Recent scan log ---"
     for _, entry in ipairs(self.db.log) do
         lines[#lines + 1] = entry
@@ -703,8 +782,19 @@ function addon:Command(text)
     elseif command == "stop" then
         self:StopScan()
     elseif command == "debug" then
-        self.db.debug = not self.db.debug
+        rest = rest:lower()
+        if rest ~= "" and rest ~= "on" and rest ~= "off" then
+            self:Print(string.format(L["Use /wll %s on or off, or /wll settings."], command))
+            return
+        end
+        if rest == "" then
+            self.db.debug = not self.db.debug
+        else
+            self.db.debug = rest == "on"
+        end
+        self.traceState = nil
         self:Print((self.db.debug and L["Debug logging enabled."] or L["Debug logging disabled."]))
+        self:TraceState()
     elseif command == "report" then
         self.UI.ShowReport(self:Report())
     elseif command == "inspect" then
@@ -735,7 +825,9 @@ function addon:Command(text)
         self:Print(
             "/wll - auction list/settings | scan bags/hovered/crates/writs/all | source auto/auctionator/tsm/own | tsmkey DBMinBuyout/DBMarket"
         )
-        self:Print("search | shop [option number] | stop | report | debug | inspect [item ID] | market <name> | clear")
+        self:Print(
+            "search | shop [option number] | stop | report | debug [on|off] | inspect [item ID] | market <name> | clear"
+        )
         self:Print(
             "writsource auto/own/auctionator/tsm/off | refresh [crates/writs/all] | auctionscan [scope] | tsmexport [scope] | settings | controls | inventory | minimap/tracking/banks/alts/autoscan/scanopen/details on/off | scan tracked"
         )
@@ -850,10 +942,18 @@ local function initialize()
             hooksecurefunc(api, method, function(argument)
                 if not addon.scanner.issuing then
                     if method == "ReplicateItems" then
-                        addon.Providers.BeginExternalScan()
+                        addon.Providers.BeginExternalScan("external ReplicateItems hook")
                     end
                     addon.NativeShopping.ExternalQuery(method, argument)
                     addon.lastExternalAt = GetTime()
+                    addon:Trace(
+                        "external.query",
+                        5,
+                        "%s; ownActive=%s pendingAuto=%s",
+                        method,
+                        tostring(addon.scanner.active),
+                        tostring(addon.autoReason)
+                    )
                     if addon.scanner.active then
                         addon.autoPaused, addon.autoDue, addon.autoReason = true, nil, nil
                     elseif addon.pendingProviderScan then
@@ -926,6 +1026,8 @@ frame:SetScript("OnEvent", function(_, event, argument)
     end
     if event == "AUCTION_HOUSE_SHOW" then
         scanner:SetOpen(true)
+        addon:Trace("auction.house", 0, "Opened")
+        addon:TraceState()
         addon.autoPaused, addon.autoDue, addon.autoReason = addon.Providers.scan ~= nil, nil, nil
         addon.Inventory.CaptureBags()
         addon.UI.AttachAuction()
@@ -933,7 +1035,8 @@ frame:SetScript("OnEvent", function(_, event, argument)
         addon:RequestAutoScan(true)
         addon:RequestAutoScan()
     elseif event == "AUCTION_HOUSE_CLOSED" then
-        addon.Providers.EndExternalScan()
+        addon:Trace("auction.house", 0, "Closed")
+        addon.Providers.EndExternalScan("auction house closed")
         addon.autoDue, addon.autoReason, addon.scanOnOpen = nil, nil, false
         addon.refreshJob, addon.pendingProviderScan, addon.providerDue = nil, nil, nil
         scanner:SetOpen(false)

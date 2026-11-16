@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The lowest known filling cost is highlighted in green for all price sources,
 including cached prices. Auctionator and TSM are optional price providers. Own scans support both crate and writ costs.
 
-Version **0.8.2** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.8.3** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -330,7 +330,7 @@ Use `/wll scan deep` for detailed stock/stack checks across all catalogued items
 | `/wll shop 2` | Shop option 2 for the last hovered crate |
 | `/wll stop` | Stop; keep completed material snapshots |
 | `/wll report` | Open a selectable, copyable diagnostic report |
-| `/wll debug` | Toggle detailed scan messages |
+| `/wll debug on` / `/wll debug off` | Enable/disable timestamped chat diagnostics (bare `debug` toggles) |
 | `/wll inspect 248707` | Copy the client's own tooltip text for that item |
 | `/wll market neutral` | Switch to a separate market cache profile |
 | `/wll market default` | Return to the default profile |
@@ -361,7 +361,7 @@ Please start with a small test:
    should open settings without a scan popup. During a full scan, check that
    progress uses auction counts and returns to priced/item counts afterward.
    If using Auctionator, repeat with its full scan and verify its percentage, stable rows, and no own scan on tab switches.
-   Type `/wll debug`, then `/wll scan bags`. Check that Stop cancels our scan.
+   Type `/wll debug on`, then `/wll scan bags`. Check that Stop cancels our scan.
 4. After completion, hover the crate. Check one listed material manually in the
    auction house, including enough units to fill the crate.
 5. Close the auction house and hover again. `/reload` and verify cached prices
@@ -373,7 +373,16 @@ Please start with a small test:
 7. Log into an alt, visit its bank, and check remembered crate counts after
    returning. Toggle bank/alt tracking to check inclusion. Hover a writ with
    Auctionator/TSM prices; compare its quantity and estimated cost.
-8. If something fails, send the exact error and **`/wll report`** output. Include
+8. To diagnose Auctionator autoscan, enable `/wll debug on` **before opening the AH**,
+   reproduce the issue, then copy `/wll report` and disable chat with `/wll debug off`.
+   Logging stays enabled across reloads until disabled. Diagnostics are in English:
+   they include the addon version/settings, scan detection, progress, completion/failure,
+   timeouts, own-scan stages, tab selections, description retries, and UI refreshes.
+   Progress and repeated events are rate-limited; suppressed counts and the latest
+   100 log entries appear in the report. Item/tooltip storms increment one counter
+   instead of printing individual events. Unknown progress means Auctionator has
+   not supplied a percentage; it is not an invented estimate.
+9. If something fails, send the exact error and **`/wll report`** output. Include
    the crate item ID and **`/wll inspect <ID>`** output if its requirements differ.
    The report contains your realm/faction/profile and scan logs; it is only shown
    locally and is never sent automatically.
@@ -411,8 +420,8 @@ depth, indivisible auctions, randomized exhaustive cross-checks, stale/unknown
 results, pagination, throttling, retry timeouts, interruptions, owned-stock
 filtering, profile isolation, full bootstrap, tooltip text, provider priorities,
 source settings, API errors, price-age semantics, callbacks, and shopping handoff.
-The default suite has 206 tests. Four additional contract tests run the actual
-unmodified provider API and Auctionator event-bus Lua from separately downloaded release ZIPs (210 total):
+The default suite has 212 tests. Four additional contract tests run the actual
+unmodified provider API and Auctionator event-bus Lua from separately downloaded release ZIPs (216 total):
 
 ```sh
 python3 tests/run.py --auctionator /path/to/Auctionator-347.zip --tsm /path/to/TradeSkillMaster.zip

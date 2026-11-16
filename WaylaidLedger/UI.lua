@@ -16,6 +16,15 @@ local SOURCE_ORDER = { "auto", "own", "auctionator", "tsm" }
 local SOURCE_LABELS = { auto = "Auto", own = "Own scans", auctionator = "Auctionator", tsm = "TSM", off = "Off" }
 
 function UI.Update(refreshBrowse)
+    if addon.Trace then
+        addon:Trace(
+            "ui.update",
+            5,
+            "UI update requested; browse=%s tab=%s",
+            tostring(refreshBrowse ~= false),
+            tostring(addon.db and addon.db.browserTab)
+        )
+    end
     if refreshBrowse ~= false and addon.BrowseUI then
         addon.BrowseUI.UpdateVisible()
     end
@@ -81,6 +90,9 @@ function UI.SelectBrowserTab(kind)
         return
     end
     addon.db.browserTab = kind
+    if addon.Trace then
+        addon:Trace("ui.tab", 2, "Selected %s; displaying cached prices (no scan requested)", kind)
+    end
     UI.switchingBrowser = true
     for category, page in pairs(UI.auctionHosts) do
         page:SetShown(category == kind)

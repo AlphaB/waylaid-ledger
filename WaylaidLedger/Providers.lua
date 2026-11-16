@@ -9,6 +9,12 @@ local CALLER = "WaylaidLedger"
 local CACHE_SECONDS = 15
 local MAX_UNIT_PRICE = 9007199254740 -- Keep even a 1000-unit bundle within exact integer range.
 
+local function trace(...)
+    if addon.Trace then
+        addon:Trace(...)
+    end
+end
+
 local function auctionatorAPI()
     return type(Auctionator) == "table"
             and type(Auctionator.API) == "table"
@@ -95,6 +101,9 @@ function Providers.Read(source, itemID)
         Providers.errors[source] = "Invalid or non-positive price returned."
     end
     Providers.cache[key] = { api = api, readAt = now, value = value }
+    if Providers.errors[source] then
+        trace("provider.error", 5, "%s item=%d: %s", source, itemID, Providers.errors[source])
+    end
     return value
 end
 
@@ -111,11 +120,21 @@ function Providers.ScheduleRefresh()
     wake()
 end
 
-function Providers.BeginExternalScan()
+function Providers.BeginExternalScan(origin)
     if Providers.scan then
         return
     end
-    Providers.scan = { updatedAt = GetTime() }
+    Providers.scan = { updatedAt = GetTime(), startedAt = GetTime(), ignoredEvents = 0 }
+    if addon.traceState then
+        addon.traceState["auctionator.progress"] = nil
+    end
+    trace(
+        "auctionator.start",
+        0,
+        "Detected via %s; ownActive=%s; own scans and description reads suspended",
+        origin or "adapter",
+        tostring(addon.scanner and addon.scanner.active == true)
+    )
     addon.autoPaused, addon.autoDue, addon.autoReason = true, nil, nil
     addon.pendingProviderScan, addon.providerDue = nil, nil
     if addon.scanner and addon.scanner.active then
@@ -133,10 +152,20 @@ function Providers.BeginExternalScan()
     wake()
 end
 
-function Providers.EndExternalScan()
+function Providers.EndExternalScan(reason)
     if not Providers.scan then
         return
     end
+    local scan = Providers.scan
+    trace(
+        "auctionator.end",
+        0,
+        "%s; elapsed=%.1fs lastProgress=%s%% ignoredDiscoveryEvents=%d; retry descriptions and refresh cached prices",
+        reason or "adapter ended",
+        GetTime() - scan.startedAt,
+        tostring(scan.percent or "unknown"),
+        scan.ignoredEvents
+    )
     Providers.scan = nil
     Providers.Invalidate()
     -- One retry after the item-data stream has settled, never an own AH query.
@@ -154,7 +183,7 @@ processUpdates = function()
         -- Compatibility fallback for missing completion/failure events. Never
         -- restart an automatic own scan when the external scan ends or times out.
         if GetTime() - Providers.scan.updatedAt > 120 then
-            Providers.EndExternalScan()
+            Providers.EndExternalScan("watchdog: no progress for 120 seconds (completion unconfirmed)")
         end
         return
     end
@@ -166,6 +195,7 @@ processUpdates = function()
     end
     Providers.frame:SetScript("OnUpdate", nil)
     Providers.refreshAt = nil
+    trace("provider.refresh", 2, "Applying deferred price/UI refresh")
     if addon.Tooltip then
         addon.Tooltip.Refresh()
     end
@@ -178,17 +208,25 @@ function Providers.Install()
     local api = auctionatorAPI()
     if api and Providers.boundAPI ~= api and type(api.RegisterForDBUpdate) == "function" then
         local ok, errorMessage = pcall(api.RegisterForDBUpdate, CALLER, function()
+            trace(
+                "auctionator.database",
+                5,
+                "Price database updated; externalActive=%s",
+                tostring(Providers.scan ~= nil)
+            )
             Providers.Invalidate()
             -- Older Auctionator builds expose only the public DB callback.
             if not Providers.boundScanBus then
-                Providers.EndExternalScan()
+                Providers.EndExternalScan("database callback (no scan-event adapter)")
             end
             Providers.ScheduleRefresh()
         end)
         if ok then
             Providers.boundAPI = api
+            trace("provider.adapter", 0, "Auctionator database callback registered")
         else
             Providers.errors.auctionator = "Update callback: " .. tostring(errorMessage)
+            trace("provider.adapter", 0, "%s", Providers.errors.auctionator)
         end
     end
     -- Optional, guarded compatibility adapter: Auctionator's public DB callback
@@ -213,24 +251,32 @@ function Providers.Install()
     local listener = {
         ReceiveEvent = function(_, event, progress)
             if event == events.ScanStart then
-                Providers.BeginExternalScan()
+                Providers.BeginExternalScan("Auctionator ScanStart")
             elseif event == events.ScanProgress and Providers.scan then
                 Providers.scan.updatedAt = GetTime()
                 if type(progress) == "number" and progress == progress then
                     local percent = math.floor(math.max(0, math.min(1, progress)) * 100)
                     if percent ~= Providers.scan.percent then
                         Providers.scan.percent = percent
+                        trace(
+                            "auctionator.progress",
+                            5,
+                            "%d%%; elapsed=%.1fs ignoredDiscoveryEvents=%d",
+                            percent,
+                            GetTime() - Providers.scan.startedAt,
+                            Providers.scan.ignoredEvents
+                        )
                         if addon.BrowseUI then
                             addon.BrowseUI.UpdateScanStatus()
                         end
                     end
                 end
             elseif event == events.ScanComplete or event == events.ScanFailed then
-                Providers.EndExternalScan()
+                Providers.EndExternalScan(event == events.ScanComplete and "ScanComplete" or "ScanFailed")
             end
         end,
     }
-    local ok = pcall(
+    local ok, errorMessage = pcall(
         bus.Register,
         bus,
         listener,
@@ -238,6 +284,10 @@ function Providers.Install()
     )
     if ok then
         Providers.boundScanBus = bus
+        trace("provider.adapter", 0, "Auctionator scan/progress events registered")
+    else
+        Providers.errors.auctionator = "Scan events: " .. tostring(errorMessage)
+        trace("provider.adapter", 0, "%s", Providers.errors.auctionator)
     end
 end
 
