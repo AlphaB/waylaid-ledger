@@ -1,6 +1,8 @@
 local addon, test, equal = ...
 
 local function fixture(action)
+    local oldTooltip = GameTooltip
+    GameTooltip = CreateFrame("GameTooltip")
     local oldScanner, oldEngine, oldExternal = addon.scanner, addon.BulkScan.engine, addon.Providers.scan
     local parent = CreateFrame("Frame", nil, UIParent)
     parent:SetSize(1000, 550)
@@ -13,6 +15,7 @@ local function fixture(action)
     local ok, err = pcall(action, view)
     addon.scanner, addon.BulkScan.engine, addon.BrowseUI.views, addon.Providers.scan =
         oldScanner, oldEngine, oldViews, oldExternal
+    GameTooltip = oldTooltip
     assert(ok, err)
 end
 
@@ -38,6 +41,10 @@ test("Auctionator progress updates status without rebuilding rows or offering to
         equal(view.summary.text, "Another addon is scanning.")
         equal(view.refreshButton.text, "Refresh")
         equal(view.refreshButton.enabled, false)
+        GameTooltip.lines = {}
+        view.refreshButton.scripts.OnEnter(view.refreshButton)
+        equal(GameTooltip.lines[1][1], "Another addon is scanning.")
+        equal(GameTooltip.lines[2][1], "Wait for the other addon's scan to finish before refreshing prices.")
         local entries = view.visibleEntries
         addon.Providers.scan.percent = 42
         addon.BrowseUI.UpdateScanStatus()

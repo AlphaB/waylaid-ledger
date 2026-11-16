@@ -1,5 +1,33 @@
 # Implementation notes
 
+## Player text audit (1.0.1)
+
+Reviewed active player-facing text in minimap, settings, list headers/status and
+tooltips, item tooltips, shopping baskets, scan results, startup/help messages,
+install metadata and README against the current handlers and price-source policy.
+Historical changelog entries remain historical; developer diagnostics keep their
+technical vocabulary. Updated affected translations for all supported locales.
+
+Corrected stale settings routing, an empty-search prompt that suggested discovery
+scans, material-only scan wording, a full-scan message that implied every delivery
+was resolved, settings explanations of opening scans and inventory freshness,
+and Refresh hints that offered Stop during another addon's scan. README now
+matches default reward-cost sorting, controller header navigation, full-snapshot
+versus detailed scans, provider-aware Refresh and standalone browser filtering.
+Command help includes `scan deep` and no longer advertises the inactive legacy
+`autoscan` preference as a current setting.
+
+Regression coverage checks minimap hints inside and outside the AH in every
+locale, cached-list empty guidance and the disabled Refresh tooltip during an
+external scan. Release validation passed: 246 default checks, 248 checks with
+each pinned/latest Forever source, Lua/Python lint and formatting, all five
+performance scenarios and install ZIP integrity.
+
+Not performed: live-client layout of the revised translated hints, actual mouse
+and hardware-controller hover/focus/Back behavior, and combat/taint verification.
+The live checklist in CONTROLLER.md remains outstanding; text review and source
+simulation do not establish those results.
+
 ## Cached browser (1.0.0)
 
 `UI.CreateBrowser` builds both containers with the same tabs, `BrowseUI` rows,

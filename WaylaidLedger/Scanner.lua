@@ -66,7 +66,7 @@ function Scanner:Start(itemIDs)
         end
     end
     self.active, self.pending, self.message = true, nil, L["Scanning..."]
-    self:Log("Start scan: " .. #self.queue .. " materials")
+    self:Log("Start scan: " .. #self.queue .. " items")
     self:Notify()
     self:Tick()
     return true
@@ -106,7 +106,7 @@ function Scanner:Advance()
     self.index, self.pending = self.index + 1, nil
     if self.index > #self.queue then
         self.active = false
-        self.message = string.format(L["Scan finished: %d materials updated, %d failed."], self.completed, self.failed)
+        self.message = string.format(L["Scan finished: %d items updated, %d failed."], self.completed, self.failed)
         self:Log(self.message)
     end
     self:Notify()

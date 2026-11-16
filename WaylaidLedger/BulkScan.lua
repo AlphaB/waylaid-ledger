@@ -156,12 +156,7 @@ function BulkScan.Install(scanner)
             if job.own then
                 scanner.completed = count
             end
-            finish(
-                string.format(
-                    L["Full scan finished: %d item prices. Delivery requirements learned from game descriptions."],
-                    count
-                )
-            )
+            finish(string.format(L["Full scan finished: %d item prices."], count))
             return
         end
         local api = scanner.api
