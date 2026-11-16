@@ -151,8 +151,15 @@ function Browse.Layout(view)
         header:ClearAllPoints()
         header:SetPoint("TOPLEFT", view.inset, "TOPLEFT", index == 1 and 4 or (width - (6 - index) * column + 4), -3)
         header:SetWidth(index == 1 and (width - 4 * column) or column)
-        local arrow = header.sortKey == view.sortKey and (view.sortDescending and " ↓" or " ↑") or ""
-        addon.Localization.ButtonText(header, header.sortTitle .. arrow)
+        local selected = header.sortKey == view.sortKey
+        -- Native sort texture: font glyph coverage varies between client locales.
+        header.sortArrow:SetShown(selected)
+        header.sortArrow:SetTexCoord(0, 0.5625, view.sortDescending and 0 or 1, view.sortDescending and 1 or 0)
+        addon.Localization.ButtonText(header, header.sortTitle, selected and 15 or 0)
+        local font = header:GetFontString()
+        if font then
+            font:SetWidth(math.max(1, header:GetWidth() - (selected and 27 or 12)))
+        end
     end
     view.scroll:ForEachFrame(function(row)
         layoutRow(row, width)
@@ -360,6 +367,11 @@ function Browse.Create(host, kind)
         header.sortKey = ({ "name", "purchase", "delivery", "total", "unitCost" })[index]
         header.sortTitle = title
         header:SetText(title)
+        header.sortArrow = header:CreateTexture(nil, "OVERLAY")
+        header.sortArrow:SetTexture("Interface\\Buttons\\UI-SortArrow")
+        header.sortArrow:SetSize(9, 8)
+        header.sortArrow:SetPoint("RIGHT", header, "RIGHT", -6, 0)
+        header.sortArrow:Hide()
         header:EnableMouse(true)
         header:SetScript("OnClick", function(self)
             Browse.Sort(view, self.sortKey)

@@ -177,7 +177,8 @@ test("crate rewards rank Artisan at 30 Favor and leave unknown future rewards un
             local view = addon.BrowseUI.Create(host, "crates")
             addon.BrowseUI.Refresh(view)
             equal(#view.headers, 5)
-            equal(view.headers[5].text, addon.L["Cost / Favor"] .. " ↑")
+            equal(view.headers[5].text, addon.L["Cost / Favor"])
+            equal(view.headers[5].sortArrow:IsShown(), true)
             equal(view.scroll.rows[1].reward.text, string.format(addon.L["%d Favor"], 30))
             equal(view.scroll.rows[1].unitCost.text, addon.Money(1))
             equal(view.scroll.rows[5].reward.text, addon.L["Reward unknown"])
@@ -412,7 +413,8 @@ test("browse rows render ranked totals, filter delivery names, and route clicks 
         host:SetSize(1000, 550)
         local view = addon.BrowseUI.Create(host, "writs")
         addon.BrowseUI.Refresh(view)
-        equal(view.headers[5].text, addon.L["Cost / reputation"] .. " ↑")
+        equal(view.headers[5].text, addon.L["Cost / reputation"])
+        equal(view.headers[5].sortArrow:IsShown(), true)
         equal(view.scroll.rows[1].unitCost.text, addon.Money(7))
         equal(view.scroll.rows[1].reward.text, string.format(addon.L["%d rep"], 75))
         equal(#view.visibleEntries, 150)
@@ -477,13 +479,25 @@ test(
                 equal(view.sortKey, key)
                 equal(view.sortDescending, false)
                 equal(view.scroll.offset, 0)
-                equal(header.text, header.sortTitle .. " ↑")
+                equal(header.text, header.sortTitle)
+                equal(header.sortArrow.texture, "Interface\\Buttons\\UI-SortArrow")
+                equal(header.sortArrow:GetWidth(), 9)
+                equal(header.sortArrow:GetHeight(), 8)
+                equal(header.sortArrow.texCoord[1], 0)
+                equal(header.sortArrow.texCoord[2], 0.5625)
+                equal(header.sortArrow.texCoord[3], 1)
+                equal(header.sortArrow.texCoord[4], 0)
+                for _, candidate in ipairs(view.headers) do
+                    equal(candidate.sortArrow:IsShown(), candidate == header)
+                end
                 for n = 2, #view.visibleEntries do
                     equal(Shopping.Compare(view.visibleEntries[n], view.visibleEntries[n - 1], key, false), false)
                 end
                 header.scripts.OnClick(header)
                 equal(view.sortDescending, true)
-                equal(header.text, header.sortTitle .. " ↓")
+                equal(header.text, header.sortTitle)
+                equal(header.sortArrow.texCoord[3], 0)
+                equal(header.sortArrow.texCoord[4], 1)
                 for n = 2, #view.visibleEntries do
                     equal(Shopping.Compare(view.visibleEntries[n], view.visibleEntries[n - 1], key, true), false)
                 end
