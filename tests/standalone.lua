@@ -27,6 +27,10 @@ local function fixture(action)
         views = addon.BrowseUI.views,
         uiHost = addon.UI.auctionHost,
         hosts = addon.UI.auctionHosts,
+        tabs = addon.UI.browserTabs,
+        auctionTab = addon.UI.auctionTab,
+        tabLibrary = addon.UI.tabLibrary,
+        tabState = LibStub("LibAHTab-1-0").internalState,
         browserTab = addon.db.browserTab,
         read = addon.Providers.Read,
     }
@@ -109,6 +113,7 @@ local function fixture(action)
         }
     end
     function f.browser(kind)
+        addon.UI.browserTabs, addon.UI.auctionTab = nil, nil
         addon.UI.auctionHost = CreateFrame("Frame", nil, AuctionHouseFrame)
         local page = CreateFrame("Frame", nil, addon.UI.auctionHost)
         page:SetSize(900, 550)
@@ -117,6 +122,15 @@ local function fixture(action)
         addon.BrowseUI.views = {}
         f.focus = AuctionHouseFrame
         return addon.BrowseUI.Create(page, kind)
+    end
+    function f.auction()
+        addon.UI.auctionHost, addon.UI.auctionHosts, addon.UI.browserTabs, addon.UI.auctionTab = nil, nil, nil, nil
+        addon.BrowseUI.views = {}
+        LibStub("LibAHTab-1-0").internalState = nil
+        AuctionHouseFrameDisplayMode.Buy = { "BuyFrame" }
+        AuctionHouseFrame.SetTitle = function() end
+        addon.db.browserTab = "crates"
+        addon.UI.AttachAuction()
     end
     function f.navigation()
         f.hiddenFrames = {}
@@ -136,7 +150,7 @@ local function fixture(action)
         InCombatLockdown = function()
             return f.combat or false
         end
-        SMART_NAV_INPUT_DIRECTION = { UP = "up", DOWN = "down" }
+        SMART_NAV_INPUT_DIRECTION = { UP = "up", DOWN = "down", LEFT = "left", RIGHT = "right" }
         SmartNavigation_MarkFrameIgnored = function(frame)
             frame.navIgnored = true
         end
@@ -179,7 +193,10 @@ local function fixture(action)
             end
         end
         function f.navigate(direction)
-            local target = f.current.overrides[direction]()
+            local target = f.current.overrides[direction]
+            if type(target) == "function" then
+                target = target()
+            end
             if target and target ~= true then
                 f.select(target)
             end
@@ -233,6 +250,8 @@ local function fixture(action)
     SMART_NAV_INPUT_DIRECTION, addon.Navigation.registered = old.directions, old.registered
     addon.Navigation.auctionView, addon.Navigation.callbackOwner = old.auctionView, old.callbackOwner
     addon.BrowseUI.views, addon.UI.auctionHost, addon.UI.auctionHosts = old.views, old.uiHost, old.hosts
+    addon.UI.browserTabs, addon.UI.auctionTab, addon.UI.tabLibrary = old.tabs, old.auctionTab, old.tabLibrary
+    LibStub("LibAHTab-1-0").internalState = old.tabState
     addon.db.browserTab, addon.Providers.Read = old.browserTab, old.read
     addon.autoPaused = false
     addon.Providers.Invalidate()
@@ -622,6 +641,59 @@ test("controller focus changes clear old lists and resume safely after combat an
     end)
 end)
 
+test("clicking auction and category tabs hands controller focus into the page and links every control", function()
+    fixture(function(f)
+        f.navigation()
+        f.auction()
+        local outer = addon.UI.auctionTab or addon.UI.tabLibrary:GetButton("WaylaidLedger")
+        f.select(outer)
+        outer.scripts.OnClick(outer)
+        for _, kind in ipairs({ "crates", "writs", "crates" }) do
+            local tab = addon.UI.browserTabs[kind]
+            f.select(tab)
+            tab.scripts.OnClick(tab)
+            local view = addon.BrowseUI.views[kind]
+            equal(f.current, view.search)
+            equal(f.scroll, nil)
+            local offset = view.scroll.offset
+            f.navigate("right")
+            equal(f.current, view.refreshButton)
+            f.navigate("right")
+            equal(f.current, view.settingsButton)
+            f.navigate("left")
+            equal(f.current, view.refreshButton)
+            f.navigate("left")
+            equal(f.current, view.search)
+            equal(view.scroll.offset, offset)
+            f.navigate("up")
+            equal(f.current, tab)
+            f.navigate("up")
+            equal(f.current, outer)
+            f.navigate("down")
+            equal(f.current, view.search)
+            f.select(outer)
+            f.navigate("up")
+            equal(f.current, view.search)
+            f.navigate("down")
+            equal(f.current.entry.listIndex, 1)
+            equal(view.scroll.offset, offset)
+            f.navigate("down")
+            equal(f.current.entry.listIndex, 2)
+            f.navigate("up")
+            equal(f.current.entry.listIndex, 1)
+            f.navigate("right")
+            equal(f.current, view.settingsButton)
+            equal(f.scroll, nil)
+            f.navigate("down")
+            f.navigate("left")
+            equal(f.current, view.search)
+        end
+        addon.UI.auctionHost:Hide()
+        equal(outer.overrides.up(), nil)
+        equal(outer.overrides.down(), nil)
+    end)
+end)
+
 if UPSTREAM_FOREVER_NAVIGATION then
     test(
         "unmodified Forever navigation selects virtual rows without native centering or unfocused scrolling",
@@ -640,8 +712,9 @@ if UPSTREAM_FOREVER_NAVIGATION then
                     SecureCallOptionalFunction = function(frame, key, ...)
                         local fn = rawget(frame, key)
                         if fn then
-                            return fn(...)
+                            return true, fn(...)
                         end
+                        return false
                     end,
                 }
                 local env = setmetatable({
@@ -703,6 +776,7 @@ if UPSTREAM_FOREVER_NAVIGATION then
                     f.selectionCallback()
                 end
                 nav.SelectButton = native.SelectButton
+                nav.SetTargetButtonForFrame = native.SetTargetButtonForFrame
                 nav.IsButtonValid = function(_, button)
                     return button and button:IsVisible()
                 end
@@ -717,8 +791,26 @@ if UPSTREAM_FOREVER_NAVIGATION then
                 nav.GetCurrentButton = function()
                     return nav.currentButton
                 end
-                local view = f.browser("writs")
-                addon.BrowseUI.Refresh(view)
+                f.auction()
+                local function button(frame)
+                    frame.blockSmartNavClick = false
+                    frame.IsRectValid = function()
+                        return true
+                    end
+                    frame.IsEnabled = function()
+                        return true
+                    end
+                    frame.MouseDown = noop
+                    frame.MouseUp = function(self)
+                        self.scripts.OnClick(self)
+                    end
+                end
+                local outer = addon.UI.auctionTab or addon.UI.tabLibrary:GetButton("WaylaidLedger")
+                button(outer)
+                nav:SelectButton(outer)
+                native.Click(nav)
+                local view = addon.BrowseUI.views.crates
+                equal(nav.currentButton, view.search)
                 -- Native Navigate requires laid-out frames; the harness only models
                 -- viewport rows and leaves geometry/rendering to the client.
                 view.search.IsRectValid = function()
@@ -729,8 +821,28 @@ if UPSTREAM_FOREVER_NAVIGATION then
                         return true
                     end
                 end)
-                nav:SelectButton(view.search)
+                for _, frame in ipairs({
+                    view.refreshButton,
+                    view.settingsButton,
+                    addon.UI.browserTabs.crates,
+                    addon.UI.browserTabs.writs,
+                }) do
+                    button(frame)
+                end
                 equal(nav.activeInfo.currentScrollFrame, nil)
+                native.Navigate(nav, SMART_NAV_INPUT_DIRECTION.UP)
+                equal(nav.currentButton, addon.UI.browserTabs.crates)
+                native.Navigate(nav, SMART_NAV_INPUT_DIRECTION.UP)
+                equal(nav.currentButton, outer)
+                native.Navigate(nav, SMART_NAV_INPUT_DIRECTION.DOWN)
+                equal(nav.currentButton, view.search)
+                native.Navigate(nav, SMART_NAV_INPUT_DIRECTION.RIGHT)
+                equal(nav.currentButton, view.refreshButton)
+                native.Navigate(nav, SMART_NAV_INPUT_DIRECTION.RIGHT)
+                equal(nav.currentButton, view.settingsButton)
+                native.Navigate(nav, SMART_NAV_INPUT_DIRECTION.LEFT)
+                native.Navigate(nav, SMART_NAV_INPUT_DIRECTION.LEFT)
+                equal(nav.currentButton, view.search)
                 for index = 1, 25 do
                     native.Navigate(nav, SMART_NAV_INPUT_DIRECTION.DOWN)
                     equal(nav.currentButton.entry.listIndex, index)
@@ -743,6 +855,12 @@ if UPSTREAM_FOREVER_NAVIGATION then
                 end
                 native.Navigate(nav, SMART_NAV_INPUT_DIRECTION.UP)
                 equal(nav.currentButton, view.search)
+                equal(nav.activeInfo.currentScrollFrame, nil)
+                native.Navigate(nav, SMART_NAV_INPUT_DIRECTION.UP)
+                native.Navigate(nav, SMART_NAV_INPUT_DIRECTION.LEFT)
+                equal(nav.currentButton, addon.UI.browserTabs.writs)
+                native.Click(nav)
+                equal(nav.currentButton, addon.BrowseUI.views.writs.search)
                 equal(nav.activeInfo.currentScrollFrame, nil)
             end)
         end

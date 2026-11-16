@@ -114,6 +114,9 @@ test("bundled install discovers additional crates and writs using one bulk scan"
                     CreateTab = function(_, _, panel)
                         panel:Hide()
                     end,
+                    GetButton = function()
+                        return CreateFrame("Button", nil, AuctionHouseFrame)
+                    end,
                 }
             end,
         }

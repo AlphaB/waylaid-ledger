@@ -109,14 +109,50 @@ function Nav.BindView(view)
     for _, control in ipairs({ view.search, view.refreshButton, view.settingsButton }) do
         SmartNavigation_AddJumpNavigationOverride(control, SMART_NAV_INPUT_DIRECTION.DOWN, enter)
     end
+    local function link(source, direction, target)
+        if not source then
+            return
+        end
+        SmartNavigation_AddJumpNavigationOverride(source, direction, function()
+            if not available() or not view.host:IsVisible() then
+                return
+            end
+            return target and target:IsVisible() and target or true
+        end)
+    end
+    local directions = SMART_NAV_INPUT_DIRECTION
+    local tabs = addon.UI.browserTabs or {}
+    local category = tabs[view.kind]
+    local auctionTab = addon.UI.auctionTab
+    -- Auction tabs sit below the page, category tabs above it. Bind both
+    -- explicitly: geometric navigation can pick a native scroll child instead.
+    link(auctionTab, directions.UP, view.search)
+    link(auctionTab, directions.DOWN, view.search)
+    for _, tab in pairs(tabs) do
+        link(tab, directions.DOWN, view.search)
+        link(tab, directions.UP, auctionTab)
+    end
+    link(tabs.writs, directions.RIGHT, tabs.crates)
+    link(tabs.crates, directions.LEFT, tabs.writs)
+    for _, control in ipairs({ view.search, view.refreshButton, view.settingsButton }) do
+        link(control, directions.UP, category or auctionTab)
+    end
+    link(view.search, directions.LEFT)
+    link(view.search, directions.RIGHT, view.refreshButton)
+    link(view.refreshButton, directions.LEFT, view.search)
+    link(view.refreshButton, directions.RIGHT, view.settingsButton)
+    link(view.settingsButton, directions.LEFT, view.refreshButton)
+    link(view.settingsButton, directions.RIGHT)
 end
 
-function Nav.RefreshView(view, previous)
+function Nav.RefreshView(view, previous, enterPage)
     if not available() or not view.host:IsVisible() then
         return
     end
     local target
-    if previous then
+    if enterPage then
+        target = view.search
+    elseif previous then
         for index, entry in ipairs(view.visibleEntries) do
             if entry.itemID == previous.itemID then
                 view.scroll:ScrollToElementDataIndex(index, ScrollBoxConstants.AlignNearest, 0, true)
@@ -135,6 +171,14 @@ function Nav.RefreshView(view, previous)
     Nav.BindView(view)
     Nav.Refresh(AuctionHouseFrame, nil, target)
     Nav.UpdateAuctionScroll()
+end
+
+function Nav.EnterView(view)
+    if not available() or not view.host:IsVisible() then
+        return
+    end
+    Nav.Focus(AuctionHouseFrame)
+    Nav.RefreshView(view, nil, true)
 end
 
 function Nav.LeaveAuction()
@@ -193,6 +237,8 @@ function Nav.BindRow(view, row)
     end
     SmartNavigation_AddJumpNavigationOverride(row, SMART_NAV_INPUT_DIRECTION.UP, move(-1))
     SmartNavigation_AddJumpNavigationOverride(row, SMART_NAV_INPUT_DIRECTION.DOWN, move(1))
+    SmartNavigation_AddJumpNavigationOverride(row, SMART_NAV_INPUT_DIRECTION.LEFT, view.search)
+    SmartNavigation_AddJumpNavigationOverride(row, SMART_NAV_INPUT_DIRECTION.RIGHT, view.settingsButton)
 end
 
 function Nav.Install()
