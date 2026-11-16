@@ -9,8 +9,11 @@ local CACHE_SECONDS = 15
 local MAX_UNIT_PRICE = 9007199254740 -- Keep even a 1000-unit bundle within exact integer range.
 
 local function auctionatorAPI()
-    return type(Auctionator) == "table" and type(Auctionator.API) == "table"
-        and type(Auctionator.API.v1) == "table" and Auctionator.API.v1 or nil
+    return type(Auctionator) == "table"
+            and type(Auctionator.API) == "table"
+            and type(Auctionator.API.v1) == "table"
+            and Auctionator.API.v1
+        or nil
 end
 
 local function tsmAPI()
@@ -25,8 +28,15 @@ end
 
 function Providers.ShoppingAvailable(requireTabSwitch)
     local api = auctionatorAPI()
-    return api ~= nil and (type(api.MultiSearchAdvanced) == "function"
-        or (not requireTabSwitch and type(api.ConvertToSearchString) == "function" and type(api.CreateShoppingList) == "function"))
+    return api ~= nil
+        and (
+            type(api.MultiSearchAdvanced) == "function"
+            or (
+                not requireTabSwitch
+                and type(api.ConvertToSearchString) == "function"
+                and type(api.CreateShoppingList) == "function"
+            )
+        )
 end
 
 function Providers.Invalidate()
@@ -61,9 +71,13 @@ function Providers.Read(source, itemID)
         Providers.errors[source] = tostring(price)
     elseif validPrice(price) then
         Providers.errors[source] = nil
-        value = { source = source, unitPrice = price, estimated = true,
+        value = {
+            source = source,
+            unitPrice = price,
+            estimated = true,
             sourceLabel = source == "auctionator" and "Auctionator"
-                or (addon.db.tsmKey == "DBMarket" and "TSM market" or "TSM min buyout") }
+                or (addon.db.tsmKey == "DBMarket" and "TSM market" or "TSM min buyout"),
+        }
         if source == "auctionator" and type(api.GetAuctionAgeByItemID) == "function" then
             local ageOK, days = pcall(api.GetAuctionAgeByItemID, CALLER, itemID)
             if ageOK and type(days) == "number" and days >= 0 and days < math.huge then
@@ -88,7 +102,9 @@ function Providers.Install()
     if api and Providers.boundAPI ~= api and type(api.RegisterForDBUpdate) == "function" then
         local ok, errorMessage = pcall(api.RegisterForDBUpdate, CALLER, function()
             Providers.Invalidate()
-            if addon.Discovery then addon.Discovery.Retry() end
+            if addon.Discovery then
+                addon.Discovery.Retry()
+            end
             if addon.Tooltip then
                 addon.Tooltip.Refresh()
             end
@@ -136,15 +152,21 @@ function Providers.ScanTerms(items, quantities)
     local terms = {}
     for _, id in ipairs(items) do
         local name = addon.Catalog.SearchName(id)
-        if not name then return nil, "Item names are loading; retry the Auctionator scan shortly." end
+        if not name then
+            return nil, "Item names are loading; retry the Auctionator scan shortly."
+        end
         terms[#terms + 1] = { searchString = name, categoryKey = "", isExact = true, quantity = quantities[id] or 1 }
     end
-    if #terms == 0 then return nil, "No matching items to scan." end
+    if #terms == 0 then
+        return nil, "No matching items to scan."
+    end
     return terms
 end
 
 function Providers.ScanItems(items, quantities)
     local terms, reason = Providers.ScanTerms(items, quantities)
-    if not terms then return false, reason end
+    if not terms then
+        return false, reason
+    end
     return Providers.Search(terms, "Waylaid Ledger - scoped refresh", true)
 end

@@ -11,7 +11,9 @@ local reading, tooltipItems, itemTooltips = {}, {}, {}
 local process
 
 local function wake()
-    if Discovery.frame then Discovery.frame:SetScript("OnUpdate", process) end
+    if Discovery.frame then
+        Discovery.frame:SetScript("OnUpdate", process)
+    end
 end
 
 local function enqueue(itemID)
@@ -22,35 +24,55 @@ local function enqueue(itemID)
 end
 
 local function text(value)
-    if issecretvalue and issecretvalue(value) then return nil end
-    if type(value) ~= "string" then return nil end
-    return value:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-        :gsub("|cn[%w_]+:", ""):gsub("|n", "\n")
-        :gsub("|H.-|h(.-)|h", "%1"):gsub("|T.-|t", "")
-        :gsub("\194\160", " "):gsub("^%s+", ""):gsub("%s+$", "")
+    if issecretvalue and issecretvalue(value) then
+        return nil
+    end
+    if type(value) ~= "string" then
+        return nil
+    end
+    return value
+        :gsub("|c%x%x%x%x%x%x%x%x", "")
+        :gsub("|r", "")
+        :gsub("|cn[%w_]+:", "")
+        :gsub("|n", "\n")
+        :gsub("|H.-|h(.-)|h", "%1")
+        :gsub("|T.-|t", "")
+        :gsub("\194\160", " ")
+        :gsub("^%s+", "")
+        :gsub("%s+$", "")
 end
 
 local function kindOf(name)
-    if name:match("^Waylaid Crate:%s*%S") then return "crates" end
-    if name:match("^Craftsman's Writ:%s*%S") then return "writs" end
+    if name:match("^Waylaid Crate:%s*%S") then
+        return "crates"
+    end
+    if name:match("^Craftsman's Writ:%s*%S") then
+        return "writs"
+    end
 end
 
 function Discovery.Observe(itemID, name)
-    if type(itemID) ~= "number" or itemID <= 0 then return end
+    if type(itemID) ~= "number" or itemID <= 0 then
+        return
+    end
     name = text(name or (C_Item and C_Item.GetItemNameByID(itemID)))
     if not name or name == "" then
-        if C_Item and C_Item.RequestLoadItemDataByID then C_Item.RequestLoadItemDataByID(itemID) end
+        if C_Item and C_Item.RequestLoadItemDataByID then
+            C_Item.RequestLoadItemDataByID(itemID)
+        end
         return false
     end
     local previous = Discovery.names[name]
     -- Never guess between distinct items that have the same localized name.
     Discovery.names[name] = previous == nil and itemID or (previous == itemID and itemID or false)
-    if Discovery.store then Discovery.store.names[itemID] = name end
+    if Discovery.store then
+        Discovery.store.names[itemID] = name
+    end
     local kind = kindOf(name)
     if kind then
         local definitions = kind == "crates" and addon.Crates or addon.Writs
-        definitions[itemID] = definitions[itemID] or { name = name, unresolved = true,
-            [kind == "crates" and "options" or "requirements"] = {} }
+        definitions[itemID] = definitions[itemID]
+            or { name = name, unresolved = true, [kind == "crates" and "options" or "requirements"] = {} }
         definitions[itemID].name = name
         Discovery.candidates[itemID] = kind
         Discovery.pending[itemID] = true
@@ -66,7 +88,9 @@ local function resolve(name, linkID)
     name = cleanName(name)
     if linkID then
         local actual = C_Item and C_Item.GetItemNameByID(linkID)
-        if actual then Discovery.Observe(linkID, actual) end
+        if actual then
+            Discovery.Observe(linkID, actual)
+        end
         return linkID
     end
     -- Strip display brackets and sentence punctuation, not apostrophes in names.
@@ -103,18 +127,21 @@ function Discovery.Parse(lines, kind, ownID)
                 local lower = line:lower()
                 local body = line:match("^%-%s*(.+)") or line:match("^•%s*(.+)")
                 if not body and not lower:match("^use:") and not lower:match("reward") then
-                    local start = lower:find("deliver%s+") or lower:find("bring%s+")
-                        or lower:find("requires?[:%s]+%d")
+                    local start = lower:find("deliver%s+") or lower:find("bring%s+") or lower:find("requires?[:%s]+%d")
                     if start then
                         local clause = line:sub(start)
                         body = clause:match("^[^%s:]+[:%s]+(.+)")
                         -- These suffixes describe the recipient, not the item.
-                        if body then body = body:gsub("%s+to%s+.+$", "") end
+                        if body then
+                            body = body:gsub("%s+to%s+.+$", "")
+                        end
                     end
                 end
                 if body then
                     local quantity, name = body:match("^(%d+)%s*[xX]?%s+(.+)$")
-                    if not quantity then name, quantity = body:match("^(.+)%s+[xX]%s*(%d+)[%.;]?$" ) end
+                    if not quantity then
+                        name, quantity = body:match("^(.+)%s+[xX]%s*(%d+)[%.;]?$")
+                    end
                     if quantity then
                         quantity = tonumber(quantity)
                         local linkID = linked[cleanName(name)]
@@ -131,20 +158,28 @@ function Discovery.Parse(lines, kind, ownID)
             end
         end
     end
-    if #result == 0 then return nil, "Delivery description is not loaded or its format is unsupported." end
-    if kind == "crates" and #result < 2 then return nil, "Incomplete crate alternatives." end
+    if #result == 0 then
+        return nil, "Delivery description is not loaded or its format is unsupported."
+    end
+    if kind == "crates" and #result < 2 then
+        return nil, "Incomplete crate alternatives."
+    end
     return result
 end
 
 function Discovery.Read(itemID, data)
     local kind = Discovery.candidates[itemID]
-    if not kind or reading[itemID] then return false end
+    if not kind or reading[itemID] then
+        return false
+    end
     reading[itemID] = true
     if not data and C_TooltipInfo and C_TooltipInfo.GetItemByID then
         data = C_TooltipInfo.GetItemByID(itemID)
     end
     local oldInstance = itemTooltips[itemID]
-    if oldInstance then tooltipItems[oldInstance] = nil end
+    if oldInstance then
+        tooltipItems[oldInstance] = nil
+    end
     local instance = data and data.dataInstanceID
     if instance and not (issecretvalue and issecretvalue(instance)) then
         tooltipItems[instance], itemTooltips[itemID] = itemID, instance
@@ -152,7 +187,9 @@ function Discovery.Read(itemID, data)
         itemTooltips[itemID] = nil
     end
     if not data then
-        if C_Item and C_Item.RequestLoadItemDataByID then C_Item.RequestLoadItemDataByID(itemID) end
+        if C_Item and C_Item.RequestLoadItemDataByID then
+            C_Item.RequestLoadItemDataByID(itemID)
+        end
         reading[itemID] = nil
         return false
     end
@@ -165,8 +202,12 @@ function Discovery.Read(itemID, data)
         -- Their absence cannot disprove a known bundle. Explicit invalid or
         -- partial objectives still invalidate it below.
         local known = definition[kind == "crates" and "options" or "requirements"]
-        if reason == "Delivery description is not loaded or its format is unsupported."
-            and not definition.unresolved and known and #known > 0 then
+        if
+            reason == "Delivery description is not loaded or its format is unsupported."
+            and not definition.unresolved
+            and known
+            and #known > 0
+        then
             Discovery.pending[itemID] = nil
             return false
         end
@@ -201,10 +242,14 @@ end
 
 process = function()
     -- Plain-name requirements need the complete market name index first.
-    if addon.BulkScan and addon.BulkScan.engine and addon.BulkScan.engine.job then return end
+    if addon.BulkScan and addon.BulkScan.engine and addon.BulkScan.engine.job then
+        return
+    end
     if retryRequested then
         retryRequested = false
-        for itemID in pairs(Discovery.pending) do enqueue(itemID) end
+        for itemID in pairs(Discovery.pending) do
+            enqueue(itemID)
+        end
     end
     local started = debugprofilestop and debugprofilestop()
     local attempts = 0
@@ -217,26 +262,38 @@ process = function()
             attempts = attempts + 1
         end
         queued[itemID] = nil
-        if started and debugprofilestop() - started >= BUDGET_MS then break end
+        if started and debugprofilestop() - started >= BUDGET_MS then
+            break
+        end
     end
-    if cursor <= #queue or retryRequested then return end
+    if cursor <= #queue or retryRequested then
+        return
+    end
     queue, queued, cursor = {}, {}, 1
     Discovery.frame:SetScript("OnUpdate", nil)
     -- One redraw per wave, including invalidated definitions. Failed parses stay
     -- pending but sleep until new item data, names or a later scan arrive.
     if dirty then
         dirty = false
-        if addon.UI then addon.UI.Update() end
-        if addon.Tooltip then addon.Tooltip.Refresh() end
+        if addon.UI then
+            addon.UI.Update()
+        end
+        if addon.Tooltip then
+            addon.Tooltip.Refresh()
+        end
     end
 end
 
 function Discovery.Bags()
-    if not C_Container then return end
+    if not C_Container then
+        return
+    end
     for bag = 0, NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS or 4 do
         for slot = 1, C_Container.GetContainerNumSlots(bag) do
             local itemID = C_Container.GetContainerItemID(bag, slot)
-            if itemID then Discovery.Observe(itemID) end
+            if itemID then
+                Discovery.Observe(itemID)
+            end
         end
     end
     Discovery.Retry()
@@ -254,19 +311,25 @@ function Discovery.Install()
     end
     Discovery.store = store
     -- Keep stable table references for the UI and inventory modules.
-    for _, pair in ipairs({{store.crates, addon.Crates}, {store.writs, addon.Writs}}) do
+    for _, pair in ipairs({ { store.crates, addon.Crates }, { store.writs, addon.Writs } }) do
         for itemID, definition in pairs(pair[1]) do
             -- Recover known rows invalidated by the discovery-only release.
-            if not definition.unresolved or not pair[2][itemID] then pair[2][itemID] = definition end
+            if not definition.unresolved or not pair[2][itemID] then
+                pair[2][itemID] = definition
+            end
         end
     end
     store.crates, store.writs = addon.Crates, addon.Writs
-    for itemID, name in pairs(store.names) do Discovery.Observe(itemID, name) end
-    local english = locale == "enUS" or locale == "enGB"
-    for _, names in ipairs({addon.MaterialNames, addon.WritMaterialNames}) do
-        for itemID, name in pairs(names) do Discovery.Observe(itemID, english and name or nil) end
+    for itemID, name in pairs(store.names) do
+        Discovery.Observe(itemID, name)
     end
-    for _, definitions in ipairs({addon.Crates, addon.Writs}) do
+    local english = locale == "enUS" or locale == "enGB"
+    for _, names in ipairs({ addon.MaterialNames, addon.WritMaterialNames }) do
+        for itemID, name in pairs(names) do
+            Discovery.Observe(itemID, english and name or nil)
+        end
+    end
+    for _, definitions in ipairs({ addon.Crates, addon.Writs }) do
         for itemID, definition in pairs(definitions) do
             Discovery.Observe(itemID, english and definition.name or nil)
         end
@@ -274,12 +337,23 @@ function Discovery.Install()
     Discovery.Bags()
     local frame = CreateFrame("Frame")
     Discovery.frame = frame
-    if retryRequested then wake() end
-    for _, event in ipairs({"ITEM_DATA_LOAD_RESULT", "TOOLTIP_DATA_UPDATE", "BAG_UPDATE_DELAYED",
-        "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED", "AUCTION_HOUSE_BROWSE_RESULTS_ADDED"}) do frame:RegisterEvent(event) end
+    if retryRequested then
+        wake()
+    end
+    for _, event in ipairs({
+        "ITEM_DATA_LOAD_RESULT",
+        "TOOLTIP_DATA_UPDATE",
+        "BAG_UPDATE_DELAYED",
+        "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED",
+        "AUCTION_HOUSE_BROWSE_RESULTS_ADDED",
+    }) do
+        frame:RegisterEvent(event)
+    end
     frame:SetScript("OnEvent", function(_, event, itemID, success)
         if event == "ITEM_DATA_LOAD_RESULT" then
-            if not success then return end
+            if not success then
+                return
+            end
             local changed = Discovery.Observe(itemID)
             if Discovery.candidates[itemID] then
                 enqueue(itemID)
@@ -287,10 +361,14 @@ function Discovery.Install()
                 Discovery.Retry()
             end
         elseif event == "TOOLTIP_DATA_UPDATE" then
-            if issecretvalue and issecretvalue(itemID) then return end
+            if issecretvalue and issecretvalue(itemID) then
+                return
+            end
             -- This event carries a tooltip instance ID, not an item ID.
             local candidate = tooltipItems[itemID]
-            if not candidate or reading[candidate] then return end
+            if not candidate or reading[candidate] then
+                return
+            end
             Discovery.pending[candidate] = true
             enqueue(candidate)
         elseif event == "BAG_UPDATE_DELAYED" then
@@ -298,7 +376,9 @@ function Discovery.Install()
         elseif event == "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED" or event == "AUCTION_HOUSE_BROWSE_RESULTS_ADDED" then
             if C_AuctionHouse and C_AuctionHouse.GetBrowseResults then
                 for _, row in ipairs(C_AuctionHouse.GetBrowseResults() or {}) do
-                    if row.itemKey then Discovery.Observe(row.itemKey.itemID) end
+                    if row.itemKey then
+                        Discovery.Observe(row.itemKey.itemID)
+                    end
                 end
             end
             Discovery.Retry()

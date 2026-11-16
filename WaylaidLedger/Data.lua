@@ -349,4 +349,6 @@ addon.MaterialNames = {
     [18631] = "Truesilver Transformer",
 }
 
-for _, definition in pairs(addon.Crates) do definition.fallback = true end
+for _, definition in pairs(addon.Crates) do
+    definition.fallback = true
+end

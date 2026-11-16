@@ -342,13 +342,33 @@ integration are separate. LibStub (public domain) and LibAHTab 1.0 minor 5
 (MIT, plusmouse) are vendored unchanged, with licenses, to share the AH tab row.
 See [third-party notices](docs/THIRD_PARTY.md).
 
-Requirements for the developer tests: Python 3.10+ and `lupa==2.8`.
+Requirements: Python 3.10+, Lua 5.1/LuaRocks, Luacheck 1.2.0, and
+[StyLua 2.6.0](https://github.com/JohnnyMorganz/StyLua/releases/tag/v2.6.0).
+The Python dependencies include Lupa (Lua 5.1 tests) and Ruff (Python lint/format).
 
 ```sh
 python3 -m pip install -r requirements-dev.txt
+luarocks --lua-version=5.1 install luacheck 1.2.0-1
+luacheck WaylaidLedger tests
+stylua --check WaylaidLedger tests
+python3 -m ruff check .
+python3 -m ruff format --check .
 python3 tests/run.py
 python3 tools/package.py
 ```
+
+To apply formatting locally:
+
+```sh
+stylua --verify WaylaidLedger tests
+python3 -m ruff check --fix .
+python3 -m ruff format .
+```
+
+Luacheck checks Lua 5.1 globals, unused variables, and suspicious code; `.luacheckrc`
+lists the WoW APIs and test mocks explicitly. StyLua uses four-space indentation
+and a 120-column target. Vendored `WaylaidLedger/Libs` files are excluded from Lua
+linting and formatting.
 
 The test suite uses a real Lua **5.1** interpreter through Lupa. It covers price
 depth, indivisible auctions, randomized exhaustive cross-checks, stale/unknown
@@ -367,6 +387,7 @@ claim to run either entire addon or the live WoW client. The full upstream Aucti
 separately licensed shared tab libraries are bundled.
 
 Complete runtime descriptions update the bundled fallback requirements.
-CI runs the Lua suite and uploads the clean install ZIP as the
+CI requires Lua/Python lint and formatting checks before running the Lua suite
+and uploading the clean install ZIP as the
 **WaylaidLedger-install** artifact. `python3 tools/package.py` builds the same
 single-folder archive locally. See [docs/INGAME_DATA.md](docs/INGAME_DATA.md).
