@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.6
+
+- Show the installed addon version beside the title on the settings page.
+
 ## 0.9.5
 
 - Show the crate icon beside Waylaid Ledger in the AddOns list.
