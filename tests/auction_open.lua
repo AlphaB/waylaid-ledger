@@ -13,7 +13,6 @@ local function fixture(action)
         scannerNow = addon.scanner.runtime.now,
     }
     addon:StopScan()
-    addon.UI.frame:Hide()
     addon.db.source, addon.db.profile = "own", "default"
     addon.db.scanOnOpen = true
     addon.db.tracking = { enabled = false, autoScan = false, bank = false, alts = false }
@@ -56,8 +55,8 @@ test("auction-open scanning starts all 96 crate materials with no visible panel 
         equal(#addon.scanner.queue, 96)
         equal(addon.scanOnOpen, true)
         equal(addon.scanAutomatic, true)
-        addon.UI.frame:Show()
-        addon.UI.frame:Hide()
+        addon.UI.ToggleSettings()
+        HideUIPanel(SettingsPanel)
         equal(addon.scanner.active, true)
         addon:StopScan()
         equal(addon.scanner.active, false)

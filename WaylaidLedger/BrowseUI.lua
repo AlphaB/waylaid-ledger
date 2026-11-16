@@ -112,7 +112,7 @@ end
 function Browse.Layout(view)
     local width = math.max(500, view.host:GetWidth() - 50)
     local column = math.min(135, width * 0.19)
-    view.summary:SetWidth(math.max(40, view.host:GetWidth() - 570))
+    view.summary:SetWidth(math.max(40, view.host:GetWidth() - 470))
     for index, header in ipairs(view.headers) do
         header:ClearAllPoints()
         header:SetPoint("TOPLEFT", view.inset, "TOPLEFT", index == 1 and 4 or (width - (5 - index) * column + 4), -3)
@@ -122,6 +122,43 @@ function Browse.Layout(view)
     view.scroll:ForEachFrame(function(row)
         layoutRow(row, width)
     end)
+end
+
+function Browse.ScanStatus()
+    local scanner = addon.scanner
+    local job = addon.BulkScan.engine and addon.BulkScan.engine.job
+    if job then
+        if job.received and job.count > 0 then
+            return string.format(L["Auctions %d/%d"], job.index, job.count), true
+        end
+        if job.received then
+            return L["Finishing full scan"], true
+        end
+        return job.own and L["Full scan: waiting"] or L["Shared scan: waiting"], true
+    end
+    if scanner.active then
+        local count = #(scanner.queue or {})
+        if count > 0 and not scanner.bulkMode then
+            return string.format(L["Items %d/%d"], math.min(scanner.index or 1, count), count), true
+        end
+        return L["Full scan: waiting"], true
+    end
+end
+
+function Browse.UpdateStatus(view)
+    local status, busy = Browse.ScanStatus()
+    view.summary:SetText(
+        status or string.format(L["%d priced / %d items"], view.priced or 0, #(view.visibleEntries or {}))
+    )
+    addon.Localization.ButtonText(view.refreshButton, busy and L["Stop"] or L["Refresh"])
+end
+
+function Browse.UpdateScanStatus()
+    for _, view in pairs(Browse.views) do
+        if view.host:IsVisible() then
+            Browse.UpdateStatus(view)
+        end
+    end
 end
 
 function Browse.Render(view, resetFocus)
@@ -143,18 +180,8 @@ function Browse.Render(view, resetFocus)
     end
     view.visibleEntries = visible
     view.scroll:SetDataProvider(CreateDataProvider(visible), true)
-    local scanner = addon.scanner
-    view.summary:SetText(
-        scanner.active and string.format(L["Scanning %d/%d"], scanner.index, #scanner.queue)
-            or string.format(L["%d priced / %d items"], priced, #visible)
-    )
-    addon.Localization.ButtonText(view.refreshButton, scanner.active and L["Stop"] or L["Refresh"])
-    if view.scanButton then
-        view.scanButton:SetEnabled(scanner.open and not scanner.active)
-    end
-    if view.stopButton then
-        view.stopButton:SetEnabled(scanner.active or addon.autoDue ~= nil)
-    end
+    view.priced = priced
+    Browse.UpdateStatus(view)
     view.empty:SetShown(#visible == 0)
     Browse.Layout(view)
     addon.Navigation.RefreshView(view, previous)
@@ -202,7 +229,8 @@ function Browse.Create(host, kind)
     refresh:SetPoint("TOPRIGHT", -100, -8)
     addon.Localization.ButtonText(refresh, L["Refresh"])
     refresh:SetScript("OnClick", function()
-        if addon.scanner.active then
+        local _, busy = Browse.ScanStatus()
+        if busy then
             addon:StopScan()
         else
             addon:RefreshList(view)
@@ -213,26 +241,27 @@ function Browse.Create(host, kind)
             return
         end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:AddLine(L["Refresh list"], 1, 0.82, 0)
-        GameTooltip:AddLine(
-            L["Refresh prices for this list. Uses a full AH snapshot when supported; otherwise scans its items."],
-            1,
-            1,
-            1,
-            true
-        )
-        GameTooltip:AddLine(
-            addon.BulkScan.engine and L["Full AH scans wait for server readiness; saved prices remain available."]
-                or (
-                    addon.db.refreshAuctionator
-                        and L["Then open a limited Auctionator Shopping search when available."]
-                    or L["Own scanner only. Auctionator follow-up is configurable in Settings."]
-                ),
-            0.7,
-            0.7,
-            0.7,
-            true
-        )
+        local _, busy = Browse.ScanStatus()
+        GameTooltip:AddLine(busy and L["Stop scan"] or L["Refresh prices"], 1, 0.82, 0)
+        if busy then
+            GameTooltip:AddLine(
+                L["Stop Waylaid's scan or snapshot processing; keep saved prices. Other addons' scans continue."],
+                1,
+                1,
+                1,
+                true
+            )
+        elseif addon.BulkScan.Supported(addon.scanner.api) then
+            GameTooltip:AddLine(
+                L["Request one full auction-house snapshot to update both lists. The search filter only changes the displayed rows."],
+                1,
+                1,
+                1,
+                true
+            )
+        else
+            GameTooltip:AddLine(L["Scan purchases and delivery goods for the filtered list."], 1, 1, 1, true)
+        end
         GameTooltip:Show()
     end)
     refresh:SetScript("OnLeave", function()
@@ -241,22 +270,6 @@ function Browse.Create(host, kind)
         end
     end)
     view.refreshButton = refresh
-    local scan = CreateFrame("Button", nil, host, "UIPanelButtonTemplate")
-    scan:SetSize(90, 22)
-    scan:SetPoint("TOPRIGHT", -185, -8)
-    addon.Localization.ButtonText(scan, L["Scan prices"])
-    scan:SetScript("OnClick", function()
-        addon:StartBrowseScan(kind)
-    end)
-    view.scanButton = scan
-    local stop = CreateFrame("Button", nil, host, "UIPanelButtonTemplate")
-    stop:SetSize(55, 22)
-    stop:SetPoint("TOPRIGHT", -285, -8)
-    addon.Localization.ButtonText(stop, L["Stop"])
-    stop:SetScript("OnClick", function()
-        addon:StopScan()
-    end)
-    view.stopButton = stop
     local settings = CreateFrame("Button", nil, host, "UIPanelButtonTemplate")
     settings:SetSize(75, 22)
     settings:SetPoint("TOPRIGHT", -15, -8)

@@ -20,7 +20,7 @@
   after 15s. The total per-item deadline is 90s, including throttle/page waits.
 - `Tooltip.lua`: modern item-tooltip post-processing, duplicate suppression,
   refreshes after scan completion, and a legacy hook fallback.
-- `UI.lua`: scan controls, registered settings and the auction tab host.
+- `UI.lua`: registered settings and the auction tab host; legacy controls redirect to settings.
 - `NativeShopping.lua`: ID-based basket and Blizzard buy-screen navigation.
 - `Navigation.lua`: native Forever SmartNavigation/focus integration.
 - `Core.lua`: startup, persisted market caches, commands, API hooks, event routing.

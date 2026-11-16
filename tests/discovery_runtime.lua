@@ -132,13 +132,20 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         equal(savedWrit.total, 420)
         equal(requests, 0)
         host.scripts.OnEvent(host, "AUCTION_HOUSE_SHOW")
-        a.UI.frame:Show()
+        equal(a.UI.frame, nil)
+        local listHost = CreateFrame("Frame", nil, UIParent)
+        listHost:SetSize(1000, 550)
+        local view = a.BrowseUI.Create(listHost, "crates")
+        a.BrowseUI.Refresh(view)
         a.autoReason, a.autoPaused, a.lastExternalAt = "panel", false, nil
         a:StartScan("all")
         equal(requests, 1)
         equal(a.scanner.bulkMode, true)
+        equal(view.summary.text, "Full scan: waiting")
+        equal(view.refreshButton.text, "Stop")
         local frame = a.BulkScan.engine.frame
         frame.scripts.OnEvent(frame, "REPLICATE_ITEM_LIST_UPDATE")
+        equal(view.summary.text, "Auctions 0/4")
         while frame.scripts.OnUpdate do
             frame.scripts.OnUpdate()
         end
@@ -146,6 +153,7 @@ test("bundled install discovers additional crates and writs using one bulk scan"
             a.Discovery.frame.scripts.OnUpdate()
         end
         equal(a.scanner.active, false)
+        equal(view.refreshButton.text, "Refresh")
         local crate = a.Shopping.Entry("crates", 21)
         equal(crate.purchase, 100)
         equal(crate.delivery, 85)
@@ -176,6 +184,8 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         C_AuctionHouse.ReplicateItems()
         equal(a.scanner.active, false)
         equal(a.BulkScan.engine.job.own, false)
+        equal(view.summary.text, "Shared scan: waiting")
+        equal(view.refreshButton.text, "Stop")
         frame.scripts.OnEvent(frame, "REPLICATE_ITEM_LIST_UPDATE")
         while frame.scripts.OnUpdate do
             frame.scripts.OnUpdate()
@@ -183,6 +193,12 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         while a.Discovery.frame.scripts.OnUpdate do
             a.Discovery.frame.scripts.OnUpdate()
         end
+        equal(view.refreshButton.text, "Refresh")
+        C_AuctionHouse.ReplicateItems()
+        equal(view.refreshButton.text, "Stop")
+        view.refreshButton.scripts.OnClick()
+        equal(a.BulkScan.engine.job, nil)
+        equal(view.refreshButton.text, "Refresh")
         a:StartScan("deep")
         equal(#a.scanner.queue, 428)
         equal(a.scanner.bulkMode, false)

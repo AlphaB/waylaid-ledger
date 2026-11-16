@@ -14,7 +14,6 @@ local function fixture(action)
         external = addon.lastExternalAt,
     }
     addon:StopScan()
-    addon.UI.frame:Hide()
     addon.db.source, addon.db.writSource, addon.db.profile = "auto", "auto", "default"
     addon.db.refreshAuctionator = true
     addon.BrowseUI.views = {}
@@ -101,7 +100,7 @@ test("expanded catalogs produce 300 writ, 126 crate and 424 deduplicated complet
     equal(#ids, 3)
 end)
 test("own writ estimates use full depth and include the actual outlay for a writ stack", function()
-    fixture(function(_f, market)
+    fixture(function(_, market)
         addon.db.writSource = "own"
         Auctionator = nil
         market.items[8069] = {
@@ -220,7 +219,7 @@ test("TSM exports exactly the filtered scope and never attempts to start TSM", f
     end)
 end)
 test("manual scope commands support contracts in writs, crates and the combined catalog", function()
-    fixture(function(_f)
+    fixture(function()
         addon:Command("scan writs")
         equal(#addon.scanner.queue, 300)
         addon:StopScan()

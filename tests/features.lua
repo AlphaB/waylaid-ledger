@@ -13,6 +13,7 @@ local function inventoryFixture(fn)
         source = addon.db.source,
         now = GetTime,
         profile = addon.db.profile,
+        visible = addon.UI.IsScanPanelVisible,
     }
     local f = { guid = "Player-Main", name = "Main", bags = {}, capacities = {}, charTabs = { 6 }, sharedTabs = { 15 } }
     UnitGUID = function()
@@ -50,17 +51,20 @@ local function inventoryFixture(fn)
     addon.db.tracking = { enabled = true, bank = true, alts = true, autoScan = true }
     addon.db.profile = "default"
     Inventory.bankOpen = false
+    addon.UI.IsScanPanelVisible = function()
+        return true
+    end
     local ok, err = pcall(fn, f)
     addon.scanner:Stop()
     addon.autoDue = nil
     addon.autoPaused = false
     addon.scanAutomatic = false
-    addon.UI.frame:Hide()
     Inventory.bankOpen = false
     UnitGUID, UnitName, C_Container, C_Bank, Enum.BankType = old.guid, old.name, old.container, old.bank, old.enums
     addon.db.inventory, addon.db.tracking, addon.db.source, addon.db.profile =
         old.inventory, old.tracking, old.source, old.profile
     GetTime = old.now
+    addon.UI.IsScanPanelVisible = old.visible
     addon:UpdateScheduler()
     assert(ok, err)
 end
@@ -145,7 +149,6 @@ test("automatic refresh scans only missing or failed tracked materials", functio
         f.bags[0] = { { id = 248683, count = 1 } }
         Inventory.CaptureBags()
         addon.db.source = "own"
-        addon.UI.frame:Show()
         addon.scanner:SetOpen(true)
         addon.autoPaused = false
         addon.lastExternalAt = nil
@@ -173,7 +176,6 @@ test("auto refresh is opt-out and never queries away from AH or in forced provid
     inventoryFixture(function(f)
         f.bags[0] = { { id = 248683, count = 1 } }
         Inventory.CaptureBags()
-        addon.UI.frame:Show()
         addon.scanner:SetOpen(false)
         addon:RequestAutoScan()
         equal(addon.autoDue, nil)
@@ -286,11 +288,10 @@ test("one outer auction tab contains native internal category tabs without chang
         equal(addon.UI.browserTabs.writs.text, "Craftsman's Writs")
         equal(lib:DoesIDExist("WaylaidLedger"), true)
         equal(lib:DoesIDExist("WaylaidLedgerWrits"), false)
-        equal(addon.UI.panel:GetParent(), addon.UI.frame)
         addon.UI.Toggle()
         equal(addon.UI.auctionHosts.crates:GetParent(), addon.UI.auctionHost)
         equal(addon.UI.auctionHost:IsShown(), true)
-        equal(addon.UI.frame:IsShown(), false)
+        equal(addon.UI.frame, nil)
         local writHost = addon.UI.auctionHosts.writs
         addon.UI.browserTabs.writs.scripts.OnClick()
         equal(writHost:IsShown(), true)
@@ -307,7 +308,7 @@ test("one outer auction tab contains native internal category tabs without chang
         equal(writView.search:GetText(), "Crafted Solid Shot")
         equal(#writView.visibleEntries, 1)
         equal(#lib.internalState.Tabs, 1)
-        addon.UI.OpenControls()
+        addon.UI.SelectBrowserTab("crates")
         addon.scanAutomatic = true
         addon.scanMarket = addon:GetMarket()
         addon.scanner:Start({ 2770 })
@@ -330,7 +331,7 @@ test("one outer auction tab contains native internal category tabs without chang
         addon.UI.Toggle()
         equal(addon.UI.auctionHost:IsShown(), false)
         addon.UI.AuctionClosed()
-        equal(addon.UI.panel:GetParent(), addon.UI.frame)
+        equal(addon.UI.auctionHost:IsShown(), false)
     end)
     lib.internalState = oldState
     AuctionHouseFrame, AuctionHouseFrameDisplayMode = oldAH, oldMode
@@ -367,6 +368,11 @@ test("minimap visibility, settings click, dragging and saved angle work", functi
     equal(button.point[5], 0)
     button.scripts.OnDragStop(button)
     equal(button.scripts.OnUpdate, nil)
+    addon.scanner:SetOpen(false)
+    button.scripts.OnClick(button, "LeftButton")
+    assert(addon.UI.settings:IsShown())
+    equal(addon.UI.frame, nil)
+    addon.UI.settings:Hide()
     button.scripts.OnClick(button, "RightButton")
     assert(addon.UI.settings:IsShown())
     addon.UI.settings:Hide()

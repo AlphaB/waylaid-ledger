@@ -21,7 +21,7 @@ local function reset()
     addon.db.source, addon.db.tsmKey, addon.db.profile = "auto", "DBMinBuyout", "default"
     local market = addon:GetMarket()
     market.items, market.failures = {}, {}
-    addon.lastCrateID, addon.lastContractID, addon.UI.selectedCrateID, addon.UI.optionIndex = nil, nil, nil, nil
+    addon.lastCrateID, addon.lastContractID = nil, nil
     addon.scanner:SetOpen(true)
 end
 
@@ -33,7 +33,7 @@ local function fakeAuctionator(prices)
         state.reads = state.reads + 1
         return prices[id]
     end
-    api.GetAuctionAgeByItemID = function(caller, _)
+    api.GetAuctionAgeByItemID = function(caller)
         equal(caller, "WaylaidLedger")
         return state.days or 0
     end
@@ -113,7 +113,7 @@ test("cached estimates remain eligible; all tied lowest costs highlight amber", 
     equal(rows[3].bestEstimate, true)
 end)
 test("resolved options highlight the single lowest known cost across sources", function()
-    local rows, known = resolve({ [1] = fresh({ { quantity = 20, unitPrice = 10 } }) }, "auto", function(source, _)
+    local rows, known = resolve({ [1] = fresh({ { quantity = 20, unitPrice = 10 } }) }, "auto", function(source)
         return estimate(source, 1, 0)
     end)
     equal(known, false)
@@ -490,23 +490,13 @@ test("estimated tooltip winners use green and plain prices", function()
         assert(not line[1]:match("^Cheapest:"))
     end
 end)
-test("UI selects the lowest known cost, cycles choices and exposes source controls", function()
+test("legacy shop command defaults to the current lowest known option", function()
     reset()
-    fakeAuctionator({ [2770] = 1, [2771] = 1 })
-    addon:GetMarket().items[2771] = fresh({ { quantity = 20, unitPrice = 10 } })
+    local calls = fakeAuctionator({ [2770] = 10, [2771] = 1 })
     addon.lastCrateID = 248683
-    addon.UI.Update()
-    equal(addon.UI.optionIndex, 1)
-    addon.UI.option.scripts.OnClick()
-    equal(addon.UI.optionIndex, 2)
-    addon.UI.source.scripts.OnClick()
-    equal(addon.db.source, "auctionator")
-    addon.UI.source.scripts.OnClick()
-    equal(addon.db.source, "tsm")
-    addon.UI.source.scripts.OnClick()
-    equal(addon.db.source, "own")
-    addon.UI.source.scripts.OnClick()
-    equal(addon.db.source, "auto")
+    addon.scanner:SetOpen(true)
+    equal(addon:Shop(false), true)
+    assert(calls.searches[1][1].searchString:find("Tin", 1, true))
 end)
 test("diagnostics include provider policy, per-row provenance, and API errors", function()
     reset()

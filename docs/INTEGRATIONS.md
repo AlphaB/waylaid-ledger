@@ -212,8 +212,8 @@ All features continue using the same SavedVariables keys.
 
 ## Refresh and scrollbar rail (v0.6.1)
 
-Refresh invalidates only the adapter's 15-second memory cache and rebuilds the
-active list. Provider public APIs return their existing saved price data; own
+In v0.6.1, Refresh invalidated only the adapter's 15-second memory cache and
+rebuilt the active list. This was superseded by the scan paths below. Provider public APIs return their existing saved price data; own
 scan snapshots are retained. It recalculates/resorts baskets without starting
 a scan or issuing an auction query. A production-button regression check verifies
 newly saved provider amounts, changed ordering, retained scroll policy, unchanged
@@ -231,8 +231,8 @@ contract purchases and all delivery alternatives/objectives. A completed job
 can hand its frozen ID/quantity scope to `MultiSearchAdvanced` after the own
 scanner has stopped. This opens Auctionator Shopping, with no claim of silent
 or full-house scanning. Follow-up defaults on when supported and can be
-disabled in Settings. Stops, closure, profile changes or external queries cancel
-pending work. Names and capability checks precede the provider handoff.
+disabled with `/wll auctionatorfollowup off` on the legacy per-item path.
+Stops, closure, profile changes or external queries cancel pending work. Names and capability checks precede the provider handoff.
 
 TSM 4.15.7's released `App/API.lua` contains no public scan-start API. Targeted
 Shopping scans are manual group operations. We export the supported legacy
@@ -245,3 +245,22 @@ Own writ deliveries now use quantity-aware snapshots and support an explicit
 Own source. Purchase and delivery share their category's source preference,
 so Auto/Own can show complete self-scanned totals, including custom profiles.
 Forced provider modes still use only their selected databases.
+
+## UI simplification and full-scan status (v0.7.2)
+
+On Forever, replication-based Refresh supersedes the v0.7.0 per-item Refresh
+path above: it requests a full AH snapshot, with no Auctionator follow-up. The
+settings page no longer exposes that inactive switch or the advanced TSM export
+button. Their slash commands remain available. The legacy standalone controls
+window is removed; `/wll controls` opens official settings.
+
+Price choices use Forever's native `DropdownButton` / `WowStyle1DropdownTemplate`
+and `SetupMenu` radio descriptions. Primary client sources:
+[DropdownButton.lua](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_Menu/DropdownButton.lua),
+[Classic/MenuTemplates.xml](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_Menu/Classic/MenuTemplates.xml).
+
+List status reads the replication job's waiting state and actual auction count,
+including passive shared snapshots received from Auctionator. It does not use
+the empty per-item scanner queue. Batches only update status text and the Stop
+button; completed scans rebuild prices and list ordering. Stop cancels our
+snapshot observer without cancelling the other addon's scan.

@@ -28,6 +28,8 @@ localization_keys = set()
 for path in (root / "WaylaidLedger").glob("*.lua"):
     for literal in re.findall(r'\bL\[\s*("(?:[^"\\]|\\.)*")\s*\]', path.read_text()):
         localization_keys.add(json.loads(literal))
+for literal in re.findall(r'\[("(?:[^"\\]|\\.)*")\]\s*=', (root / "WaylaidLedger/Locales.lua").read_text()):
+    localization_keys.add(json.loads(literal))
 lua.globals().LOCALIZATION_KEYS = lua.table_from(sorted(localization_keys))
 try:
     if args.auctionator:

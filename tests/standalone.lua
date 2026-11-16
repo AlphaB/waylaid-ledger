@@ -29,7 +29,6 @@ local function fixture(action)
         read = addon.Providers.Read,
     }
     addon:StopScan()
-    addon.UI.frame:Hide()
     Auctionator, TSM_API = nil, nil
     addon.db.source, addon.db.writSource, addon.db.profile = "auto", "auto", "default"
     addon.Providers.Invalidate()
@@ -360,7 +359,7 @@ end)
 test(
     "full standalone writ scan populates ranked baskets through production events and shares the rolling budget",
     function()
-        fixture(function(f, _)
+        fixture(function(f)
             local api = addon.scanner.api
             api.HasFullCommoditySearchResults = function()
                 return true

@@ -1,6 +1,6 @@
 local addonName, addon = ...
 local L = addon.L
-addon.version = "0.7.1"
+addon.version = "0.7.2"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -317,7 +317,10 @@ function addon:Shop(allOptions, optionIndex)
         self:Print(L["Open the auction house to shop."])
         return false
     end
-    optionIndex = optionIndex or self.UI.optionIndex or 1
+    if not optionIndex then
+        local _, best = self.Pricing.LowestKnown(self:GetRows(self.lastCrateID))
+        optionIndex = best or 1
+    end
     if not allOptions and (optionIndex ~= math.floor(optionIndex) or not crate.options[optionIndex]) then
         self:Print(string.format(L["Choose an option between 1 and %d."], #crate.options))
         return false
@@ -703,9 +706,7 @@ function addon:Command(text)
         else
             self:Shop(false, tonumber(rest))
         end
-    elseif command == "controls" then
-        self.UI.OpenControls()
-    elseif command == "settings" then
+    elseif command == "settings" or command == "controls" then
         self.UI.ToggleSettings()
     elseif command == "inventory" then
         self.UI.ShowReport(self.Inventory.Report())
@@ -758,7 +759,7 @@ function addon:Command(text)
         end
     else
         self:Print(
-            "/wll - window | scan bags/hovered/crates/writs/all | source auto/auctionator/tsm/own | tsmkey DBMinBuyout/DBMarket"
+            "/wll - auction list/settings | scan bags/hovered/crates/writs/all | source auto/auctionator/tsm/own | tsmkey DBMinBuyout/DBMarket"
         )
         self:Print("search | shop [option number] | stop | report | debug | inspect [item ID] | market <name> | clear")
         self:Print(
@@ -855,7 +856,6 @@ local function initialize()
         end,
     })
     addon.Navigation.Install()
-    addon.UI.Create()
     addon.UI.RegisterSettings()
     addon.MinimapButton.Create()
     addon.Inventory.CaptureBags()
@@ -920,7 +920,7 @@ local function initialize()
     end
     addon:Log("Loaded on interface " .. tostring(select(4, GetBuildInfo())))
     addon.initialized = true
-    addon:Print(L["Loaded. /wll opens scans, price sources, and shopping."])
+    addon:Print(L["Loaded. /wll opens the auction list at the AH, or settings elsewhere."])
 end
 
 frame:RegisterEvent("ADDON_LOADED")
