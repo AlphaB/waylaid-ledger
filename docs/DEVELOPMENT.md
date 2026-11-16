@@ -2,8 +2,8 @@
 
 ## Runtime structure
 
-- `Data.lua` / `WritData.lua`: empty runtime catalog tables. `Discovery.lua` learns
-  requirements and names from the client; see [INGAME_DATA.md](INGAME_DATA.md).
+- `Data.lua` / `WritData.lua`: bundled fallback catalog tables. `Discovery.lua` updates
+  requirements and names from complete client descriptions; see [INGAME_DATA.md](INGAME_DATA.md).
   Controls and explanatory strings are currently English.
 - `Catalog.lua`: crate/material selection and localized-name lookup.
 - `Pricing.lua`: depth-aware commodity quotes and 0/1 subset optimization for
@@ -97,11 +97,11 @@ with purchase, delivery and total columns. Only visible lists are rebuilt on
 price updates; filtering reuses current entries, and item hover updates only
 the standalone controls. There is no background polling. `Minimap.lua` uses native frames, with an update callback only during drag.
 
-`Data.lua` and `WritData.lua` now initialize empty runtime tables. Requirements
-are learned from client descriptions and persisted by `Discovery.lua`.
+`Data.lua` and `WritData.lua` initialize the 30-crate / 150-writ fallback.
+Complete client descriptions take precedence and are persisted by `Discovery.lua`.
 `BulkScan.lua` uses one public replication request to index item names and
 minimum unit prices. See [INGAME_DATA.md](INGAME_DATA.md) for the current data,
-state, cooldown, and verification contracts. Older scan scopes below are historical.
+state, refresh, and verification contracts. Older scan scopes below are historical.
 
 ## Complete acquisition baskets (v0.4.0)
 

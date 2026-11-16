@@ -291,7 +291,7 @@ end)
 test("diagnostics include provider policy, per-row provenance, and API errors",function()
     reset();fakeAuctionator({[2770]=5});addon.lastCrateID=248683
     local report=addon:Report()
-    assert(report:match("0.7.0"));assert(report:match("Price policy: auto"))
+    assert(report:find(addon.version,1,true));assert(report:match("Price policy: auto"))
     assert(report:match("source=auctionator estimated=true ageDays=0"))
     Providers.errors.tsm="not ready";report=addon:Report();assert(report:match("TSM last error: not ready"))
 end)
