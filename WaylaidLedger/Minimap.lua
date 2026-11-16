@@ -1,4 +1,5 @@
 local _, addon = ...
+local L = addon.L
 addon.MinimapButton = {}
 local Button = addon.MinimapButton
 
@@ -41,9 +42,9 @@ function Button.Create()
         if not GameTooltip then return end
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:AddLine("Waylaid Ledger", 1, 0.82, 0)
-        GameTooltip:AddLine(addon.scanner.open and "Left-click: auction list" or "Left-click: settings", 1, 1, 1)
-        GameTooltip:AddLine("Right-click: settings", 1, 1, 1)
-        GameTooltip:AddLine("Drag to move around the minimap", 0.7, 0.7, 0.7)
+        GameTooltip:AddLine(addon.scanner.open and L["Left-click: auction list"] or L["Left-click: settings"], 1, 1, 1)
+        GameTooltip:AddLine(L["Right-click: settings"], 1, 1, 1)
+        GameTooltip:AddLine(L["Drag to move around the minimap"], 0.7, 0.7, 0.7)
         GameTooltip:Show()
     end)
     frame:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)

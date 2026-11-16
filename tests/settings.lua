@@ -38,9 +38,9 @@ end)
 test("tracking dependencies disable without losing saved preferences",function()
     local old=addon.db.tracking.enabled
     addon:SetFeature("tracking",false)
-    for _,feature in ipairs({"banks","alts","autoscan"}) do equal(addon.UI.settingsChecks[feature].enabled,false) end
+    for _,feature in ipairs({"banks","alts"}) do equal(addon.UI.settingsChecks[feature].enabled,false) end
     addon:SetFeature("tracking",true)
-    for _,feature in ipairs({"banks","alts","autoscan"}) do equal(addon.UI.settingsChecks[feature].enabled,true) end
+    for _,feature in ipairs({"banks","alts"}) do equal(addon.UI.settingsChecks[feature].enabled,true) end
     addon:SetFeature("tracking",old)
 end)
 test("automatic scan controls reflect price-source dependencies without changing preferences",function()
@@ -48,7 +48,7 @@ test("automatic scan controls reflect price-source dependencies without changing
     local oldScan=addon.db.scanOnOpen
     addon:SetSource("auctionator");addon:SetWritSource("off")
     equal(addon.UI.settingsChecks.scanopen.enabled,false)
-    equal(addon.UI.settingsChecks.autoscan.enabled,false)
+    equal(addon.UI.settingsChecks.autoscan,nil)
     equal(addon.UI.settingsTSM.enabled,false)
     equal(addon.db.scanOnOpen,oldScan)
     addon:SetSource("own");equal(addon.UI.settingsChecks.scanopen.enabled,true)

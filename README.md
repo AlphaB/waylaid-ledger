@@ -24,7 +24,8 @@ Version **0.7.2** · Forever **1.60.1 / interface 16001** · No addon dependenci
 5. Visit an auctioneer and select **Waylaid**, then its internal **Craftsman's Writs** or
    **Waylaid Crates** tab. Each list shows
    its catalog in order of **purchase + delivery** cost. Click a row to open
-   Auctionator Shopping with one writ/crate and its complete delivery bundle.
+   Auctionator Shopping when available, or a built-in basket with one writ/crate
+   and its complete delivery bundle.
    The minimap button opens your last used list; right-click it for the official
    **Settings → AddOns → Waylaid Ledger** page.
 6. Hover a recognized Waylaid Crate in your bags, chat, or the auction house to
@@ -34,6 +35,27 @@ Version **0.7.2** · Forever **1.60.1 / interface 16001** · No addon dependenci
 **Full AH scan** uses one bulk request. Saved prices remain available after
 leaving the auction house and across reloads/logins. Auctionator and
 TradeSkillMaster are optional.
+
+## Languages and controls
+
+Controls, settings, price tooltips, shopping baskets and scan status messages
+follow all ten official client locales automatically: US/EU English, German,
+French, European/Latin American Spanish, Brazilian Portuguese, Russian, Korean
+and Traditional Chinese. Missing translations fall back to English. Slash-command
+keywords and saved setting values remain stable.
+
+Localized tooltip discovery recognizes contract names and supported delivery
+formats. Plain plural/declined names still need an exact match or an item link;
+bundled quantities remain available when a client description cannot be resolved.
+New unresolved items never become partial shopping bundles. See
+[discovery formats and limitations](docs/INGAME_DATA.md).
+
+Shopping prefers Auctionator when available. Otherwise, a built-in checklist
+opens Blizzard's item or commodity buying screen with the full requested quantity.
+Equipment searches include item variants. The game's normal confirmation handles
+purchases. Built-in Forever controller navigation supports the lists, controls
+and basket; see [integration notes](docs/INTEGRATIONS.md#current-behavior-070).
+Localized rendering and controller behavior still need a live-client check.
 
 ## Catalog and in-game discovery
 
@@ -110,11 +132,12 @@ Snapshots are restricted to the same region/realm/faction/project; shared-bank
 items are counted once. `/wll inventory` shows snapshot timestamps. Settings can
 clear remembered inventory without clearing prices.
 
-Automatic refresh runs only at the AH while the Waylaid Crates tab is visible, for
-missing, stale, or failed requirements of tracked crates. It never queries in a
-forced Auctionator/TSM mode. **Stop** pauses automatic refresh for that AH visit;
-manual scan or reopening the AH enables it again. Starting another auction search
-stops our queue. There are no idle polling timers or auction queries away from AH.
+With Auto or Own selected, opening a Waylaid list refreshes missing or stale
+prices for that category. This does not depend on inventory tracking. **Stop**
+pauses automatic refresh for the current AH visit; a manual refresh or reopening
+the AH enables it again. Starting another auction search stops our queue. There
+are no auction queries away from the AH. The old tracked-refresh checkbox has
+been removed because active-list scanning supersedes it.
 
 ### Scan when opening the auction house
 
@@ -190,7 +213,8 @@ Clicking a row opens Auctionator's **Shopping** tab with exact-name searches for
 **one writ/crate plus the required delivery goods**. A crate includes exactly
 one alternative, selected again using current prices at click time. This uses
 Auctionator's public advanced shopping API; update Auctionator if it is missing.
-TSM can supply prices, but Auctionator is required for this shopping handoff.
+Without Auctionator, rows open the built-in shopping basket and Blizzard buying
+screens. TSM can supply prices independently of either shopping path.
 The existing legacy shopping commands remain available on older compatible APIs.
 
 ## Craftsman's Writ estimates
@@ -203,8 +227,8 @@ price, crafting reagents, quest rewards, and owned inventory deductions.
 The writ catalog has **150 distinct delivery items**. Complete writ scans add
 150 writ tokens for **300 IDs**. Crates add 30 crate tokens to 96 goods for
 **126 IDs**. Two delivery items overlap, so the combined queue is **424**, not
-426. The shared 100-request rolling limit still applies; full scans can take
-several minutes. Filtering is the fastest way to refresh only relevant entries.
+426. The detailed per-item scanner retains its 100-request rolling limit. Full-house
+snapshots use one request; server readiness and restrictions still apply.
 
 The separate **Writ prices** dropdown offers **Auto / Own scans / Auctionator / TSM /
 Off**. Auto prefers fresh own scans, then usable Auctionator data, TSM, and older
@@ -273,7 +297,7 @@ Use `/wll scan deep` for detailed stock/stack checks across all catalogued items
 | `/wll banks on` | Include visited banks (`off` excludes them) |
 | `/wll alts on` | Include remembered alts (`off` excludes them) |
 | `/wll scanopen on` | Auto-scan missing/stale crate prices on AH open (`off` disables it) |
-| `/wll autoscan on` | Refresh tracked prices in the AH panel (`off` disables it) |
+| `/wll autoscan on` | Legacy tracked-refresh preference; active-list scanning is automatic in Auto/Own |
 | `/wll details on` | Always show tooltip details (`off` uses Shift) |
 | `/wll writsource auto` | Writ prices: auto, own, auctionator, tsm, or off |
 | `/wll scan all` | Scan all 424 unique catalogued items |
@@ -366,8 +390,8 @@ depth, indivisible auctions, randomized exhaustive cross-checks, stale/unknown
 results, pagination, throttling, retry timeouts, interruptions, owned-stock
 filtering, profile isolation, full bootstrap, tooltip text, provider priorities,
 source settings, API errors, price-age semantics, callbacks, and shopping handoff.
-The default suite has 151 tests. Three additional contract tests run the actual
-unmodified public API Lua from separately downloaded release ZIPs (154 total):
+The default suite has 195 tests. Three additional contract tests run the actual
+unmodified public API Lua from separately downloaded release ZIPs (198 total):
 
 ```sh
 python3 tests/run.py --auctionator /path/to/Auctionator-347.zip --tsm /path/to/TradeSkillMaster.zip

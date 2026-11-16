@@ -29,18 +29,34 @@ available on clients without replication support.
 ## Requirement learning
 
 Names are indexed from AH replication rows, bags, ordinary AH browse results,
-and item tooltips. The bundled English name index is also seeded on enUS/enGB;
-other locales request actual client names. Candidate names currently recognize English `Waylaid Crate:`
-and `Craftsman's Writ:` prefixes. Non-English discovery formats need live samples;
-unsupported descriptions remain unknown rather than receiving guessed quantities.
+and item tooltips. Candidate names recognize the localized crate and writ prefixes
+for every locale listed on the [official Battle.net product page](https://tw.shop.battle.net/en-us/product/world-of-warcraft-forever):
+`enUS`, `enGB`, `deDE`, `frFR`, `esES`, `esMX`, `ptBR`, `ruRU`, `koKR`, and `zhTW`.
+English fallback names are also accepted on these clients. The bundled English
+name index is seeded only on enUS/enGB; other locales request actual client names. Controls, settings,
+price tooltips, shopping baskets and scan status messages use the client language
+automatically. Both English variants use English wording; Spanish variants share
+control translations with their respective localized crate names. Missing
+translations and unsupported locales fall back to English. Slash-command keywords,
+saved setting values and diagnostic-report field names remain stable.
+
+Button text adapts to available width while retaining the client font, settings
+labels can wrap, and the basket reserves room for wrapped instructions. The native
+controller actions are unchanged. Localized layout and typography still need a
+live-client check; the automated UI tests use frame mocks.
 
 `C_TooltipInfo.GetItemByID` supplies descriptions. The parser accepts quantity/item
-bullet lists and explicit English Bring/Deliver/Require clauses. Crate Use
-descriptions support named colors, inline bullets and escaped line breaks. Hyperlinked item
-IDs are used when present; plain names must match exactly and unambiguously in
-the observed localized name index. Requirements are read after the whole AH name
+bullet lists and explicit delivery/require clauses in these locales. Unicode
+spaces, curly apostrophes, full-width colons, multiplication signs, supported
+quantity wrappers and Chinese quantity/name adjacency are normalized. Crate Use
+descriptions also support named colors, inline bullets and escaped line breaks.
+Hyperlinked item IDs are used when present; plain names must match exactly and unambiguously in
+the observed localized name index, ignoring letter case with explicit UTF-8
+handling. Accents are retained. Requirements are read after the whole AH name
 index is built, independently of auction row order. Missing item data retries on
 item-load/tooltip events, further observations, provider updates, and later scans.
+Shopping can reuse a saved observed name from the current locale/build while
+the client's item-name cache is loading.
 Retries are coalesced and deferred: each frame reads at most five descriptions,
 yielding sooner after two milliseconds. Unrelated tooltip instance updates and
 unchanged ordinary item loads do not retry the catalog. Candidate tooltip updates
@@ -57,6 +73,16 @@ cannot be shopped or assigned a zero-cost delivery total.
 Build/locale partitions prevent another client's parsed quantities from becoming
 an unchecked source. Parsed requirements are rechecked when their item is hovered
 or encountered in a later full scan.
+
+Localized prefix samples were checked against Forever item tooltips for
+[crate 248682](https://www.wowhead.com/forever/item=248682) and
+[writ 264050](https://www.wowhead.com/forever/item=264050) on 2026-11-16.
+Format support does not guarantee that every localized description can resolve:
+German, Portuguese, Latin American Spanish and Russian samples include plural or
+declined names that differ from the item's name. These require an authoritative
+item link; the parser does not guess an item ID from a grammatical stem. Writ
+descriptions that do not supply quantities retain a bundled fallback when available;
+new items remain unresolved. A partial parse never replaces a complete bundle.
 
 All bundled items appear immediately. Additional items need observation: the
 client does not provide an API that enumerates all future crates/writs. An item
@@ -89,6 +115,10 @@ paginated, with its existing 100-request/60.1-second budget and server readiness
 
 Lua 5.1 tests execute production modules, including fallback upgrades, exact name and
 hyperlink resolution, large quantities, ambiguity, late data and invalidation.
+The locale matrix checks candidate recognition, complete and partial bundles,
+Unicode case collisions, wrappers, hyperlinks and per-locale persistence for all
+ten variants. Delivery-clause examples are constructed syntax tests, not captured
+live-client descriptions. Localized plurals without links are tested as unresolved.
 The bulk test feeds 6,000 auctions in 24 batches using one replication request;
 this is a request-count/batching regression, not a measured live-server timing.
 Tests also cover passive reuse, minimum prices, fresh-shortage preservation,

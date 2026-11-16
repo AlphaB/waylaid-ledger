@@ -13,7 +13,7 @@ local function fixture(action)
     local f={now=0,wall=1000,rows={},calls=0,observed={},retries=0}
     local a={db={maxAge=1800,replication={oldRealm=1000}},GetMarket=function() return market end,
         Discovery={Observe=function(id,name) f.observed[id]=name end,Retry=function() f.retries=f.retries+1;return 0 end,Bags=function() end}}
-    for _,name in ipairs({"Scanner","BulkScan","Pricing"}) do assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/"..name..".lua"))("WaylaidLedger",a) end
+    for _,name in ipairs({"Localization","Locales","Scanner","BulkScan","Pricing"}) do assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/"..name..".lua"))("WaylaidLedger",a) end
     local api={IsThrottledMessageSystemReady=function() return true end,
         ReplicateItems=function() f.calls=f.calls+1 end,GetNumReplicateItems=function() return #f.rows end,
         GetReplicateItemInfo=function(index) return unpack(f.rows[index+1],1,18) end}

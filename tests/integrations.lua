@@ -207,10 +207,10 @@ test("source settings persist and explicit unavailable source stays unknown",fun
     -- Simulate reload using the same production modules and persisted table.
     local originalCallback,originalFrame,originalReport,originalSlash=TooltipDataProcessor.callback,WaylaidLedgerFrame,WaylaidLedgerReportFrame,SlashCmdList.WAYLAIDLEDGER
     local reloaded={}
-    for _,name in ipairs({"Data","WritData","Catalog","Inventory","Pricing","Providers","WritPricing","Shopping","Scanner","Tooltip","UI","BrowseUI","Minimap","Core"}) do
+    for _,name in ipairs({"Localization","Locales","Data","WritData","Catalog","Inventory","Pricing","Providers","WritPricing","Shopping","Scanner","Navigation","NativeShopping","Tooltip","UI","BrowseUI","Minimap","Core"}) do
         assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/"..name..".lua"))("WaylaidLedger",reloaded)
     end
-    for _,name in ipairs({"Discovery","BulkScan"}) do
+    for _,name in ipairs({"DiscoveryLocales","Discovery","BulkScan"}) do
         assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/"..name..".lua"))("WaylaidLedger",reloaded)
     end
     -- Core registers ADDON_LOADED on the newly created unnamed frame. Locate it

@@ -10,7 +10,10 @@
 - Show full/shared snapshot waiting states and auction-count progress instead of `1/0` from an empty item queue.
 - Keep Stop available for shared snapshot processing; refresh status without rebuilding list rows.
 - Correct Refresh's tooltip to describe the full-house snapshot; retain advanced slash commands.
-- 151 Lua 5.1 regression tests.
+- Preserve all ten supported client locales and native shopping/controller navigation.
+- Remove duplicate Scan/Stop buttons and the superseded tracked-refresh checkbox.
+- Record the standing PR → green CI → merge → GitHub release workflow in AGENTS.md.
+- 195 Lua 5.1 regression tests.
 
 ## 0.7.1
 
@@ -21,6 +24,19 @@
 - Keep server readiness, single-flight scanning, cancellation and timeout checks.
 - 146 Lua 5.1 regression tests.
 
+- Preserve equipment variant queries, complete contract/inventory scopes, scoped refresh and TSM export.
+- Cover native equipment handoff with the unmodified Forever query contract.
+
+- Translate controls, settings, tooltips, baskets and scan status into every official client language.
+- Automatically select the client locale, with English fallback and stable command/settings values.
+- Fit longer button labels, wrap settings text and reflow basket instructions.
+- Validate translation coverage/format arguments and bootstrap all ten locales through the install manifest.
+
+- Recognize localized crate/writ prefixes for all ten official Forever locale variants.
+- Parse localized delivery clauses, Unicode spacing/case and quantity wrappers.
+- Preserve ambiguity checks and invalidate incomplete bundles in every locale.
+- Keep unsupported plurals/declensions unresolved unless item hyperlinks supply IDs.
+- Add a ten-locale regression matrix; live localized-client verification remains required.
 - Defer and coalesce delivery parsing during full scans; ignore unrelated tooltip updates.
 - Bound description retries and replication reads per frame, with elapsed-time budgets.
 - Reuse displayed tooltip descriptions and refresh the UI once per retry wave.
@@ -28,15 +44,14 @@
 
 ## 0.7.0
 
-- Own scanning and quantity-aware prices for writ deliveries and writ/crate purchases.
-- Full scopes: writs 300 IDs, crates 126, combined 424 after deduplication.
-- Refresh reruns the own scan for the current filtered list; Stop and progress controls.
-- Optional Auctionator limited-search follow-up, enabled by default when supported.
-- Sequential handoff with frozen scope and cancellation on interruption.
-- Manual TSM group export; no unsupported internal scan calls.
-- Equipment uses gear-variant searches; missing metadata cannot create false sold-out data.
-- New Own writ source and expanded bag/tracked/hovered/manual scan scopes.
-- 122 default Lua 5.1 tests; 125 with upstream API/import-parser contracts.
+- Built-in fallback scanning for all writ/crate purchases and delivery goods.
+- Auto uses optional provider data and scans missing/stale data in the active list.
+- Own scans is available independently for writs; custom profiles can show complete totals.
+- Built-in shopping basket opens Blizzard buying screens when Auctionator is absent.
+- Scan prices and Stop controls in each list; Refresh schedules missing fallback data.
+- Native Forever gamepad focus, virtual-row D-pad traversal, right-stick scrolling, and focus preservation.
+- 122 default Lua 5.1 regression checks; 124 including unmodified Forever commodity UI contracts.
+- Independent Astra High review and follow-up corrections; live controller/client verification remains required.
 
 ## 0.6.1
 

@@ -1,4 +1,5 @@
 local _, addon = ...
+local L = addon.L
 addon.UI = {}
 local UI = addon.UI
 
@@ -6,7 +7,7 @@ local function button(parent, text, x, y, width, action)
     local control = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     control:SetSize(width, 25)
     control:SetPoint("TOPLEFT", x, y)
-    control:SetText(text)
+    addon.Localization.ButtonText(control, L[text])
     control:SetScript("OnClick", action)
     return control
 end
@@ -26,25 +27,51 @@ function UI.IsScanPanelVisible()
         and UI.auctionHost and UI.auctionHost:IsShown() and UI.auctionHosts.crates:IsShown()) or false
 end
 
+function UI.VisibleBrowserTab()
+    if not AuctionHouseFrame or not AuctionHouseFrame:IsVisible() or not UI.auctionHost
+        or not UI.auctionHost:IsVisible() then return nil end
+    for kind, page in pairs(UI.auctionHosts) do
+        if page:IsVisible() then return kind end
+    end
+end
+
 local function pausePanelScan()
+    if UI.switchingBrowser then return end
+    if addon.scanBrowser or addon.autoReason == "browse" then
+        if not UI.VisibleBrowserTab() then
+            addon.autoDue, addon.autoReason = nil, nil
+            if addon.scanBrowser and addon.scanner.active then addon:StopScan(L["Automatic refresh paused after leaving the list."]) end
+            addon:UpdateScheduler()
+        end
+        return
+    end
     if UI.IsScanPanelVisible() then return end
     if addon.autoReason ~= "open" then addon.autoDue, addon.autoReason = nil, nil end
     if addon.scanAutomatic and not addon.scanOnOpen and addon.scanner.active then
-        addon:StopScan("Automatic refresh paused after leaving the crates list.")
+        addon:StopScan(L["Automatic refresh paused after leaving the crates list."])
     end
     addon:UpdateScheduler()
 end
 
 function UI.SelectBrowserTab(kind)
     if not UI.auctionHosts or not UI.auctionHosts[kind] then return end
+    if addon.scanAutomatic and not addon.scanOnOpen and addon.scanner.active
+        and ((addon.scanBrowser and addon.db.browserTab ~= kind) or (not addon.scanBrowser and kind == "writs")) then
+        addon:StopScan(L["Automatic refresh paused after changing category."])
+        addon.autoPaused = false
+    end
     addon.db.browserTab = kind
+    UI.switchingBrowser = true
     for category, page in pairs(UI.auctionHosts) do
         page:SetShown(category == kind)
         if category == kind then PanelTemplates_SelectTab(UI.browserTabs[category])
         else PanelTemplates_DeselectTab(UI.browserTabs[category]) end
     end
+    UI.switchingBrowser = false
     addon.BrowseUI.Refresh(addon.BrowseUI.views[kind])
     if kind == "crates" then addon:RequestAutoScan() else pausePanelScan() end
+    addon:RequestBrowseScan()
+    addon.Navigation.RefreshView(addon.BrowseUI.views[kind])
 end
 
 function UI.AttachAuction()
@@ -59,7 +86,7 @@ function UI.AttachAuction()
     for _, kind in ipairs({ "writs", "crates" }) do
         local category = kind
         local tab = CreateFrame("Button", nil, host, "PanelTopTabButtonTemplate")
-        tab:SetText(category == "writs" and "Craftsman's Writs" or "Waylaid Crates")
+        tab:SetText(category == "writs" and L["Craftsman's Writs"] or L["Waylaid Crates"])
         PanelTemplates_TabResize(tab, 18)
         if previous then tab:SetPoint("TOPLEFT", previous, "TOPRIGHT", 3, 0)
         else tab:SetPoint("TOPLEFT", 10, 0) end
@@ -76,8 +103,18 @@ function UI.AttachAuction()
     host:SetScript("OnShow", function()
         UI.SelectBrowserTab(UI.auctionHosts[addon.db.browserTab] and addon.db.browserTab or "crates")
     end)
-    host:SetScript("OnHide", pausePanelScan)
-    lib:CreateTab(TAB_ID, host, "Waylaid", "Waylaid Ledger")
+    host:SetScript("OnHide", function()
+        pausePanelScan()
+        addon.Navigation.LeaveAuction()
+    end)
+    lib:CreateTab(TAB_ID, host, L["Waylaid"], "Waylaid Ledger")
+    hooksecurefunc(AuctionHouseFrame, "SetDisplayMode", function()
+        -- LibAHTab hides our host during mode changes. Rebuild only after all
+        -- native children have reached their final visibility.
+        if not host:IsVisible() then addon.Navigation.LeaveAuction() end
+        addon.Navigation.CleanupAuction()
+        addon.NativeShopping.CancelIfHidden()
+    end)
 end
 
 function UI.AuctionClosed()
@@ -103,7 +140,8 @@ local function label(parent, value, x, y, width, font)
     text:SetPoint("TOPLEFT", x, y)
     text:SetWidth(width)
     text:SetJustifyH("LEFT")
-    text:SetText(value)
+    text:SetWordWrap(true)
+    text:SetText(L[value])
     return text
 end
 
@@ -111,8 +149,8 @@ local function hint(control, title, description)
     control:HookScript("OnEnter", function(self)
         if not GameTooltip then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:AddLine(title, 1, 0.82, 0)
-        GameTooltip:AddLine(description, 1, 1, 1, true)
+        GameTooltip:AddLine(L[title], 1, 0.82, 0)
+        GameTooltip:AddLine(L[description], 1, 1, 1, true)
         GameTooltip:Show()
     end)
     control:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -125,7 +163,7 @@ local function choice(parent, title, y, values, labels, get, set, description)
     control:SetPoint("TOPLEFT", 135, y)
     control:SetupMenu(function(_, root)
         for _, value in ipairs(values) do
-            root:CreateRadio(labels[value], function() return get() == value end, function() set(value) end)
+            root:CreateRadio(L[labels[value]], function() return get() == value end, function() set(value) end)
         end
     end)
     hint(control, title, description)
@@ -167,25 +205,25 @@ function UI.RegisterSettings()
     label(frame, "Prices", 18, -54, 270, "GameFontNormal")
     UI.crateSourceButton = choice(frame, "Crate prices", -78, SOURCE_ORDER, SOURCE_LABELS,
         function() return addon.db.source end, function(value) addon:SetSource(value) end,
-        "Auto uses own scans, then Auctionator and TSM estimates. A specific source uses only that source.")
+        "Auto uses own scans and optional providers. Forced sources use only that provider.")
     UI.writSourceButton = choice(frame, "Writ prices", -112, {"auto", "own", "auctionator", "tsm", "off"}, SOURCE_LABELS,
         function() return addon.db.writSource end, function(value) addon:SetWritSource(value) end,
-        "Choose prices for writ purchases and deliveries. Off hides writ prices.")
+        "Choose a price source for writ purchases and deliveries.")
     UI.settingsTSM = choice(frame, "TSM price", -146, {"DBMinBuyout", "DBMarket"},
         {DBMinBuyout="Minimum buyout", DBMarket="Market value"},
         function() return addon.db.tsmKey end, function(value) addon:SetTSMKey(value) end,
-        "Used by both lists when TSM supplies prices. Market value is a historical estimate.")
+        "Applies to both lists when TSM supplies prices.")
     label(frame, "Display", 18, -202, 270, "GameFontNormal")
     label(frame, "Automatic scans", 18, -306, 270, "GameFontNormal")
+    label(frame, "Auto and Own scan missing prices in the open list.", 18, -378, 270, "GameFontDisableSmall")
     label(frame, "Inventory", 320, -54, 270, "GameFontNormal")
     for _, option in ipairs({
-        {"minimap", "Show minimap button", 18, -226, "Left-click opens the auction list at the AH, or settings elsewhere. Right-click always opens settings."},
-        {"details", "Always show tooltip details", 18, -260, "Show price sources and ages. With this off, hold Shift for details."},
-        {"autoscan", "Refresh tracked crate prices", 18, -330, "Refresh missing or stale tracked crate materials while the Crates tab is visible at the AH. Requires inventory tracking and Auto or Own scans."},
-        {"scanopen", "Scan on auction-house open", 18, -370, "Refresh missing or stale crate materials after opening the AH, even without the Crates tab visible. Uses Auto or Own scans."},
-        {"tracking", "Remember inventory", 320, -78, "Remember crate, writ and delivery-item counts for bag and tracked scans. Prices do not subtract owned inventory."},
-        {"banks", "Include visited banks", 320, -112, "Include last-seen character and shared-bank contents in tracked scans."},
-        {"alts", "Include remembered characters", 320, -146, "Include last-seen inventory from other characters on this realm and faction."},
+        {"minimap", "Show minimap button", 18, -226, "Left-click opens the auction list at the AH, or settings elsewhere."},
+        {"details", "Always show detailed price tooltips", 18, -260, "Hold Shift for details when disabled."},
+        {"scanopen", "Scan on auction-house open", 18, -330, "Scan missing or stale crate prices on AH open, using Auto or Own scans."},
+        {"tracking", "Remember inventory", 320, -78, "Remember inventory for bag and tracked scans. Prices do not subtract owned items."},
+        {"banks", "Include visited banks", 320, -112, "Include visited character and shared banks"},
+        {"alts", "Include remembered characters", 320, -146, "Include remembered characters on this realm/faction"},
     }) do
         local feature = option[1]
         local control = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
@@ -196,7 +234,7 @@ function UI.RegisterSettings()
         hint(control, option[2], option[5])
         UI.settingsChecks[feature] = control
     end
-    label(frame, "Visit each character and bank to update its last-seen inventory.", 320, -190, 270, "GameFontDisableSmall")
+    label(frame, "Offline inventory is a last-seen snapshot. Log into each character and visit their bank once to update it.", 320, -190, 270, "GameFontDisableSmall")
     label(frame, "Tools", 320, -262, 270, "GameFontNormal")
     button(frame, "Inventory snapshots", 320, -290, 270, function() UI.ShowReport(addon.Inventory.Report()) end)
     button(frame, "Copy diagnostics", 320, -324, 270, function() UI.ShowReport(addon:Report()) end)
@@ -214,7 +252,7 @@ end
 
 function UI.ToggleSettings()
     if UI.RegisterSettings() then Settings.OpenToCategory(UI.settingsCategory:GetID())
-    else addon:Print("WoW's AddOns settings are unavailable on this client.") end
+    else addon:Print(L["WoW's AddOns settings are unavailable on this client."]) end
 end
 
 function UI.ShowReport(text, title)
@@ -223,7 +261,7 @@ function UI.ShowReport(text, title)
         frame:SetSize(640, 440)
         frame:SetPoint("CENTER")
         frame:SetFrameStrata("FULLSCREEN_DIALOG")
-        frame.TitleText:SetText("Waylaid Ledger - select and copy with Ctrl+C / Cmd+C")
+        frame.TitleText:SetText(L["Waylaid Ledger - select and copy with Ctrl+C / Cmd+C"])
         frame:SetClampedToScreen(true)
         tinsert(UISpecialFrames, "WaylaidLedgerReportFrame")
         local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
@@ -237,8 +275,10 @@ function UI.ShowReport(text, title)
         edit:SetScript("OnEscapePressed", function() frame:Hide() end)
         scroll:SetScrollChild(edit)
         UI.report, UI.reportEdit = frame, edit
+        frame:Hide()
+        addon.Navigation.RegisterWindow(frame)
     end
-    UI.report.TitleText:SetText(title or "Waylaid Ledger - select and copy with Ctrl+C / Cmd+C")
+    UI.report.TitleText:SetText(title or L["Waylaid Ledger - select and copy with Ctrl+C / Cmd+C"])
     UI.reportEdit:SetText(text)
     UI.report:Show()
     UI.reportEdit:SetFocus()
