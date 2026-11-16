@@ -2,9 +2,14 @@
 
 ## Runtime structure
 
+- `Localization.lua` and `Locales.lua`: client-selected control translations for
+  all official locales. Keep `%d`/`%s` argument order intact. `tests/run.py` extracts
+  UI translation keys; the Lua suite checks coverage and formatting and boots each
+  locale through the installed TOC. Diagnostic-report fields remain English.
+
 - `Data.lua` / `WritData.lua`: bundled fallback catalog tables. `Discovery.lua` updates
   requirements and names from complete client descriptions; see [INGAME_DATA.md](INGAME_DATA.md).
-  Controls and explanatory strings are currently English.
+  Controls and explanatory strings use the client locale with English fallback.
 - `Catalog.lua`: crate/material selection and localized-name lookup.
 - `Pricing.lua`: depth-aware commodity quotes and 0/1 subset optimization for
   indivisible auctions. State counts are capped at the required bundle size.
@@ -15,7 +20,9 @@
   after 15s. The total per-item deadline is 90s, including throttle/page waits.
 - `Tooltip.lua`: modern item-tooltip post-processing, duplicate suppression,
   refreshes after scan completion, and a legacy hook fallback.
-- `UI.lua`: scan controls and a selectable diagnostic-report window.
+- `UI.lua`: scan controls, registered settings and the auction tab host.
+- `NativeShopping.lua`: ID-based basket and Blizzard buy-screen navigation.
+- `Navigation.lua`: native Forever SmartNavigation/focus integration.
 - `Core.lua`: startup, persisted market caches, commands, API hooks, event routing.
 
 The scanner only commits a material after its full result set arrives. Partial
@@ -82,6 +89,15 @@ loader. Tests execute the actual production modules without transformed code.
 
 Catalog discovery happens in game. The addon has no HTTP capability and uses only
 WoW APIs. There are no web import/build scripts.
+
+## Historical implementation notes
+
+Version 0.7.0 expands the scanner scopes through `Shopping.ScanItems`; writ
+requirements and purchase prices now share persisted depth snapshots. Ranked
+lists schedule fallback work independently of inventory tracking. The older
+96-material opening and tracked-crate scans remain available. See
+[INTEGRATIONS.md](INTEGRATIONS.md#current-behavior-070) for current controller and
+shopping contracts; provider-only statements below describe older versions.
 
 ## v0.3 modules and data
 
@@ -178,7 +194,7 @@ Actual client template rendering still requires the user's live check.
 
 ## Expanded scan engine (v0.7.0)
 
-`Catalog.ScanItems` derives IDs and maximum target quantities from both factual
+`Catalog.ScanItems` derives IDs and maximum target quantities from the learned
 catalogs. Manual/Refresh scopes include contracts and goods; the existing
 AH-opening/tracked automatic refresh remains the 96-material crate refresh to
 avoid silently increasing background queries. Explicit all/writ/crate scans

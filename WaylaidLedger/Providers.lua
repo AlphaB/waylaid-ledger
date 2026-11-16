@@ -1,4 +1,5 @@
 local _, addon = ...
+local L = addon.L
 
 -- Optional-addon adapters use only the released public APIs. Provider values
 -- are estimates, never fabricated order-book snapshots or exact scan times.
@@ -63,7 +64,7 @@ function Providers.Read(source, itemID)
         Providers.errors[source] = nil
         value = { source = source, unitPrice = price, estimated = true,
             sourceLabel = source == "auctionator" and "Auctionator"
-                or (addon.db.tsmKey == "DBMarket" and "TSM market" or "TSM min buyout") }
+                or (addon.db.tsmKey == "DBMarket" and L["TSM market"] or L["TSM min buyout"]) }
         if source == "auctionator" and type(api.GetAuctionAgeByItemID) == "function" then
             local ageOK, days = pcall(api.GetAuctionAgeByItemID, CALLER, itemID)
             if ageOK and type(days) == "number" and days >= 0 and days < math.huge then
@@ -107,7 +108,7 @@ end
 function Providers.Search(terms, listName, requireTabSwitch)
     local api = auctionatorAPI()
     if not Providers.ShoppingAvailable(requireTabSwitch) then
-        return false, "Auctionator's shopping API is unavailable. Install/enable a compatible Auctionator release."
+        return false, L["Auctionator's shopping API is unavailable. Install/enable a compatible Auctionator release."]
     end
     local ok, errorMessage
     if type(api.MultiSearchAdvanced) == "function" then
@@ -117,7 +118,7 @@ function Providers.Search(terms, listName, requireTabSwitch)
         for _, term in ipairs(terms) do
             local converted, searchString = pcall(api.ConvertToSearchString, CALLER, term)
             if not converted or type(searchString) ~= "string" then
-                return false, "Auctionator could not convert the search: " .. tostring(searchString)
+                return false, string.format(L["Auctionator could not convert the search: %s"], tostring(searchString))
             end
             strings[#strings + 1] = searchString
         end
@@ -125,7 +126,7 @@ function Providers.Search(terms, listName, requireTabSwitch)
     end
     if not ok then
         Providers.errors.auctionator = "Shopping: " .. tostring(errorMessage)
-        return false, "Auctionator could not start the search: " .. tostring(errorMessage)
+        return false, string.format(L["Auctionator could not start the search: %s"], tostring(errorMessage))
     end
     return true
 end
@@ -136,10 +137,10 @@ function Providers.ScanTerms(items, quantities)
     local terms = {}
     for _, id in ipairs(items) do
         local name = addon.Catalog.SearchName(id)
-        if not name then return nil, "Item names are loading; retry the Auctionator scan shortly." end
+        if not name then return nil, L["Item names are loading; retry the Auctionator scan shortly."] end
         terms[#terms + 1] = { searchString = name, categoryKey = "", isExact = true, quantity = quantities[id] or 1 }
     end
-    if #terms == 0 then return nil, "No matching items to scan." end
+    if #terms == 0 then return nil, L["No matching items to scan."] end
     return terms
 end
 

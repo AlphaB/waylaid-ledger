@@ -14,7 +14,8 @@ local function loadModule(name)
     local chunk = assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/" .. name .. ".lua"))
     chunk("WaylaidLedger", addon)
 end
-for _, name in ipairs({ "Libs/LibStub", "Libs/LibAHTab", "Data", "WritData", "Catalog", "Inventory", "Pricing", "Providers", "WritPricing", "Shopping", "Scanner" }) do loadModule(name) end
+for _, name in ipairs({ "Libs/LibStub", "Libs/LibAHTab", "Localization", "Locales", "Data", "WritData", "Catalog", "Inventory", "Pricing", "Providers", "WritPricing", "Shopping", "Scanner" }) do loadModule(name) end
+loadModule("DiscoveryLocales")
 loadModule("Discovery")
 loadModule("BulkScan")
 assert(#addon.Catalog.AllCrates() == 30 and #addon.Catalog.AllContracts("writs") == 150, "Bundled fallback must restore both lists")
@@ -226,6 +227,7 @@ function methods:GetText() return rawget(self,"text") or "" end
 function methods:SetHeight(height) self.height=height end
 function methods:SetWidth(width) self.width=width end
 function methods:SetVerticalScroll(value) self.scroll=value end
+function methods:GetScript(key) return self.scripts[key] end
 function methods:GetVerticalScroll() return rawget(self,"scroll") or 0 end
 function methods:Show() local changed=not self.shown;self.shown=true;if changed and self.scripts.OnShow then self.scripts.OnShow(self) end end
 function methods:Hide() local changed=self.shown;self.shown=false;if changed and self.scripts.OnHide then self.scripts.OnHide(self) end end
@@ -283,18 +285,34 @@ function CreateScrollBoxListLinearView()
         SetElementInitializer=function(self,kind,callback) self.initializer=callback end}
 end
 ScrollUtil={InitScrollBoxListWithScrollBar=function(scroll,bar,view)
-    scroll.rows={};scroll.view=view
+    scroll.rows={};scroll.view=view;scroll.offset=0
     scroll.ForEachFrame=function(self,action) for _,row in ipairs(self.rows) do if row:IsShown() then action(row) end end end
     scroll.ScrollToBegin=function(self) self.offset=0 end
+    scroll.RenderRows=function(self)
+        local entries=self.provider
+        local first=(self.offset or 0)+1
+        for index=1,math.min(10,#entries-first+1) do
+            local row=self.rows[index] or CreateFrame("Button",nil,self)
+            self.rows[index]=row;view.initializer(row,entries[first+index-1]);row:Show()
+        end
+        for index=math.max(1,#entries-first+2),#self.rows do self.rows[index]:Hide() end
+    end
     scroll.SetDataProvider=function(self,entries,retain)
         self.provider=entries;self.retainScrollPosition=retain
-        for index=1,math.min(10,#entries) do
-            local row=self.rows[index] or CreateFrame("Button",nil,self)
-            self.rows[index]=row;view.initializer(row,entries[index]);row:Show()
-        end
-        for index=#entries+1,#self.rows do self.rows[index]:Hide() end
+        self.offset=math.min(self.offset or 0,math.max(0,#entries-10))
+        self:RenderRows()
+    end
+    scroll.ScrollToElementDataIndex=function(self,index,align,offset,noInterpolation)
+        assert(noInterpolation,"controller focus requires synchronously rebound rows")
+        local first=(self.offset or 0)+1
+        if index<first then self.offset=index-1 elseif index>first+9 then self.offset=index-10 end
+        self:RenderRows()
+    end
+    scroll.FindFrame=function(self,entry)
+        for _,row in ipairs(self.rows) do if row:IsShown() and row.entry==entry then return row end end
     end
 end}
+ScrollBoxConstants={AlignNearest="nearest"}
 PanelTemplates_TabResize=function() end
 PanelTemplates_SelectTab=function(tab) tab.selected=true end
 PanelTemplates_DeselectTab=function(tab) tab.selected=false end
@@ -316,7 +334,7 @@ NUM_TOTAL_EQUIPPED_BAG_SLOTS=5
 local bags={[0]={248682,248683,248682,999},[5]={248684}}
 C_Container={GetContainerNumSlots=function(bag) return bags[bag] and #bags[bag] or 0 end,
     GetContainerItemID=function(bag,slot) return bags[bag][slot] end}
-for _, name in ipairs({"Tooltip","UI","BrowseUI","Minimap","Core"}) do loadModule(name) end
+for _, name in ipairs({"Navigation","NativeShopping","Tooltip","UI","BrowseUI","Minimap","Core"}) do loadModule(name) end
 local host=frames[1]
 host.scripts.OnEvent(host,"ADDON_LOADED","WaylaidLedger")
 
@@ -384,8 +402,11 @@ assert(loadfile(PROJECT_ROOT .. "/tests/auction_open.lua"))(addon, test, equal, 
 assert(loadfile(PROJECT_ROOT .. "/tests/tooltip_age.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/settings.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/expanded_scan.lua"))(addon, test, equal, host)
+assert(loadfile(PROJECT_ROOT .. "/tests/standalone.lua"))(addon, test, equal, host)
+assert(loadfile(PROJECT_ROOT .. "/tests/native_contracts.lua"))(addon, test, equal, host)
 assert(loadfile(PROJECT_ROOT .. "/tests/upstream_contracts.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/discovery.lua"))(test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/bulk_scan.lua"))(test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/discovery_runtime.lua"))(test, equal)
+assert(loadfile(PROJECT_ROOT .. "/tests/localization.lua"))(addon, test, equal)
 print(string.format("\n%d tests passed on %s",passed,_VERSION))

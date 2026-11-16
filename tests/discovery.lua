@@ -1,13 +1,16 @@
 local test, equal = ...
-local function fixture(action)
+local function fixture(action, locale)
     local saved={C_Item=C_Item,C_TooltipInfo=C_TooltipInfo,GetLocale=GetLocale,GetBuildInfo=GetBuildInfo,time=time,C_Container=C_Container,
         debugprofilestop=debugprofilestop}
     local a={db={},Crates={},Writs={},MaterialNames={},WritMaterialNames={}}
     local names, tips = {}, {}
     C_Item={GetItemNameByID=function(id) return names[id] end,RequestLoadItemDataByID=function() end}
     C_TooltipInfo={GetItemByID=function(id) return tips[id] end}
-    GetLocale=function() return "enUS" end;GetBuildInfo=function() return "1","2","3",16001 end;time=function() return 100 end
+    GetLocale=function() return locale or "enUS" end;GetBuildInfo=function() return "1","2","3",16001 end;time=function() return 100 end
     C_Container=nil
+    assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/Localization.lua"))("WaylaidLedger",a)
+    assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/Locales.lua"))("WaylaidLedger",a)
+    assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/DiscoveryLocales.lua"))("WaylaidLedger",a)
     assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/Discovery.lua"))("WaylaidLedger",a)
     a.Discovery.Install()
     function a.drain()
@@ -37,6 +40,125 @@ test("requirements start empty and are learned from live descriptions and exact 
         a.Discovery.Observe(31,"Craftsman's Writ: Test")
         tips[31]={lines={{leftText="Bring 200 Sample Herb to the quartermaster."}}}
         equal(a.Discovery.Read(31),true);equal(a.Writs[31].requirements[1].quantity,200)
+    end)
+end)
+
+-- Prefixes are from localized item samples; delivery clauses are constructed
+-- format regressions, not recordings from a live localized game client.
+local locales = {
+    {"enUS", "Waylaid Crate", "Craftsman's Writ", "Peacebloom", "Bring 200 Peacebloom to the quartermaster."},
+    {"enGB", "Waylaid Crate", "Craftsman's Writ", "Peacebloom", "Deliver 200 Peacebloom."},
+    {"deDE", "Abgefangene Kiste", "Handwerksverfügung", "Silberblatt", "Liefert 200 Silberblatt an den Kunden."},
+    {"frFR", "Caisse détournée ", "Commission d’artisan ", "Pacifique", "Apportez 200 Pacifique à l'intendant."},
+    {"esES", "Cajón saqueado", "Libranza del artesano", "Flor de paz", "Entrega 200 Flor de paz a la intendente."},
+    {"esMX", "Cajón arrebatado", "Libranza del artesano", "Flor de paz", "Lleva 200 Flor de paz a la intendente."},
+    {"ptBR", "Caixote Extraviado", "Escritura do Artífice", "Botão-da-paz", "Entregue 200 Botão-da-paz para o cliente."},
+    {"ruRU", "Перехваченный ящик", "Задание мастера", "Мироцвет", "Принесите 200 Мироцвет."},
+    {"koKR", "잘못 놓인 보급품", "장인의 계약서", "평온초", "전달: 200 평온초"},
+    {"zhTW", "遭攔截的木箱", "工匠令狀", "寧神花", "交付200份寧神花。"},
+}
+for _, sample in ipairs(locales) do
+    local locale, crate, writ, material, clause = unpack(sample)
+    test(locale .. " discovers localized contracts and parses complete bundles", function()
+        fixture(function(a, names, tips)
+            a.Discovery.Observe(11, material);a.Discovery.Observe(12, "Other Material")
+            a.Discovery.Observe(21, crate .. ": Test")
+            a.Discovery.Observe(31, writ .. ": Test")
+            tips[21]={lines={{leftText="- 20 " .. material .. "\n• Other Material × 10"}}}
+            tips[31]={lines={{leftText=clause}}}
+            equal(a.Discovery.Read(21),true);equal(a.Discovery.Read(31),true)
+            equal(#a.Crates[21].options,2);equal(a.Crates[21].options[1].itemID,11)
+            equal(a.Crates[21].options[2].quantity,10)
+            equal(a.Writs[31].requirements[1].quantity,200)
+            equal(a.db.discovery.locales[locale].crates[21],a.Crates[21])
+            tips[21]={lines={{leftText="- 20 " .. material .. "\n- 10 Unknown Material"}}}
+            equal(a.Discovery.Read(21),false);equal(#a.Crates[21].options,0)
+            tips[31]={lines={{leftText="- 0 " .. material}}}
+            equal(a.Discovery.Read(31),false);equal(#a.Writs[31].requirements,0)
+        end,locale)
+    end)
+end
+
+test("localized wrappers, Unicode spacing and lowercase names resolve exactly",function()
+    for _, row in ipairs({
+        {"frFR","Églantine","- 20 pousses d’églantine"},
+        {"esES","Flor de paz","- 20 de flor de paz"},
+        {"zhTW","寧神花","- 20份寧神花"},
+        {"ruRU","Мироцвет","- 20 мироцвет"},
+        {"koKR","평온초","- 20 평온초"},
+    }) do
+        fixture(function(a)
+            a.Discovery.Observe(11,row[2])
+            local result=a.Discovery.Parse({row[3]},"writs",31)
+            equal(result[1].itemID,11);equal(result[1].quantity,20)
+        end,row[1])
+    end
+end)
+
+test("Unicode case and apostrophe collisions stay ambiguous and links disambiguate",function()
+    fixture(function(a)
+        a.Discovery.Observe(11,"Églantine");a.Discovery.Observe(12,"églantine")
+        equal(a.Discovery.Parse({"- 20 églantine"},"writs",31),nil)
+        local result=a.Discovery.Parse({"- 20 |Hitem:11|h[Églantine]|h"},"writs",31)
+        equal(result[1].itemID,11)
+        a.Discovery.Observe(13,"L’herbe");a.Discovery.Observe(14,"L'herbe")
+        equal(a.Discovery.Parse({"- 20 L’herbe"},"writs",31),nil)
+    end,"frFR")
+end)
+
+test("localized metadata, unidentified crates and unsupported locales never invent objectives",function()
+    for _, sample in ipairs(locales) do
+        fixture(function(a)
+            a.Discovery.Observe(21,sample[2])
+            equal(a.Crates[21],nil)
+            a.Discovery.Observe(11,sample[4])
+            for _, excluded in ipairs(a.DiscoveryLocales[sample[1]].excluded) do
+                equal(a.Discovery.Parse({excluded .. " 200 " .. sample[4]},"writs",31),nil)
+            end
+        end,sample[1])
+    end
+    fixture(function(a)
+        a.Discovery.Observe(21,"Waylaid Crate: Test")
+        equal(a.Crates[21],nil)
+        equal(a.Discovery.Parse({"- 20 Herb"},"writs",31),nil)
+    end,"itIT")
+end)
+
+test("inflected localized names remain unresolved without authoritative item links",function()
+    fixture(function(a)
+        a.Discovery.Observe(11,"Friedensblume")
+        equal(a.Discovery.Parse({"- 20 Friedensblumen"},"writs",31),nil)
+        local result=a.Discovery.Parse({"- 20 |Hitem:11|h[Friedensblumen]|h"},"writs",31)
+        equal(result[1].itemID,11)
+    end,"deDE")
+end)
+
+test("Russian level metadata does not invalidate valid delivery lists",function()
+    fixture(function(a)
+        a.Discovery.Observe(11,"Мироцвет");a.Discovery.Observe(12,"Сребролист")
+        local result=a.Discovery.Parse({"Требуется 10-й ур.","- 20 мироцвет\n- 10 сребролист"},"crates",21)
+        equal(#result,2);equal(result[1].quantity,20)
+    end,"ruRU")
+end)
+
+test("shopping reuses observed names from the current locale when item data is not cached",function()
+    for _, sample in ipairs(locales) do
+        fixture(function(a)
+            assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/Catalog.lua"))("WaylaidLedger",a)
+            a.Discovery.Observe(11,sample[4])
+            equal(a.Catalog.SearchName(11),sample[4])
+            equal(a.Catalog.SearchName(999),nil)
+        end,sample[1])
+    end
+end)
+
+test("quantity markers do not consume an item's leading X",function()
+    fixture(function(a)
+        a.Discovery.Observe(11,"X-52 Material")
+        for _, line in ipairs({"- 20 X-52 Material", "- 20 x X-52 Material", "- 20× X-52 Material"}) do
+            local result=a.Discovery.Parse({line},"writs",31)
+            equal(result[1].itemID,11);equal(result[1].quantity,20)
+        end
     end)
 end)
 test("item hyperlinks resolve IDs without a preexisting item-name catalog",function()
@@ -95,7 +217,7 @@ test("upgrade restores unresolved bundled rows while retaining learned and addit
         equal(a.Crates[248682],learned);equal(a.Crates[248682].options[1].quantity,9)
         equal(a.Crates[248683].unresolved,nil);equal(a.Crates[248683].options[1].quantity,20)
         equal(a.Writs[264037].unresolved,nil);equal(a.Writs[264037].requirements[1].quantity,200)
-        assert(a.Crates[21]);equal(a.Discovery.names["Crafted Solid Shot"],8069)
+        assert(a.Crates[21]);equal(a.Discovery.names[a.DiscoveryLocales.Key("Crafted Solid Shot")],8069)
         equal(a.db.discovery.locales.enUS.crates,a.Crates)
     end)
 end)

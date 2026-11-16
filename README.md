@@ -24,7 +24,8 @@ Version **0.7.1** · Forever **1.60.1 / interface 16001** · No addon dependenci
 5. Visit an auctioneer and select **Waylaid**, then its internal **Craftsman's Writs** or
    **Waylaid Crates** tab. Each list shows
    its catalog in order of **purchase + delivery** cost. Click a row to open
-   Auctionator Shopping with one writ/crate and its complete delivery bundle.
+   Auctionator Shopping when available, or a built-in basket with one writ/crate
+   and its complete delivery bundle.
    The minimap button opens your last used list; right-click it for the official
    **Settings → AddOns → Waylaid Ledger** page.
 6. Hover a recognized Waylaid Crate in your bags, chat, or the auction house to
@@ -34,6 +35,27 @@ Version **0.7.1** · Forever **1.60.1 / interface 16001** · No addon dependenci
 **Full AH scan** uses one bulk request. Saved prices remain available after
 leaving the auction house and across reloads/logins. Auctionator and
 TradeSkillMaster are optional.
+
+## Languages and controls
+
+Controls, settings, price tooltips, shopping baskets and scan status messages
+follow all ten official client locales automatically: US/EU English, German,
+French, European/Latin American Spanish, Brazilian Portuguese, Russian, Korean
+and Traditional Chinese. Missing translations fall back to English. Slash-command
+keywords and saved setting values remain stable.
+
+Localized tooltip discovery recognizes contract names and supported delivery
+formats. Plain plural/declined names still need an exact match or an item link;
+bundled quantities remain available when a client description cannot be resolved.
+New unresolved items never become partial shopping bundles. See
+[discovery formats and limitations](docs/INGAME_DATA.md).
+
+Shopping prefers Auctionator when available. Otherwise, a built-in checklist
+opens Blizzard's item or commodity buying screen with the full requested quantity.
+Equipment searches include item variants. The game's normal confirmation handles
+purchases. Built-in Forever controller navigation supports the lists, controls
+and basket; see [integration notes](docs/INTEGRATIONS.md#current-behavior-070).
+Localized rendering and controller behavior still need a live-client check.
 
 ## Catalog and in-game discovery
 
