@@ -14,7 +14,7 @@ local function fixture(action)
         external = addon.lastExternalAt,
     }
     addon:StopScan()
-    addon.db.source, addon.db.writSource, addon.db.profile = "auto", "auto", "default"
+    addon.db.source, addon.db.writSource, addon.db.profile = "own", "own", "default"
     addon.db.refreshAuctionator = true
     addon.BrowseUI.views = {}
     addon.lastExternalAt = nil
@@ -154,7 +154,7 @@ test("Refresh scans the filtered contract and delivery, then hands the frozen sc
         equal(addon.providerDue, nil)
     end)
 end)
-test("Refresh always reruns own queries even when prices are fresh; empty filters do not query", function()
+test("Refresh in Own mode reruns queries even when prices are fresh; empty filters do not query", function()
     fixture(function(f, market)
         addon.db.refreshAuctionator = false
         local view = f.view("writs", "Small Silk Pack")
@@ -172,6 +172,51 @@ test("Refresh always reruns own queries even when prices are fresh; empty filter
         equal(#addon.scanner.requests, requests)
     end)
 end)
+test("provider refresh follows category and profile, and cancels pending automatic queries", function()
+    fixture(function(f)
+        addon.db.source, addon.db.writSource = "auto", "own"
+        equal(addon:RefreshPriceProvider("crates"), "auctionator")
+        equal(addon:RefreshPriceProvider("writs"), nil)
+        addon.db.profile = "neutral"
+        equal(addon:RefreshPriceProvider("crates"), nil)
+        addon.db.profile = "default"
+        addon.autoDue, addon.autoReason = f.now + 2, "open"
+        addon.pendingProviderScan, addon.providerDue = {}, f.now + 1
+        equal(addon:RefreshList(f.view("crates")), true)
+        equal(addon.autoDue, nil)
+        equal(addon.providerDue, nil)
+        equal(addon.pendingProviderScan, nil)
+        equal(#f.calls, 0)
+        equal(#f.searches, 0)
+        equal(addon.scanner.active, false)
+    end)
+end)
+test(
+    "missing provider quotes do not silently trigger a full scan and busy refreshes preserve scan ownership",
+    function()
+        fixture(function(f)
+            addon.db.writSource = "auctionator"
+            Auctionator.API.v1.GetAuctionPriceByItemID = function()
+                return nil
+            end
+            local view = f.view("writs", "Small Silk Pack")
+            equal(addon:RefreshList(view), true)
+            equal(#f.calls, 0)
+            equal(view.visibleEntries[1].total, nil)
+            addon.db.writSource = "own"
+            equal(addon:RefreshList(view), true)
+            local context = addon.scanContext
+            addon.db.writSource = "auctionator"
+            equal(addon:RefreshList(view), false)
+            equal(addon.scanner.active, true)
+            equal(addon.scanContext, context)
+            addon:StopScan()
+            addon.Providers.scan = {}
+            equal(addon:RefreshList(view), false)
+            addon.Providers.scan = nil
+        end)
+    end
+)
 test("the Refresh Stop button cancels both own work and the optional follow-up", function()
     fixture(function(f)
         local view = f.view("writs", "Small Silk Pack")

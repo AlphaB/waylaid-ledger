@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The lowest known filling cost is highlighted in green for all price sources,
 including cached prices. Auctionator and TSM are optional price providers. Own scans support both crate and writ costs.
 
-Version **0.8.4** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.8.5** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -76,10 +76,11 @@ Existing market prices and settings are retained. Complete in-game descriptions
 update those quantities and can add new items. Generic writ flavor text or
 loading text does not erase known bundles. See [in-game data](docs/INGAME_DATA.md).
 
-Use **Refresh** or `/wll scan all` at the auction house to update prices with one
-full AH snapshot. The addon has no fixed full-scan cooldown; Refresh can request
-another snapshot after the current scan finishes or is stopped. Client readiness
-and server restrictions still apply. `/wll scan deep` requests detailed prices
+With Auto and an available provider, **Refresh** reloads cached Auctionator/TSM
+prices without a new auction query. Run a scan in that provider for newer data.
+Use `/wll scan all` for an explicit own full snapshot. Full scans share a
+15-minute limit; observed responses and Auctionator’s saved scan timestamp
+prevent duplicate requests, including after a reload. `/wll scan deep` requests detailed prices
 for known purchases and delivery goods with the normal per-item request budget.
 Bulk prices are unit-price estimates; detailed scans retain stock and stack checks.
 
@@ -145,7 +146,7 @@ clear remembered inventory without clearing prices.
 
 Opening or switching Waylaid tabs only displays saved/provider prices. Missing
 prices and unresolved descriptions never start a scan just because a list is
-visible. Click **Refresh** to scan explicitly. The legacy tracked-refresh
+visible. Click **Refresh** to reload provider prices or start an own scan. The legacy tracked-refresh
 preference no longer schedules work. There are no auction queries away from
 the AH.
 
@@ -198,10 +199,14 @@ quotes include that actual outlay.
 
 The list uses Blizzard's native auction-style ScrollBox and scrollbar, framed
 column headers, compact striped rows, and recycled visible item buttons.
-Search filters item names and required goods. **Refresh** requests one full
-auction-house snapshot for both lists on Forever. Filtering changes the displayed
-rows, not the snapshot scope. Even fresh prices are refreshed; completed exact
-stock/depth scans keep priority until stale. No matching rows means no queries.
+Search filters item names and required goods. **Refresh** follows the category’s
+price source: Auto with an available provider, Auctionator, or TSM reloads provider
+quotes; Own, custom profiles, or no available provider requests one full
+auction-house snapshot for both lists on Forever. Provider refresh does not start
+a provider scan, and missing quotes do not trigger an own scan. Auto still prefers
+fresh own snapshots. Full scans retain completed exact stock/depth scans until
+stale; their search filter only changes displayed rows. No matching rows means no
+own scan.
 Old snapshots remain until replaced by a completed result; failures do not turn
 into invented zero prices.
 
@@ -215,7 +220,7 @@ progress events. Refresh is disabled until completion or failure; Waylaid cannot
 stop another addon's scan. Older builds without progress events show a waiting
 message. Completion refreshes prices once; switching tabs never restarts scanning.
 
-Clients without replication support retain filtered per-item Refresh scans and
+Own Refresh on clients without replication support retains filtered per-item scans and
 an optional Auctionator follow-up controlled by `/wll auctionatorfollowup on|off`.
 The inactive follow-up switch is no longer shown in settings on Forever.
 
@@ -320,7 +325,7 @@ Use `/wll scan deep` for detailed stock/stack checks across all catalogued items
 | `/wll scan all` | Scan all 424 unique catalogued items |
 | `/wll scan writs` | Scan 300 writ purchase/delivery IDs |
 | `/wll scan crates` | Scan 126 crate purchase/delivery IDs |
-| `/wll refresh writs` | Refresh prices with a full snapshot; legacy clients scan the filtered writ list |
+| `/wll refresh writs` | Reload provider prices, or request an own scan according to the writ price source |
 | `/wll auctionscan writs` | Start only the scoped Auctionator Shopping search |
 | `/wll tsmexport writs` | Copy a scoped TSM group import; scan it manually in TSM |
 | `/wll auctionatorfollowup off` | Disable the legacy per-item follow-up (`on` enables it); unused by full snapshots |
@@ -366,7 +371,9 @@ Please start with a small test:
    should open settings without a scan popup. During a full scan, check that
    progress uses auction counts and returns to priced/item counts afterward.
    If using Auctionator, repeat with its full scan and verify its percentage, stable rows, and no own scan on tab switches.
-   Type `/wll debug on`, then `/wll scan bags`. Check that Stop cancels our scan.
+   After Auctionator finishes, click Refresh and check that prices reload without
+   a second snapshot request. Type `/wll debug on`, then `/wll scan deep` to test
+   own per-item scanning and Stop during the full-scan cooldown.
 4. After completion, hover the crate. Check one listed material manually in the
    auction house, including enough units to fill the crate.
 5. Close the auction house and hover again. `/reload` and verify cached prices
@@ -425,8 +432,8 @@ depth, indivisible auctions, randomized exhaustive cross-checks, stale/unknown
 results, pagination, throttling, retry timeouts, interruptions, owned-stock
 filtering, profile isolation, full bootstrap, tooltip text, provider priorities,
 source settings, API errors, price-age semantics, callbacks, and shopping handoff.
-The default suite has 212 tests. Four additional contract tests run the actual
-unmodified provider API and Auctionator event-bus Lua from separately downloaded release ZIPs (216 total):
+The default suite has 217 tests. Four additional contract tests run the actual
+unmodified provider API and Auctionator event-bus Lua from separately downloaded release ZIPs (221 total):
 
 ```sh
 python3 tests/run.py --auctionator /path/to/Auctionator-347.zip --tsm /path/to/TradeSkillMaster.zip

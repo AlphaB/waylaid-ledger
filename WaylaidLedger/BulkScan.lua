@@ -7,6 +7,7 @@ addon.BulkScan = {}
 local BulkScan = addon.BulkScan
 local TIMEOUT, BATCH = 30, 250
 local BUDGET_MS = 2
+local REPLICATE_INTERVAL = 15 * 60
 
 local function trace(...)
     if addon.Trace then
@@ -20,13 +21,28 @@ function BulkScan.Supported(api)
         and type(api.GetReplicateItemInfo) == "function"
 end
 
+function BulkScan.RemainingCooldown(now)
+    -- Replication has its own shared limit; ordinary query readiness is not
+    -- permission to request another snapshot. Never infer it from quote age.
+    local state = type(Auctionator) == "table" and Auctionator.SavedState
+    local last = addon.db.lastReplicateResponseAt
+    local external = type(state) == "table" and state.TimeOfLastReplicateScan
+    local remaining = 0
+    for _, stamp in pairs({ own = last, auctionator = external }) do
+        if type(stamp) == "number" and stamp <= now and stamp > 0 then
+            remaining = math.max(remaining, REPLICATE_INTERVAL - (now - stamp))
+        end
+    end
+    return math.ceil(remaining)
+end
+
 function BulkScan.Install(scanner)
     if not BulkScan.Supported(scanner.api) then
         return
     end
     local frame = CreateFrame("Frame")
-    -- Older versions persisted a guessed replication lockout. Let the client's
-    -- readiness signal and the response timeout govern new requests instead.
+    -- Discard the old per-market guessed lockouts. Keep only observed snapshot
+    -- response times and Auctionator's guarded last-request timestamp.
     addon.db.replication = nil
     local engine = { scanner = scanner, frame = frame }
     BulkScan.engine = engine
@@ -75,6 +91,24 @@ function BulkScan.Install(scanner)
         end
         redraw()
     end
+    local function cooldownMessage()
+        local remaining = BulkScan.RemainingCooldown(scanner.runtime.wallTime())
+        if remaining > 0 then
+            return string.format(
+                L["Full scans share a cooldown. Try again in %d seconds, or use /wll scan deep."],
+                remaining
+            )
+        end
+    end
+    local function timeout(job)
+        if not job.waiting and not job.received then
+            finish(
+                L["No auction snapshot response. A recent full scan may be throttled; use provider prices or /wll scan deep."]
+            )
+        else
+            finish(L["Full scan did not complete. Retry when the auction house is idle."])
+        end
+    end
     local function process()
         local job = engine.job
         if not job then
@@ -83,7 +117,7 @@ function BulkScan.Install(scanner)
         local now = scanner.runtime.now()
         if now - (job.progressAt or job.startedAt) > TIMEOUT then
             -- Preserve completed estimates; never mark absent/partial rows sold out.
-            finish(L["Full scan did not complete. Retry when the auction house is idle."])
+            timeout(job)
             return
         end
         if not job.received then
@@ -215,6 +249,11 @@ function BulkScan.Install(scanner)
         if self.active or engine.job then
             return false, L["An auction scan is already running."]
         end
+        local cooldown = cooldownMessage()
+        if cooldown then
+            trace("scan.rejected", 0, "%s", cooldown)
+            return false, cooldown
+        end
         -- A bulk refresh must not launch a redundant per-item provider scan.
         addon.refreshJob, addon.pendingProviderScan, addon.providerDue = nil, nil, nil
         self.queue, self.pending, self.index = {}, nil, 1
@@ -257,6 +296,11 @@ function BulkScan.Install(scanner)
             return tick(self)
         end
         if job.waiting and self.api.IsThrottledMessageSystemReady() then
+            local cooldown = cooldownMessage()
+            if cooldown then
+                finish(cooldown)
+                return
+            end
             job.waiting = nil
             trace("scan.request", 0, "Sending ReplicateItems; waiting for auction snapshot")
             local ok, reason = self:Send("ReplicateItems")
@@ -267,13 +311,16 @@ function BulkScan.Install(scanner)
         -- Only the bulk frame processes rows, once per rendered frame. The core
         -- scheduler also calls Tick; doing work here doubles the frame budget.
         if engine.job and self.runtime.now() - (job.progressAt or job.startedAt) > TIMEOUT then
-            finish("Full scan did not complete. Retry when the auction house is idle.")
+            timeout(job)
         end
     end
     frame:RegisterEvent("REPLICATE_ITEM_LIST_UPDATE")
     frame:RegisterEvent("AUCTION_HOUSE_CLOSED")
     frame:SetScript("OnEvent", function(_, event, _, _)
         if event == "REPLICATE_ITEM_LIST_UPDATE" then
+            -- Record the shared response even when another addon owns it,
+            -- without reading or retaining any of its auction rows.
+            addon.db.lastReplicateResponseAt = scanner.runtime.wallTime()
             local job = engine.job
             if not job or job.received or job.waiting then
                 return
@@ -335,6 +382,10 @@ function BulkScan.Install(scanner)
     end
     if refreshList then
         function addon:RefreshList(view)
+            local refreshed = self:RefreshProviderPrices(view and view.kind)
+            if refreshed ~= nil then
+                return refreshed
+            end
             if
                 view
                 and view.visibleEntries

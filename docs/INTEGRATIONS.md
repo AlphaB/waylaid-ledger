@@ -1,11 +1,14 @@
 # Auction addon integrations
 
-## Current behavior (0.8.1)
+## Current behavior (0.8.5)
 
 Auctionator and TSM supply optional cached price estimates. Auto reuses fresh
 own snapshots, then provider estimates. Tab switches, missing prices, and unresolved
-descriptions do not schedule queries. Own scans require Refresh/a scan command,
-or the separate opt-in AH-open preference. An external full scan cancels pending
+descriptions do not schedule queries. Own scans require Refresh in Own/no-provider mode, an explicit scan command,
+or the separate opt-in AH-open preference. Refresh in Auto with an available
+provider or an available explicit provider mode reloads public cached quotes and
+cancels pending automatic queries. It does not invoke replication or a provider
+scan, even if some quotes are missing. An external full scan cancels pending
 automatic work for that AH visit. Forced provider modes retain their source policy.
 
 Auctionator autoscan is observed without reading or retaining its raw snapshot.
@@ -20,6 +23,13 @@ Tests execute Auctionator 347's unmodified event bus, event constants and DB cal
 Without these events, an observed external `ReplicateItems` call shows a waiting
 status and the public DB callback ends the wait. AH closure or 120 seconds without
 progress also releases the wait; neither path restarts automatic scanning.
+
+Auctionator 347's `Source_ModernAH/FullScan/Mixins/Frame.lua` gates replication
+using `SavedState.TimeOfLastReplicateScan` and a 15-minute interval. Waylaid checks
+that optional timestamp and its own persisted `lastReplicateResponseAt` before
+sending a full-scan request. A response updates the timestamp even when another
+addon owns it; no auction rows are read. Invalid/future timestamps are ignored.
+This is separate from ordinary query throttling. Detailed scans remain available.
 
 Row shopping prefers Auctionator advanced shopping; when unavailable, an ID-based
 basket opens `AuctionHouseFrame:SelectBrowseResult` and `QueryItem` with the
@@ -53,7 +63,7 @@ Contracts checked against the Forever branch on 2026-11-16:
 
 The earlier sections below record historical integration behavior. The scoped
 scanning section describes the detailed fallback; replication-capable clients
-use the full-snapshot refresh documented in [INGAME_DATA.md](INGAME_DATA.md).
+use the provider-aware refresh documented in [INGAME_DATA.md](INGAME_DATA.md).
 
 Implemented in version 0.2.0. Release sources inspected on 2026-11-15:
 

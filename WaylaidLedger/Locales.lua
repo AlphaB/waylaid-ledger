@@ -1695,41 +1695,107 @@ addon.Locales.esMX["Loaded. /wll opens the auction list at the AH, or settings e
 -- External scans are observed only for status; tab switches never query the AH.
 addon.Locales.deDE["Another addon is scanning."] = "Ein anderes Addon scannt."
 addon.Locales.deDE["Descriptions %d/%d"] = "Beschreibungen %d/%d"
-addon.Locales.deDE["Switching tabs uses saved prices. Click Refresh to scan."] =
-    "Tabwechsel verwenden gespeicherte Preise. Zum Scannen Aktualisieren anklicken."
+addon.Locales.deDE["Switching tabs uses saved prices. Click Refresh to update prices."] =
+    "Tabwechsel verwenden gespeicherte Preise. Zum Aktualisieren der Preise auf Aktualisieren klicken."
 addon.Locales.deDE["Auctionator: %d%%"] = "Auctionator: %d%%"
 addon.Locales.frFR["Another addon is scanning."] = "Un autre addon analyse les enchères."
 addon.Locales.frFR["Descriptions %d/%d"] = "Descriptions %d/%d"
-addon.Locales.frFR["Switching tabs uses saved prices. Click Refresh to scan."] =
-    "Changer d’onglet utilise les prix enregistrés. Cliquez sur Actualiser pour analyser."
+addon.Locales.frFR["Switching tabs uses saved prices. Click Refresh to update prices."] =
+    "Changer d’onglet utilise les prix enregistrés. Cliquez sur Actualiser pour actualiser les prix."
 addon.Locales.frFR["Auctionator: %d%%"] = "Auctionator: %d%%"
 addon.Locales.esES["Another addon is scanning."] = "Otro addon está escaneando."
 addon.Locales.esES["Descriptions %d/%d"] = "Descripciones %d/%d"
-addon.Locales.esES["Switching tabs uses saved prices. Click Refresh to scan."] =
-    "Cambiar de pestaña usa precios guardados. Pulsa Actualizar para escanear."
+addon.Locales.esES["Switching tabs uses saved prices. Click Refresh to update prices."] =
+    "Cambiar de pestaña usa precios guardados. Pulsa Actualizar para actualizar los precios."
 addon.Locales.esES["Auctionator: %d%%"] = "Auctionator: %d%%"
 addon.Locales.esMX["Another addon is scanning."] = "Otro addon está escaneando."
 addon.Locales.esMX["Descriptions %d/%d"] = "Descripciones %d/%d"
-addon.Locales.esMX["Switching tabs uses saved prices. Click Refresh to scan."] =
-    "Cambiar de pestaña usa precios guardados. Pulsa Actualizar para escanear."
+addon.Locales.esMX["Switching tabs uses saved prices. Click Refresh to update prices."] =
+    "Cambiar de pestaña usa precios guardados. Pulsa Actualizar para actualizar los precios."
 addon.Locales.esMX["Auctionator: %d%%"] = "Auctionator: %d%%"
 addon.Locales.ptBR["Another addon is scanning."] = "Outro addon está escaneando."
 addon.Locales.ptBR["Descriptions %d/%d"] = "Descrições %d/%d"
-addon.Locales.ptBR["Switching tabs uses saved prices. Click Refresh to scan."] =
-    "Trocar de aba usa preços salvos. Clique em Atualizar para escanear."
+addon.Locales.ptBR["Switching tabs uses saved prices. Click Refresh to update prices."] =
+    "Trocar de aba usa preços salvos. Clique em Atualizar para atualizar os preços."
 addon.Locales.ptBR["Auctionator: %d%%"] = "Auctionator: %d%%"
 addon.Locales.ruRU["Another addon is scanning."] = "Другой аддон сканирует аукцион."
 addon.Locales.ruRU["Descriptions %d/%d"] = "Описания %d/%d"
-addon.Locales.ruRU["Switching tabs uses saved prices. Click Refresh to scan."] =
-    "При смене вкладок используются сохранённые цены. Нажмите «Обновить» для сканирования."
+addon.Locales.ruRU["Switching tabs uses saved prices. Click Refresh to update prices."] =
+    "При смене вкладок используются сохранённые цены. Нажмите «Обновить» для обновления цен."
 addon.Locales.ruRU["Auctionator: %d%%"] = "Auctionator: %d%%"
 addon.Locales.koKR["Another addon is scanning."] = "다른 애드온이 검색 중입니다."
 addon.Locales.koKR["Descriptions %d/%d"] = "설명 %d/%d"
-addon.Locales.koKR["Switching tabs uses saved prices. Click Refresh to scan."] =
-    "탭 전환 시 저장된 가격을 사용합니다. 검색하려면 새로고침을 누르세요."
+addon.Locales.koKR["Switching tabs uses saved prices. Click Refresh to update prices."] =
+    "탭 전환 시 저장된 가격을 사용합니다. 가격을 갱신하려면 새로고침을 누르세요."
 addon.Locales.koKR["Auctionator: %d%%"] = "Auctionator: %d%%"
 addon.Locales.zhTW["Another addon is scanning."] = "其他插件正在掃描。"
 addon.Locales.zhTW["Descriptions %d/%d"] = "說明 %d/%d"
-addon.Locales.zhTW["Switching tabs uses saved prices. Click Refresh to scan."] =
-    "切換分頁會使用已儲存的價格。按重新整理即可掃描。"
+addon.Locales.zhTW["Switching tabs uses saved prices. Click Refresh to update prices."] =
+    "切換分頁會使用已儲存的價格。按重新整理即可更新價格。"
 addon.Locales.zhTW["Auctionator: %d%%"] = "Auctionator: %d%%"
+
+-- Provider refresh and the shared full-scan limit.
+addon.Locales.deDE["Reloaded %s cached prices. Run a scan in that addon for newer data."] =
+    "Gespeicherte Preise von %s neu geladen. Scanne in diesem Addon für neuere Daten."
+addon.Locales.deDE["Reload cached provider prices. Scan in that addon for newer data."] =
+    "Gespeicherte Anbieterpreise neu laden. Scanne in diesem Addon für neuere Daten."
+addon.Locales.deDE["Full scans share a cooldown. Try again in %d seconds, or use /wll scan deep."] =
+    "Vollständige Scans teilen sich eine Abklingzeit. Versuche es in %d Sekunden erneut oder nutze /wll scan deep."
+addon.Locales.deDE["No auction snapshot response. A recent full scan may be throttled; use provider prices or /wll scan deep."] =
+    "Keine Antwort auf die Auktionsabfrage. Ein kürzlicher vollständiger Scan kann weitere Anfragen begrenzen; nutze Anbieterpreise oder /wll scan deep."
+addon.Locales.frFR["Reloaded %s cached prices. Run a scan in that addon for newer data."] =
+    "Prix en cache de %s rechargés. Lancez une analyse dans cet addon pour des données plus récentes."
+addon.Locales.frFR["Reload cached provider prices. Scan in that addon for newer data."] =
+    "Recharger les prix en cache du fournisseur. Analysez dans cet addon pour des données plus récentes."
+addon.Locales.frFR["Full scans share a cooldown. Try again in %d seconds, or use /wll scan deep."] =
+    "Les analyses complètes partagent un délai. Réessayez dans %d secondes ou utilisez /wll scan deep."
+addon.Locales.frFR["No auction snapshot response. A recent full scan may be throttled; use provider prices or /wll scan deep."] =
+    "Aucune réponse pour les données des enchères. Une analyse complète récente peut limiter les requêtes ; utilisez les prix du fournisseur ou /wll scan deep."
+addon.Locales.esES["Reloaded %s cached prices. Run a scan in that addon for newer data."] =
+    "Precios guardados de %s recargados. Ejecuta un análisis en ese addon para obtener datos más recientes."
+addon.Locales.esES["Reload cached provider prices. Scan in that addon for newer data."] =
+    "Recargar precios guardados del proveedor. Analiza en ese addon para obtener datos más recientes."
+addon.Locales.esES["Full scans share a cooldown. Try again in %d seconds, or use /wll scan deep."] =
+    "Los análisis completos comparten un tiempo de espera. Reintenta en %d segundos o usa /wll scan deep."
+addon.Locales.esES["No auction snapshot response. A recent full scan may be throttled; use provider prices or /wll scan deep."] =
+    "No se recibió respuesta con los datos de la subasta. Un análisis completo reciente puede limitar las peticiones; usa precios del proveedor o /wll scan deep."
+addon.Locales.ptBR["Reloaded %s cached prices. Run a scan in that addon for newer data."] =
+    "Preços armazenados de %s recarregados. Faça uma busca nesse addon para obter dados mais recentes."
+addon.Locales.ptBR["Reload cached provider prices. Scan in that addon for newer data."] =
+    "Recarregar preços armazenados do provedor. Faça uma busca nesse addon para obter dados mais recentes."
+addon.Locales.ptBR["Full scans share a cooldown. Try again in %d seconds, or use /wll scan deep."] =
+    "Buscas completas compartilham um intervalo. Tente em %d segundos ou use /wll scan deep."
+addon.Locales.ptBR["No auction snapshot response. A recent full scan may be throttled; use provider prices or /wll scan deep."] =
+    "Nenhuma resposta com os dados do leilão. Uma busca completa recente pode limitar as solicitações; use preços do provedor ou /wll scan deep."
+addon.Locales.ruRU["Reloaded %s cached prices. Run a scan in that addon for newer data."] =
+    "Сохранённые цены %s обновлены. Для новых данных запустите сканирование в этом аддоне."
+addon.Locales.ruRU["Reload cached provider prices. Scan in that addon for newer data."] =
+    "Перечитать сохранённые цены поставщика. Для новых данных запустите сканирование в этом аддоне."
+addon.Locales.ruRU["Full scans share a cooldown. Try again in %d seconds, or use /wll scan deep."] =
+    "У полных сканирований общий интервал ожидания. Повторите через %d сек. или используйте /wll scan deep."
+addon.Locales.ruRU["No auction snapshot response. A recent full scan may be throttled; use provider prices or /wll scan deep."] =
+    "Ответ с данными аукциона не получен. Недавнее полное сканирование может ограничивать запросы; используйте цены поставщика или /wll scan deep."
+addon.Locales.koKR["Reloaded %s cached prices. Run a scan in that addon for newer data."] =
+    "%s의 저장된 가격을 다시 불러왔습니다. 최신 데이터는 해당 애드온에서 검색하세요."
+addon.Locales.koKR["Reload cached provider prices. Scan in that addon for newer data."] =
+    "제공자의 저장된 가격을 다시 불러옵니다. 최신 데이터는 해당 애드온에서 검색하세요."
+addon.Locales.koKR["Full scans share a cooldown. Try again in %d seconds, or use /wll scan deep."] =
+    "전체 검색은 대기 시간을 공유합니다. %d초 후 다시 시도하거나 /wll scan deep을 사용하세요."
+addon.Locales.koKR["No auction snapshot response. A recent full scan may be throttled; use provider prices or /wll scan deep."] =
+    "경매장 데이터 응답이 없습니다. 최근 전체 검색으로 요청이 제한될 수 있습니다. 제공자 가격 또는 /wll scan deep을 사용하세요."
+addon.Locales.zhTW["Reloaded %s cached prices. Run a scan in that addon for newer data."] =
+    "已重新載入 %s 的快取價格。請在該插件中掃描以取得較新資料。"
+addon.Locales.zhTW["Reload cached provider prices. Scan in that addon for newer data."] =
+    "重新載入提供者的快取價格。請在該插件中掃描以取得較新資料。"
+addon.Locales.zhTW["Full scans share a cooldown. Try again in %d seconds, or use /wll scan deep."] =
+    "完整掃描共用冷卻時間。請於 %d 秒後重試，或使用 /wll scan deep。"
+addon.Locales.zhTW["No auction snapshot response. A recent full scan may be throttled; use provider prices or /wll scan deep."] =
+    "未收到拍賣場資料回應。近期的完整掃描可能限制請求；請使用提供者價格或 /wll scan deep。"
+addon.Locales.esMX["Reloaded %s cached prices. Run a scan in that addon for newer data."] =
+    addon.Locales.esES["Reloaded %s cached prices. Run a scan in that addon for newer data."]
+addon.Locales.esMX["Reload cached provider prices. Scan in that addon for newer data."] =
+    addon.Locales.esES["Reload cached provider prices. Scan in that addon for newer data."]
+addon.Locales.esMX["Full scans share a cooldown. Try again in %d seconds, or use /wll scan deep."] =
+    addon.Locales.esES["Full scans share a cooldown. Try again in %d seconds, or use /wll scan deep."]
+addon.Locales.esMX["No auction snapshot response. A recent full scan may be throttled; use provider prices or /wll scan deep."] =
+    addon.Locales.esES["No auction snapshot response. A recent full scan may be throttled; use provider prices or /wll scan deep."]

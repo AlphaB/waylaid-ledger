@@ -269,6 +269,8 @@ function Browse.Create(host, kind)
                 1,
                 true
             )
+        elseif addon:RefreshPriceProvider(view.kind) then
+            GameTooltip:AddLine(L["Reload cached provider prices. Scan in that addon for newer data."], 1, 1, 1, true)
         elseif addon.BulkScan.Supported(addon.scanner.api) then
             GameTooltip:AddLine(
                 L["Request one full auction-house snapshot to update both lists. The search filter only changes the displayed rows."],

@@ -11,7 +11,7 @@ GetBuildInfo = function()
     return "1", "2", "3", 16001
 end
 time = function()
-    return 1000
+    return 1000 + now
 end
 CreateFrame = function()
     local frame = { scripts = {} }
@@ -98,8 +98,9 @@ collectgarbage("collect")
 local baseline = collectgarbage("count")
 local peak, elapsed = baseline, 0
 for _ = 1, 3 do
+    now = now + 901
     local started = os.clock()
-    scanner:Start({})
+    assert(scanner:Start({}))
     local frame = addon.BulkScan.engine.frame
     frame.scripts.OnEvent(frame, "REPLICATE_ITEM_LIST_UPDATE")
     local ticks = 0

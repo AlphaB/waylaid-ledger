@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.5
+
+- Make Refresh reload public cached prices in Auto/provider modes instead of requesting a second full snapshot after Auctionator autoscan.
+- Preserve Own/custom-profile scans and explicit scan commands; missing provider quotes never start an implicit scan.
+- Guard own full scans using observed snapshot response times and Auctionator’s saved request time, independently of ordinary query readiness.
+- Explain the shared cooldown and distinguish an unanswered snapshot request from stalled processing; detailed per-item scans remain available.
+- Localize provider-refresh guidance and new messages; add regression coverage for post-autoscan Refresh, cooldowns, reload state, and scan ownership.
+
 ## 0.8.4
 
 - Hand controller focus to Search when opening Waylaid or switching category tabs.
