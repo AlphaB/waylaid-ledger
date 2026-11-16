@@ -52,9 +52,10 @@ local function appendRows(tooltip, rows, detailed, compare)
     end
 end
 
-function Tooltip.Append(tooltip, itemID)
+function Tooltip.Append(tooltip, itemID, data)
+    if tooltip.waylaidLedgerItemID == itemID then return end
     addon.Discovery.Observe(itemID)
-    addon.Discovery.Read(itemID)
+    addon.Discovery.Read(itemID, data and data.lines and data)
     local writ = addon.Writs[itemID]
     if not addon.db or (writ and addon.db.writSource == "off")
         or (not writ and not addon.Crates[itemID] and itemID ~= 248549) then
@@ -65,9 +66,6 @@ function Tooltip.Append(tooltip, itemID)
         tooltip:HookScript("OnTooltipCleared", function(self)
             self.waylaidLedgerItemID = nil
         end)
-    end
-    if tooltip.waylaidLedgerItemID == itemID then
-        return
     end
     tooltip.waylaidLedgerItemID = itemID
     if itemID == 248549 then
@@ -125,7 +123,7 @@ function Tooltip.Install()
                 return
             end
             if type(itemID) == "number" then
-                Tooltip.Append(tooltip, itemID)
+                Tooltip.Append(tooltip, itemID, data)
             end
         end)
         return true

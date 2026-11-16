@@ -4,6 +4,22 @@ local _, addon = ...
 -- catalog. Indexes contain localized names observed in bags, tooltips or the AH.
 addon.Discovery = { names = {}, pending = {}, candidates = {} }
 local Discovery = addon.Discovery
+local BATCH, BUDGET_MS = 5, 2
+local queue, queued, cursor = {}, {}, 1
+local retryRequested, dirty = false, false
+local reading, tooltipItems, itemTooltips = {}, {}, {}
+local process
+
+local function wake()
+    if Discovery.frame then Discovery.frame:SetScript("OnUpdate", process) end
+end
+
+local function enqueue(itemID)
+    if not queued[itemID] then
+        queue[#queue + 1], queued[itemID] = itemID, true
+    end
+    wake()
+end
 
 local function text(value)
     if issecretvalue and issecretvalue(value) then return nil end
@@ -23,7 +39,7 @@ function Discovery.Observe(itemID, name)
     name = text(name or (C_Item and C_Item.GetItemNameByID(itemID)))
     if not name or name == "" then
         if C_Item and C_Item.RequestLoadItemDataByID then C_Item.RequestLoadItemDataByID(itemID) end
-        return
+        return false
     end
     local previous = Discovery.names[name]
     -- Never guess between distinct items that have the same localized name.
@@ -38,6 +54,7 @@ function Discovery.Observe(itemID, name)
         Discovery.candidates[itemID] = kind
         Discovery.pending[itemID] = true
     end
+    return previous == nil or (previous ~= false and previous ~= itemID)
 end
 
 local function cleanName(name)
@@ -114,17 +131,28 @@ end
 
 function Discovery.Read(itemID, data)
     local kind = Discovery.candidates[itemID]
-    if not kind then return false end
+    if not kind or reading[itemID] then return false end
+    reading[itemID] = true
     if not data and C_TooltipInfo and C_TooltipInfo.GetItemByID then
         data = C_TooltipInfo.GetItemByID(itemID)
     end
+    local oldInstance = itemTooltips[itemID]
+    if oldInstance then tooltipItems[oldInstance] = nil end
+    local instance = data and data.dataInstanceID
+    if instance and not (issecretvalue and issecretvalue(instance)) then
+        tooltipItems[instance], itemTooltips[itemID] = itemID, instance
+    else
+        itemTooltips[itemID] = nil
+    end
     if not data then
         if C_Item and C_Item.RequestLoadItemDataByID then C_Item.RequestLoadItemDataByID(itemID) end
+        reading[itemID] = nil
         return false
     end
     local definitions = kind == "crates" and addon.Crates or addon.Writs
     local definition = definitions[itemID]
     local requirements, reason = Discovery.Parse(data.lines, kind, itemID)
+    reading[itemID] = nil
     if not requirements then
         Discovery.pending[itemID] = true
         definition.unresolved, definition.reason = true, reason
@@ -148,15 +176,43 @@ function Discovery.Read(itemID, data)
     return true
 end
 
-function Discovery.Retry(limit)
-    local ids = {}
-    for itemID in pairs(Discovery.pending) do ids[#ids + 1] = itemID end
-    table.sort(ids)
-    local learned = 0
-    for index = 1, math.min(#ids, limit or #ids) do
-        if Discovery.Read(ids[index]) then learned = learned + 1 end
+-- Events only request work. A full scan can load thousands of unrelated items;
+-- never parse the entire pending catalog inside each item/tooltip callback.
+function Discovery.Retry()
+    retryRequested = true
+    wake()
+end
+
+process = function()
+    -- Plain-name requirements need the complete market name index first.
+    if addon.BulkScan and addon.BulkScan.engine and addon.BulkScan.engine.job then return end
+    if retryRequested then
+        retryRequested = false
+        for itemID in pairs(Discovery.pending) do enqueue(itemID) end
     end
-    return learned
+    local started = debugprofilestop and debugprofilestop()
+    local attempts = 0
+    while cursor <= #queue and attempts < BATCH do
+        local itemID = queue[cursor]
+        cursor = cursor + 1
+        if Discovery.pending[itemID] then
+            Discovery.Read(itemID)
+            dirty = true
+            attempts = attempts + 1
+        end
+        queued[itemID] = nil
+        if started and debugprofilestop() - started >= BUDGET_MS then break end
+    end
+    if cursor <= #queue or retryRequested then return end
+    queue, queued, cursor = {}, {}, 1
+    Discovery.frame:SetScript("OnUpdate", nil)
+    -- One redraw per wave, including invalidated definitions. Failed parses stay
+    -- pending but sleep until new item data, names or a later scan arrive.
+    if dirty then
+        dirty = false
+        if addon.UI then addon.UI.Update() end
+        if addon.Tooltip then addon.Tooltip.Refresh() end
+    end
 end
 
 function Discovery.Bags()
@@ -189,27 +245,34 @@ function Discovery.Install()
     Discovery.Bags()
     local frame = CreateFrame("Frame")
     Discovery.frame = frame
+    if retryRequested then wake() end
     for _, event in ipairs({"ITEM_DATA_LOAD_RESULT", "TOOLTIP_DATA_UPDATE", "BAG_UPDATE_DELAYED",
         "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED", "AUCTION_HOUSE_BROWSE_RESULTS_ADDED"}) do frame:RegisterEvent(event) end
     frame:SetScript("OnEvent", function(_, event, itemID, success)
-        local touched = false
         if event == "ITEM_DATA_LOAD_RESULT" then
             if not success then return end
-            Discovery.Observe(itemID)
-            touched = Discovery.candidates[itemID] ~= nil
+            local changed = Discovery.Observe(itemID)
+            if Discovery.candidates[itemID] then
+                enqueue(itemID)
+            elseif changed then
+                Discovery.Retry()
+            end
+        elseif event == "TOOLTIP_DATA_UPDATE" then
+            if issecretvalue and issecretvalue(itemID) then return end
+            -- This event carries a tooltip instance ID, not an item ID.
+            local candidate = tooltipItems[itemID]
+            if not candidate or reading[candidate] then return end
+            Discovery.pending[candidate] = true
+            enqueue(candidate)
         elseif event == "BAG_UPDATE_DELAYED" then
             Discovery.Bags()
-            touched = true
         elseif event == "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED" or event == "AUCTION_HOUSE_BROWSE_RESULTS_ADDED" then
             if C_AuctionHouse and C_AuctionHouse.GetBrowseResults then
                 for _, row in ipairs(C_AuctionHouse.GetBrowseResults() or {}) do
                     if row.itemKey then Discovery.Observe(row.itemKey.itemID) end
                 end
             end
-        end
-        if Discovery.Retry() > 0 or touched then
-            if addon.UI then addon.UI.Update() end
-            if addon.Tooltip then addon.Tooltip.Refresh() end
+            Discovery.Retry()
         end
     end)
 end

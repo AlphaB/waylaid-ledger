@@ -37,6 +37,12 @@ IDs are used when present; plain names must match exactly and unambiguously in
 the observed localized name index. Requirements are read after the whole AH name
 index is built, independently of auction row order. Missing item data retries on
 item-load/tooltip events, further observations, provider updates, and later scans.
+Retries are coalesced and deferred: each frame reads at most five descriptions,
+yielding sooner after two milliseconds. Unrelated tooltip instance updates and
+unchanged ordinary item loads do not retry the catalog. Candidate tooltip updates
+retry only that item; unresolved descriptions sleep until another relevant signal.
+UI updates occur once after a retry wave, and displayed tooltip data is reused
+instead of fetched again.
 
 Crate entries are alternatives; writ requirements are cumulative. A missing,
 ambiguous, unsupported, duplicate or invalid requirement invalidates the entire
@@ -54,7 +60,10 @@ can be resolved. The addon does not infer requirements from crafting recipes.
 
 `C_AuctionHouse.ReplicateItems()` requests the market once. Replicate rows are
 zero-indexed; quantity is return 3, total buyout return 10, and item ID return 17.
-The scan indexes 250 rows per processing call, yielding between batches. Only
+The scan indexes at most 250 rows per frame, yielding sooner after two milliseconds.
+Row processing runs only on the scan frame, rather than also inside response events
+and the main scheduler. The 30-second timeout measures lack of progress, so a large
+snapshot that continues to advance can finish across more frames. Only
 minimum positive unit prices are retained; bid-only and invalid prices are skipped.
 No missing/partial row becomes a verified sold-out result.
 
@@ -76,7 +85,10 @@ hyperlink resolution, large quantities, ambiguity, late data and invalidation.
 The bulk test feeds 6,000 auctions in 24 batches using one replication request;
 this is a request-count/batching regression, not a measured live-server timing.
 Tests also cover passive reuse, minimum prices, fresh-shortage preservation,
-cooldown, cancellation and timeout. Legacy UI/pricing tests use synthetic catalogs
+cooldown, cancellation and timeout. Event-burst tests cover 180 unresolved
+descriptions, targeted tooltip updates, retry coalescing, reentry and elapsed-time
+budgets using a simulated clock. These do not measure live client frame times.
+Legacy UI/pricing tests use synthetic catalogs
 that are injected only by the test runner and excluded from install packages.
 
 Primary contracts checked against the Forever client source and Auctionator 347:

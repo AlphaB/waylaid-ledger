@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Defer and coalesce delivery parsing during full scans; ignore unrelated tooltip updates.
+- Bound description retries and replication reads per frame, with elapsed-time budgets.
+- Reuse displayed tooltip descriptions and refresh the UI once per retry wave.
+- Let progressing large snapshots finish without hitting a total-duration timeout.
+
 ## 0.7.0
 
 - Own scanning and quantity-aware prices for writ deliveries and writ/crate purchases.
