@@ -119,6 +119,7 @@ function Browse.Render(view, resetFocus)
     local scanner = addon.scanner
     view.summary:SetText(scanner.active and string.format(L["Scanning %d/%d"], scanner.index, #scanner.queue)
         or string.format(L["%d priced / %d items"], priced, #visible))
+    addon.Localization.ButtonText(view.refreshButton, scanner.active and L["Stop"] or L["Refresh"])
     if view.scanButton then view.scanButton:SetEnabled(scanner.open and not scanner.active) end
     if view.stopButton then view.stopButton:SetEnabled(scanner.active or addon.autoDue ~= nil) end
     view.empty:SetShown(#visible == 0)
@@ -161,15 +162,16 @@ function Browse.Create(host, kind)
     local refresh = CreateFrame("Button", nil, host, "UIPanelButtonTemplate")
     refresh:SetSize(75, 22); refresh:SetPoint("TOPRIGHT", -100, -8); addon.Localization.ButtonText(refresh, L["Refresh"])
     refresh:SetScript("OnClick", function()
-        addon.Providers.Invalidate(); Browse.Refresh(view)
-        addon.autoPaused = false
-        addon:RequestBrowseScan()
+        if addon.scanner.active then addon:StopScan() else addon:RefreshList(view) end
     end)
     refresh:SetScript("OnEnter", function(self)
         if not GameTooltip then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine(L["Refresh list"], 1, 0.82, 0)
-        GameTooltip:AddLine(L["Refresh saved prices; scan missing or stale prices when providers have no current data."], 1, 1, 1, true)
+        GameTooltip:AddLine(L["Refresh prices for this list. Uses a full AH snapshot when supported; otherwise scans its items."], 1, 1, 1, true)
+        GameTooltip:AddLine(addon.BulkScan.engine and L["Full AH scans respect the server cooldown; saved prices remain available."]
+            or (addon.db.refreshAuctionator and L["Then open a limited Auctionator Shopping search when available."]
+                or L["Own scanner only. Auctionator follow-up is configurable in Settings."]), 0.7, 0.7, 0.7, true)
         GameTooltip:Show()
     end)
     refresh:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)

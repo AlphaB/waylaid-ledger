@@ -114,7 +114,31 @@ local function fixture()
         list:OnEvent("COMMODITY_SEARCH_RESULTS_RECEIVED", id)
         list:RefreshScrollFrame()
     end
+    state.env, state.ah = env, ah
     return native, list, display, state
+end
+
+if UPSTREAM_FOREVER_UI["Blizzard_AuctionHouseFrame.lua"] then
+    test("native gear handoff routes through Forever's actual item-variant query contract", function()
+        local native, _, _, state = fixture()
+        local env, ah = state.env, state.ah
+        local source = UPSTREAM_FOREVER_UI["Blizzard_AuctionHouseFrame.lua"]
+        local query = assert(source:match("(function AuctionHouseFrameMixin:QueryItem%b()%s*.-\nend)"))
+        env.AreSortTypesLoaded = function() return true end
+        env.GetSortTypes = function() return {} end
+        setfenv(assert(loadstring(query, "Forever/QueryItem")), env)()
+        ah.QueryItem = env.AuctionHouseFrameMixin.QueryItem
+        ah.activeSearches, ah.ItemBuyFrame = {}, { ItemList = {} }
+        env.C_AuctionHouse.GetItemKeyInfo = function() return { isCommodity=false, isEquipment=true } end
+        local sellQueries, ordinaryQueries = 0, 0
+        env.C_AuctionHouse.SendSellSearchQuery = function(key)
+            equal(key.itemID,4245);sellQueries=sellQueries+1
+        end
+        env.C_AuctionHouse.SendSearchQuery = function() ordinaryQueries=ordinaryQueries+1 end
+        equal(native.OpenItem({itemID=4245,quantity=1}),true)
+        equal(sellQueries,1);equal(ordinaryQueries,0)
+        equal(ah.activeSearches[env.AuctionHouseSearchContext.BuyItems][3],true)
+    end)
 end
 
 test("native shopping preserves 200 units through actual Forever cached-zero list and display refreshes", function()

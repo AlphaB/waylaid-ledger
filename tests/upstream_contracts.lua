@@ -64,6 +64,11 @@ if UPSTREAM_AUCTIONATOR then
         equal(shoppingClicks,3);equal(#basketTerms,2)
         equal(basketTerms[1].searchString,addon.Crates[248683].name);equal(basketTerms[1].quantity,1)
         equal(basketTerms[2].searchString,"Tin Ore");equal(basketTerms[2].quantity,20)
+        basketTerms={}
+        equal(addon.Providers.ScanItems({8069,264037},{[8069]=200,[264037]=1}),true)
+        equal(shoppingClicks,4);equal(#basketTerms,2)
+        equal(basketTerms[1].searchString,"Crafted Solid Shot");equal(basketTerms[1].quantity,200)
+        equal(basketTerms[2].searchString,"Craftsman's Writ: Crafted Solid Shot");equal(basketTerms[2].quantity,1)
         Auctionator=nil;addon.Providers.boundAPI=nil;addon.Providers.Invalidate()
     end)
 end
@@ -93,5 +98,30 @@ if UPSTREAM_TSM then
         equal(addon.Providers.Read("tsm",2770).unitPrice,250)
         equal(calls[2][1],"DBMarket")
         addon.db.tsmKey="DBMinBuyout";TSM_API=nil;addon.Providers.Invalidate()
+    end)
+end
+
+if UPSTREAM_TSM_GROUP_IMPORT then
+    test("TSM export parses through the released TSM group/item-list parser",function()
+        local class={__private={},__static={}}
+        local services={
+            Group={GetRootPath=function() return "" end,GetParent=function() return nil end},
+            ["Item.ItemString"]={Get=function(value) return value:match("^i:%d+$") and value or nil end},
+            ["Lua.String"]={SplitIterator=function(value) return value:gmatch("[^,]+") end},
+            ["Util.Log"]={Err=function(message) error(message) end},
+        }
+        local lib={DefineClassType=function() return class end}
+        function lib:Include(name) return services[name] or {} end
+        function lib:IncludeClassType() return {} end
+        function lib:From() return self end
+        local oldStub=LibStub;LibStub=function() return {} end
+        gsub=string.gsub;strmatch=string.match;strtrim=function(s) return s:match("^%s*(.-)%s*$") end
+        local ok,err=pcall(function()
+            assert(loadstring(UPSTREAM_TSM_GROUP_IMPORT,"TradeSkillMaster/LibTSMTypes/Source/ImportExport/GroupImport.lua"))("TradeSkillMaster",{LibTSMTypes=lib})
+            local items,groups,invalid=class.__private:_DecodeGroupExportHelper("group:Waylaid Ledger - writs,i:8069,i:264037")
+            equal(items["i:8069"],"Waylaid Ledger - writs");equal(items["i:264037"],"Waylaid Ledger - writs")
+            equal(groups["Waylaid Ledger - writs"],true);equal(invalid,0)
+        end)
+        LibStub=oldStub;assert(ok,err)
     end)
 end

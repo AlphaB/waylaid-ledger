@@ -8,12 +8,7 @@ local Shopping = addon.Shopping
 local function purchaseQuote(kind, itemID)
     local mode = Shopping.Source(kind)
     if mode == "off" then return nil end
-    local market = addon:GetMarket()
-    local rows = addon.Pricing.Resolve({ options = {{ itemID = itemID, quantity = 1 }} },
-        market.items, time(), addon.db.maxAge, market.failures, mode, function(source, id)
-            if addon.db.profile == "default" then return addon.Providers.Read(source, id) end
-        end)
-    return rows[1]
+    return addon:ResolveRows({{ itemID = itemID, quantity = 1 }}, mode)[1]
 end
 
 function Shopping.Source(kind)

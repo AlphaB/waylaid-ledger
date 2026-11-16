@@ -308,6 +308,7 @@ end
 
 function UI.UpdateSettings()
     if not UI.settingsChecks then return end
+    addon.Localization.ButtonText(UI.refreshModeButton, addon.db.refreshAuctionator and L["Refresh: Own + Auctionator"] or L["Refresh: Own scan"])
     addon.Localization.ButtonText(UI.writSourceButton, string.format(L["Writ prices: %s"], L[SOURCE_LABELS[addon.db.writSource] or L["Off"]]))
     addon.Localization.ButtonText(UI.crateSourceButton, string.format(L["Crate prices: %s"], L[SOURCE_LABELS[addon.db.source]]))
     addon.Localization.ButtonText(UI.settingsTSM, string.format(L["TSM price: %s"], addon.db.tsmKey))
@@ -325,7 +326,7 @@ function UI.RegisterSettings()
     if UI.settingsCategory then return true end
     if not Settings or not Settings.RegisterCanvasLayoutCategory or not Settings.RegisterAddOnCategory then return false end
     local frame = CreateFrame("Frame", nil, UIParent)
-    frame:SetSize(620, 470)
+    frame:SetSize(620, 500)
     frame:Hide()
     local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 18, -16)
@@ -369,9 +370,13 @@ function UI.RegisterSettings()
         addon.db.inventory = { characters = {}, sharedBanks = {} }
         addon.Inventory.CaptureBags(); addon.Inventory.CaptureBank(); UI.Update()
     end)
+    UI.refreshModeButton = button(frame, L["Refresh mode"], 18, -374, 220, function()
+        addon:SetFeature("auctionatorfollowup", not addon.db.refreshAuctionator)
+    end)
+    button(frame, L["TSM group export"], 250, -374, 220, function() addon:ExportTSM() end)
     local note = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    note:SetPoint("TOPLEFT", 18, -388)
-    note:SetPoint("TOPRIGHT", -18, -388)
+    note:SetPoint("TOPLEFT", 18, -420)
+    note:SetPoint("TOPRIGHT", -18, -420)
     note:SetJustifyH("LEFT")
     note:SetText(L["Offline inventory is a last-seen snapshot. Log into each character and visit their bank once to update it."])
     frame:SetScript("OnShow", UI.UpdateSettings)
@@ -386,7 +391,7 @@ function UI.ToggleSettings()
     else addon:Print(L["WoW's AddOns settings are unavailable on this client."]) end
 end
 
-function UI.ShowReport(text)
+function UI.ShowReport(text, title)
     if not UI.report then
         local frame = CreateFrame("Frame", "WaylaidLedgerReportFrame", UIParent, "BasicFrameTemplateWithInset")
         frame:SetSize(640, 440)
@@ -409,6 +414,7 @@ function UI.ShowReport(text)
         frame:Hide()
         addon.Navigation.RegisterWindow(frame)
     end
+    UI.report.TitleText:SetText(title or L["Waylaid Ledger - select and copy with Ctrl+C / Cmd+C"])
     UI.reportEdit:SetText(text)
     UI.report:Show()
     UI.reportEdit:SetFocus()

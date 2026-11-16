@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Preserve equipment variant queries, complete contract/inventory scopes, scoped refresh and TSM export.
+- Cover native equipment handoff with the unmodified Forever query contract.
+
 - Translate controls, settings, tooltips, baskets and scan status into every official client language.
 - Automatically select the client locale, with English fallback and stable command/settings values.
 - Fit longer button labels, wrap settings text and reflow basket instructions.

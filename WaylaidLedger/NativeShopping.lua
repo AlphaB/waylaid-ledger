@@ -81,7 +81,7 @@ function Native.OpenItem(requirement)
         watchQuantity(requirement.itemID, requirement.quantity)
     end
     Native.issuing = true
-    local ok, reason = pcall(AuctionHouseFrame.QueryItem, AuctionHouseFrame, context, key)
+    local ok, reason = pcall(AuctionHouseFrame.QueryItem, AuctionHouseFrame, context, key, info.isEquipment == true)
     Native.issuing = false
     if not ok then Native.pendingQuantity = nil; return false, string.format(L["Could not open the auction search: %s"], tostring(reason)) end
     if info.isCommodity then

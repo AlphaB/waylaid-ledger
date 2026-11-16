@@ -25,7 +25,7 @@ local function fixture(action)
     old.keyInfo=api.GetItemKeyInfo
     old.full,old.num,old.row,old.ready,old.quantity=api.HasFullCommoditySearchResults,api.GetNumCommoditySearchResults,
         api.GetCommoditySearchResultInfo,api.IsThrottledMessageSystemReady,api.GetCommoditySearchResultsQuantity
-    api.GetItemKeyInfo=function() if not f.infoMissing then return {isCommodity=f.commodity} end end
+    api.GetItemKeyInfo=function() if not f.infoMissing then return {isCommodity=f.commodity,isEquipment=f.equipment} end end
     api.IsThrottledMessageSystemReady=function() return f.ready end
     api.GetCommoditySearchResultsQuantity=function() return f.stock or 1000 end
     AuctionHouseSearchContext={BuyCommodities=1,BuyItems=2}
@@ -44,8 +44,8 @@ local function fixture(action)
     end
     AuctionHouseFrame.ItemBuyFrame={}
     AuctionHouseFrame.SelectBrowseResult=function(_,result) f.selected=result.itemKey.itemID end
-    AuctionHouseFrame.QueryItem=function(_,context,key)
-        f.queries[#f.queries+1]={context=context,id=key.itemID}
+    AuctionHouseFrame.QueryItem=function(_,context,key,byItemID)
+        f.queries[#f.queries+1]={context=context,id=key.itemID,byItemID=byItemID}
         addon.scanner:ExternalQuery()
     end
     function f.snapshot(id,quantity,price,age)
@@ -123,6 +123,18 @@ test("standalone scan catalogs cover purchases, all alternatives and all writ go
         local ids=addon.Shopping.ScanItems("crates",false,248683)
         equal(#ids,3);equal(ids[1],2770);equal(ids[2],2771);equal(ids[3],248683)
         equal(#addon.Shopping.ScanItems("writs",false,264037),2)
+    end)
+end)
+
+test("native equipment baskets query all item variants while commodities keep their exact query",function()
+    fixture(function(f)
+        f.commodity,f.equipment=false,true
+        equal(addon.NativeShopping.OpenItem({itemID=4245,quantity=1}),true)
+        equal(f.queries[1].byItemID,true)
+        f.commodity,f.equipment=true,false
+        equal(addon.NativeShopping.OpenItem({itemID=8069,quantity=200}),true)
+        equal(f.queries[2].byItemID,false)
+        equal(f.quantity,200)
     end)
 end)
 

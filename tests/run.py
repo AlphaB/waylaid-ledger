@@ -36,9 +36,12 @@ try:
     if args.tsm:
         with zipfile.ZipFile(args.tsm) as archive:
             lua.globals().UPSTREAM_TSM = archive.read('TradeSkillMaster/App/API.lua').decode()
+            lua.globals().UPSTREAM_TSM_GROUP_IMPORT = archive.read('TradeSkillMaster/LibTSMTypes/Source/ImportExport/GroupImport.lua').decode()
     if args.forever_ui:
         names = ['Blizzard_AuctionHouseCommoditiesList.lua',
                  'Blizzard_AuctionHouseCommoditiesBuyFrame.lua']
+        if (args.forever_ui / 'Blizzard_AuctionHouseFrame.lua').exists():
+            names.append('Blizzard_AuctionHouseFrame.lua')
         lua.globals().UPSTREAM_FOREVER_UI = lua.table_from({
             name: (args.forever_ui / name).read_text() for name in names
         })

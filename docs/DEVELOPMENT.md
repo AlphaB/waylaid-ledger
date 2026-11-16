@@ -191,3 +191,28 @@ controls. No custom settings dialog or extra slash-command state is created.
 Tests simulate a recycled visible-row pool, confirm post-filter click quantities,
 check header bounds and hover stability, and validate official-category routing.
 Actual client template rendering still requires the user's live check.
+
+## Expanded scan engine (v0.7.0)
+
+`Catalog.ScanItems` derives IDs and maximum target quantities from the learned
+catalogs. Manual/Refresh scopes include contracts and goods; the existing
+AH-opening/tracked automatic refresh remains the 96-material crate refresh to
+avoid silently increasing background queries. Explicit all/writ/crate scans
+cover 424/300/126 IDs. Bag/tracked/hovered manual scopes include writs too.
+
+`ResolveRows` centralizes market isolation and source policy. Writ objectives
+are cumulative and purchases are one-unit quotes from the same persisted own
+snapshots/provider resolution as deliveries. Fresh own shortages are not
+replaced with provider unit estimates in Auto.
+
+`Scanner.Tick` classifies items with `GetItemKeyInfo`; equipment uses
+`SendSellSearchQuery` with the base item key to include gear variants. Local item-class data provides a fallback before AH metadata is available. Missing
+classification waits for item data (within the existing job timeout), and a
+missing required API records failure instead of a false empty snapshot.
+
+Refresh freezes filtered IDs/quantities and runs one own queue. On natural
+completion, an optional provider job is deferred to the scheduler so it cannot
+run inside an own-query callback. It validates the market/open state before
+opening Auctionator Shopping. Every explicit stop/context interruption clears
+active and pending provider jobs. TSM export is copy-only; its import parser is
+validated in an optional release-source contract test.

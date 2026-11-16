@@ -130,3 +130,22 @@ function Providers.Search(terms, listName, requireTabSwitch)
     end
     return true
 end
+
+-- This public API opens Auctionator Shopping and starts an exact-item search.
+-- It is a limited scan handoff, not a silent/full-database scan or a purchase.
+function Providers.ScanTerms(items, quantities)
+    local terms = {}
+    for _, id in ipairs(items) do
+        local name = addon.Catalog.SearchName(id)
+        if not name then return nil, L["Item names are loading; retry the Auctionator scan shortly."] end
+        terms[#terms + 1] = { searchString = name, categoryKey = "", isExact = true, quantity = quantities[id] or 1 }
+    end
+    if #terms == 0 then return nil, L["No matching items to scan."] end
+    return terms
+end
+
+function Providers.ScanItems(items, quantities)
+    local terms, reason = Providers.ScanTerms(items, quantities)
+    if not terms then return false, reason end
+    return Providers.Search(terms, "Waylaid Ledger - scoped refresh", true)
+end

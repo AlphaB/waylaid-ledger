@@ -317,7 +317,7 @@ PanelTemplates_TabResize=function() end
 PanelTemplates_SelectTab=function(tab) tab.selected=true end
 PanelTemplates_DeselectTab=function(tab) tab.selected=false end
 SearchBoxTemplate_OnTextChanged=function() end
-C_Item={GetItemNameByID=function() return nil end,RequestLoadItemDataByID=function() end}
+C_Item={GetItemInfoInstant=function(id) return id,nil,nil,nil,nil,0 end,GetItemNameByID=function() return nil end,RequestLoadItemDataByID=function() end}
 GetTime=function() return 0 end;time=function() return 100 end;date=function() return "12:00:00" end
 GetCurrentRegion=function() return 3 end;GetNormalizedRealmName=function() return "TestRealm" end;GetRealmName=GetNormalizedRealmName
 UnitFactionGroup=function() return "Alliance" end;WOW_PROJECT_ID=1
@@ -344,7 +344,7 @@ test("full addon bootstrap, bag enumeration and event registration",function()
     assert(host.events.AUCTION_HOUSE_SHOW)
     assert(type(SlashCmdList.WAYLAIDLEDGER)=="function")
     host.scripts.OnEvent(host,"AUCTION_HOUSE_SHOW");equal(addon.scanner.open,true)
-    addon:Command("scan bags");equal(addon.scanner.active,true);equal(#addon.scanner.queue,9)
+    addon:Command("scan bags");equal(addon.scanner.active,true);equal(#addon.scanner.queue,12)
     assert(host.scripts.OnUpdate)
     addon:Command("stop");equal(host.scripts.OnUpdate,nil)
 end)
@@ -401,6 +401,7 @@ assert(loadfile(PROJECT_ROOT .. "/tests/shopping.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/auction_open.lua"))(addon, test, equal, host)
 assert(loadfile(PROJECT_ROOT .. "/tests/tooltip_age.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/settings.lua"))(addon, test, equal)
+assert(loadfile(PROJECT_ROOT .. "/tests/expanded_scan.lua"))(addon, test, equal, host)
 assert(loadfile(PROJECT_ROOT .. "/tests/standalone.lua"))(addon, test, equal, host)
 assert(loadfile(PROJECT_ROOT .. "/tests/native_contracts.lua"))(addon, test, equal, host)
 assert(loadfile(PROJECT_ROOT .. "/tests/upstream_contracts.lua"))(addon, test, equal)

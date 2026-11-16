@@ -24,7 +24,7 @@ function Inventory.ReadContainers(bagIDs, requireLoaded)
         end
         for slot = 1, slots do
             local itemID = C_Container.GetContainerItemID(bagID, slot)
-            if itemID and (addon.Crates[itemID] or addon.MaterialNames[itemID]) then
+            if itemID and (addon.Crates[itemID] or addon.Writs[itemID] or addon.MaterialNames[itemID] or addon.WritMaterialNames[itemID]) then
                 local info = C_Container.GetContainerItemInfo and C_Container.GetContainerItemInfo(bagID, slot)
                 items[itemID] = (items[itemID] or 0) + (info and info.stackCount or 1)
             end
@@ -118,6 +118,16 @@ function Inventory.CrateIDs()
     for itemID in pairs(Inventory.Totals().crates) do result[#result + 1] = itemID end
     table.sort(result)
     return result
+end
+
+function Inventory.ContractIDs()
+    if not addon.db.tracking.enabled then return addon.Catalog.BagContracts() end
+    local ids = {}
+    for id in pairs(Inventory.Totals().items) do
+        if addon.Crates[id] or addon.Writs[id] then ids[#ids + 1] = id end
+    end
+    table.sort(ids)
+    return ids
 end
 
 function Inventory.Report()
