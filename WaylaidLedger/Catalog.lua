@@ -108,7 +108,7 @@ function Catalog.SearchName(itemID)
     end
     -- Discovery stores only names observed in this client locale/build. Unlike
     -- the old English catalog fallback these are valid localized search terms.
-    local store = addon.Discovery and addon.Discovery.store
+    local store = addon.Discovery and addon.Discovery.locale == GetLocale() and addon.Discovery.store
     local observed = store and store.names[itemID]
     if type(observed) == "string" and observed ~= "" then return observed end
     -- Shopping is name-based. An English display fallback is unsuitable for a

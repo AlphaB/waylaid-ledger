@@ -11,7 +11,7 @@ local function fixture(action)
     hooksecurefunc=function(t,k,fn) local old=t[k];t[k]=function(...) old(...);fn(...) end end
     local market={items={},failures={}}
     local f={now=0,wall=1000,rows={},calls=0,observed={},retries=0}
-    local a={db={maxAge=1800},GetMarket=function() return market end,
+    local a={db={maxAge=1800,replication={oldRealm=1000}},GetMarket=function() return market end,
         Discovery={Observe=function(id,name) f.observed[id]=name end,Retry=function() f.retries=f.retries+1;return 0 end,Bags=function() end}}
     for _,name in ipairs({"Localization","Locales","Scanner","BulkScan","Pricing"}) do assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/"..name..".lua"))("WaylaidLedger",a) end
     local api={IsThrottledMessageSystemReady=function() return true end,
@@ -67,12 +67,25 @@ test("fresh exact shortages survive full-scan estimates",function()
         equal(f.addon.Pricing.Quote(f.market.items[11],1).status,"short")
     end)
 end)
+test("manual full scans ignore old persisted lockouts and can refresh immediately",function()
+    fixture(function(f)
+        equal(f.addon.db.replication,nil)
+        f.addon.db.replication={oldRealm=f.wall}
+        f.rows={f.row(11,"Herb",20,100)}
+        equal(f.scanner:Start({11}),true);equal(f.calls,1)
+        equal(f.scanner:Start({11}),false);equal(f.calls,1)
+        f.deliver();equal(f.market.items[11].unitPrice,5)
+        f.rows={f.row(11,"Herb",20,200)}
+        equal(f.scanner:Start({11}),true);equal(f.calls,2)
+        f.deliver();equal(f.market.items[11].unitPrice,10)
+    end)
+end)
 test("another addon's bulk response is reused without sending a second query",function()
     fixture(function(f)
         f.rows={f.row(11,"Herb",20,100)}
         f.api.ReplicateItems();equal(f.scanner.active,false)
         f.deliver();equal(f.market.items[11].unitPrice,5);equal(f.calls,1)
-        equal(f.scanner:Start({11}),false);equal(f.calls,1)
+        equal(f.scanner:Start({11}),true);equal(f.calls,2)
     end)
 end)
 test("cancelled and closed full scans ignore late responses",function()
@@ -81,7 +94,7 @@ test("cancelled and closed full scans ignore late responses",function()
         f.scanner:Start({});f.scanner:Stop()
         f.frame.scripts.OnEvent(f.frame,"REPLICATE_ITEM_LIST_UPDATE")
         equal(next(f.market.items),nil);equal(f.frame.scripts.OnUpdate,nil)
-        f.addon.db.replication[f.addon.BulkScan.engine.cooldownKey]=nil;f.scanner:Start({})
+        f.scanner:Start({})
         f.frame.scripts.OnEvent(f.frame,"AUCTION_HOUSE_CLOSED")
         f.frame.scripts.OnEvent(f.frame,"REPLICATE_ITEM_LIST_UPDATE")
         equal(next(f.market.items),nil)
@@ -94,12 +107,12 @@ test("full scan times out without recording missing items as sold out",function(
     end)
 end)
 
-test("a request waiting for readiness does not consume the replication cooldown",function()
+test("a request waiting for readiness can be retried immediately after timing out",function()
     fixture(function(f)
         f.api.IsThrottledMessageSystemReady=function() return false end
         f.scanner:Start({});equal(f.calls,0)
         f.now=31;f.scanner:Tick();equal(f.scanner.active,false)
-        equal(f.addon.db.replication[f.addon.BulkScan.engine.cooldownKey],nil)
+        equal(f.addon.db.replication,nil)
         f.api.IsThrottledMessageSystemReady=function() return true end
         equal(f.scanner:Start({}),true);equal(f.calls,1)
     end)

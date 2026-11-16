@@ -184,7 +184,7 @@ addon.Locales.deDE = {
     ["Exported %d items. Import into TSM and start its group Shopping scan manually."] = "%d Artikel exportiert. Importiere sie in TSM und starte den Shopping-Scan der Gruppe manuell.",
     ["Item names are loading; retry the Auctionator scan shortly."] = "Artikelnamen werden geladen; versuche den Auctionator-Scan gleich erneut.",
     ["Refresh prices for this list. Uses a full AH snapshot when supported; otherwise scans its items."] = "Preise dieser Liste aktualisieren. Nutzt vollständige Auktionsdaten, falls unterstützt; sonst werden die Artikel einzeln gescannt.",
-    ["Full AH scans respect the server cooldown; saved prices remain available."] = "Vollständige Scans beachten die Server-Abklingzeit; gespeicherte Preise bleiben verfügbar.",
+    ["Full AH scans wait for server readiness; saved prices remain available."] = "Vollständige Scans warten auf den Server; gespeicherte Preise bleiben verfügbar.",
     ["Then open a limited Auctionator Shopping search when available."] = "Anschließend eine gezielte Auctionator-Shopping-Suche öffnen, falls verfügbar.",
     ["Own scanner only. Auctionator follow-up is configurable in Settings."] = "Nur eigener Scanner. Die Auctionator-Folgesuche ist in den Einstellungen konfigurierbar.",
 }
@@ -372,7 +372,7 @@ addon.Locales.frFR = {
     ["Exported %d items. Import into TSM and start its group Shopping scan manually."] = "%d objets exportés. Importez-les dans TSM et lancez manuellement l'analyse Shopping du groupe.",
     ["Item names are loading; retry the Auctionator scan shortly."] = "Chargement des noms d'objets ; réessayez bientôt l'analyse Auctionator.",
     ["Refresh prices for this list. Uses a full AH snapshot when supported; otherwise scans its items."] = "Actualise les prix de cette liste. Utilise les données complètes de l'hôtel des ventes si possible, sinon analyse les objets.",
-    ["Full AH scans respect the server cooldown; saved prices remain available."] = "Les analyses complètes respectent la recharge du serveur ; les prix mémorisés restent disponibles.",
+    ["Full AH scans wait for server readiness; saved prices remain available."] = "Les analyses complètes attendent que le serveur soit prêt ; les prix mémorisés restent disponibles.",
     ["Then open a limited Auctionator Shopping search when available."] = "Ouvre ensuite une recherche ciblée Auctionator Shopping si disponible.",
     ["Own scanner only. Auctionator follow-up is configurable in Settings."] = "Mon analyse uniquement. La recherche Auctionator suivante se règle dans les options.",
 }
@@ -560,7 +560,7 @@ addon.Locales.esES = {
     ["Exported %d items. Import into TSM and start its group Shopping scan manually."] = "%d objetos exportados. Impórtalos en TSM e inicia manualmente el análisis Shopping del grupo.",
     ["Item names are loading; retry the Auctionator scan shortly."] = "Se están cargando nombres; repite el análisis de Auctionator en breve.",
     ["Refresh prices for this list. Uses a full AH snapshot when supported; otherwise scans its items."] = "Actualiza los precios de esta lista. Usa todos los datos de la subasta si se admite; si no, analiza sus objetos.",
-    ["Full AH scans respect the server cooldown; saved prices remain available."] = "Los análisis completos respetan la espera del servidor; los precios guardados siguen disponibles.",
+    ["Full AH scans wait for server readiness; saved prices remain available."] = "Los análisis completos esperan a que el servidor esté listo; los precios guardados siguen disponibles.",
     ["Then open a limited Auctionator Shopping search when available."] = "Después abre una búsqueda limitada de Auctionator Shopping, si está disponible.",
     ["Own scanner only. Auctionator follow-up is configurable in Settings."] = "Solo análisis propio. El seguimiento de Auctionator se configura en opciones.",
 }
@@ -748,7 +748,7 @@ addon.Locales.ptBR = {
     ["Exported %d items. Import into TSM and start its group Shopping scan manually."] = "%d itens exportados. Importe no TSM e inicie manualmente a busca Shopping do grupo.",
     ["Item names are loading; retry the Auctionator scan shortly."] = "Carregando nomes de itens; repita a busca do Auctionator em breve.",
     ["Refresh prices for this list. Uses a full AH snapshot when supported; otherwise scans its items."] = "Atualiza preços desta lista. Usa todos os dados do leilão quando disponível; caso contrário, busca seus itens.",
-    ["Full AH scans respect the server cooldown; saved prices remain available."] = "Buscas completas respeitam a recarga do servidor; os preços salvos continuam disponíveis.",
+    ["Full AH scans wait for server readiness; saved prices remain available."] = "Buscas completas aguardam o servidor estar pronto; os preços salvos continuam disponíveis.",
     ["Then open a limited Auctionator Shopping search when available."] = "Depois abre uma busca limitada no Auctionator Shopping, se disponível.",
     ["Own scanner only. Auctionator follow-up is configurable in Settings."] = "Apenas busca própria. A busca seguinte do Auctionator é configurável nas configurações.",
 }
@@ -936,7 +936,7 @@ addon.Locales.ruRU = {
     ["Exported %d items. Import into TSM and start its group Shopping scan manually."] = "Экспортировано предметов: %d. Импортируйте в TSM и вручную запустите поиск Shopping группы.",
     ["Item names are loading; retry the Auctionator scan shortly."] = "Названия предметов загружаются; повторите сканирование Auctionator чуть позже.",
     ["Refresh prices for this list. Uses a full AH snapshot when supported; otherwise scans its items."] = "Обновить цены списка. При поддержке используются полные данные аукциона, иначе сканируются предметы.",
-    ["Full AH scans respect the server cooldown; saved prices remain available."] = "Полные сканирования учитывают перезарядку сервера; сохранённые цены остаются доступны.",
+    ["Full AH scans wait for server readiness; saved prices remain available."] = "Полные сканирования ждут готовности сервера; сохранённые цены остаются доступны.",
     ["Then open a limited Auctionator Shopping search when available."] = "Затем открыть ограниченный поиск Auctionator Shopping, если доступен.",
     ["Own scanner only. Auctionator follow-up is configurable in Settings."] = "Только своё сканирование. Последующий поиск Auctionator настраивается в настройках.",
 }
@@ -1124,7 +1124,7 @@ addon.Locales.koKR = {
     ["Exported %d items. Import into TSM and start its group Shopping scan manually."] = "아이템 %d개를 내보냈습니다. TSM으로 가져온 뒤 그룹의 Shopping 검색을 직접 실행하세요.",
     ["Item names are loading; retry the Auctionator scan shortly."] = "아이템 이름을 불러오는 중입니다. 잠시 후 Auctionator 검색을 다시 시도하세요.",
     ["Refresh prices for this list. Uses a full AH snapshot when supported; otherwise scans its items."] = "이 목록의 가격을 갱신합니다. 지원되는 경우 경매장 전체 데이터를 사용하고, 아니면 아이템을 개별 검색합니다.",
-    ["Full AH scans respect the server cooldown; saved prices remain available."] = "전체 검색은 서버 대기 시간을 따릅니다. 저장된 가격은 계속 사용할 수 있습니다.",
+    ["Full AH scans wait for server readiness; saved prices remain available."] = "전체 검색은 서버가 준비될 때까지 기다립니다. 저장된 가격은 계속 사용할 수 있습니다.",
     ["Then open a limited Auctionator Shopping search when available."] = "가능하면 이어서 Auctionator Shopping 범위 검색을 엽니다.",
     ["Own scanner only. Auctionator follow-up is configurable in Settings."] = "자체 검색만 사용합니다. 설정에서 후속 Auctionator 검색을 바꿀 수 있습니다.",
 }
@@ -1312,7 +1312,7 @@ addon.Locales.zhTW = {
     ["Exported %d items. Import into TSM and start its group Shopping scan manually."] = "已匯出 %d 項物品。請匯入 TSM 並手動執行群組 Shopping 掃描。",
     ["Item names are loading; retry the Auctionator scan shortly."] = "正在載入物品名稱，請稍後重試 Auctionator 掃描。",
     ["Refresh prices for this list. Uses a full AH snapshot when supported; otherwise scans its items."] = "更新此清單的價格。支援時使用完整拍賣場資料，否則逐項掃描物品。",
-    ["Full AH scans respect the server cooldown; saved prices remain available."] = "完整掃描會遵守伺服器冷卻時間；已儲存的價格仍可使用。",
+    ["Full AH scans wait for server readiness; saved prices remain available."] = "完整掃描會等待伺服器就緒；已儲存的價格仍可使用。",
     ["Then open a limited Auctionator Shopping search when available."] = "可用時接著開啟 Auctionator Shopping 範圍搜尋。",
     ["Own scanner only. Auctionator follow-up is configurable in Settings."] = "僅自行掃描。可在設定中調整後續 Auctionator 搜尋。",
 }

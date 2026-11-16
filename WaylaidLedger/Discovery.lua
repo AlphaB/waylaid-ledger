@@ -1,7 +1,7 @@
 local _, addon = ...
 
--- Requirements are learned from the client's item descriptions, never a web
--- catalog. Indexes contain localized names observed in bags, tooltips or the AH.
+-- Complete client descriptions update the bundled delivery fallback. Indexes
+-- contain localized names observed in bags, tooltips or the auction house.
 addon.Discovery = { names = {}, pending = {}, candidates = {} }
 local Discovery = addon.Discovery
 local Locales = addon.DiscoveryLocales
@@ -26,6 +26,7 @@ local function text(value)
     if issecretvalue and issecretvalue(value) then return nil end
     if type(value) ~= "string" then return nil end
     return value:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+        :gsub("|cn[%w_]+:", ""):gsub("|n", "\n")
         :gsub("|H.-|h(.-)|h", "%1"):gsub("|T.-|t", "")
         :gsub("\194\160", " "):gsub(" ", " "):gsub("　", " ")
         :gsub("：", ":"):gsub("^%s+", ""):gsub("%s+$", "")
@@ -169,6 +170,12 @@ function Discovery.Parse(lines, kind, ownID)
         end
         local value = text(source)
         if value then
+            -- The crate's spell description can contain its entire list in one
+            -- tooltip line, with named colors and inline bullets.
+            if kind == "crates" and value:lower():find("fill the crate with", 1, true) then
+                value = value:gsub("^.-[Ll]ist:%s*", "")
+                value = value:gsub("%s+%-%s+", "\n- "):gsub("%s+•%s*", "\n• ")
+            end
             for line in (value .. "\n"):gmatch("([^\n]*)\n") do
                 line = line:gsub("^%s+", ""):gsub("%s+$", "")
                 local body = line:match("^%-%s*(.+)") or line:match("^•%s*(.+)")
@@ -219,6 +226,15 @@ function Discovery.Read(itemID, data)
     local requirements, reason = Discovery.Parse(data.lines, kind, itemID)
     reading[itemID] = nil
     if not requirements then
+        -- Loading text and generic writ flavor text contain no objectives.
+        -- Their absence cannot disprove a known bundle. Explicit invalid or
+        -- partial objectives still invalidate it below.
+        local known = definition[kind == "crates" and "options" or "requirements"]
+        if reason == "Delivery description is not loaded or its format is unsupported."
+            and not definition.unresolved and known and #known > 0 then
+            Discovery.pending[itemID] = nil
+            return false
+        end
         Discovery.pending[itemID] = true
         definition.unresolved, definition.reason = true, reason
         -- A changed, incomplete live description must not retain old quantities.
@@ -228,7 +244,7 @@ function Discovery.Read(itemID, data)
     end
     definition[kind == "crates" and "options" or "requirements"] = requirements
     definition[kind == "crates" and "requirements" or "options"] = nil
-    definition.unresolved, definition.reason = nil, nil
+    definition.unresolved, definition.reason, definition.fallback = nil, nil, nil
     definition.learnedAt, definition.build = time(), select(4, GetBuildInfo())
     for _, requirement in ipairs(requirements) do
         local name = Discovery.store and Discovery.store.names[requirement.itemID]
@@ -293,6 +309,7 @@ end
 
 function Discovery.Install()
     local locale, build = GetLocale(), select(4, GetBuildInfo())
+    Discovery.locale = locale
     addon.db.discovery = addon.db.discovery or { locales = {} }
     local root = addon.db.discovery
     root.locales = root.locales or {}
@@ -303,10 +320,23 @@ function Discovery.Install()
     end
     Discovery.store = store
     -- Keep stable table references for the UI and inventory modules.
-    for itemID, definition in pairs(store.crates) do addon.Crates[itemID] = definition end
-    for itemID, definition in pairs(store.writs) do addon.Writs[itemID] = definition end
+    for _, pair in ipairs({{store.crates, addon.Crates}, {store.writs, addon.Writs}}) do
+        for itemID, definition in pairs(pair[1]) do
+            -- Recover known rows invalidated by the discovery-only release.
+            if not definition.unresolved or not pair[2][itemID] then pair[2][itemID] = definition end
+        end
+    end
     store.crates, store.writs = addon.Crates, addon.Writs
     for itemID, name in pairs(store.names) do Discovery.Observe(itemID, name) end
+    local english = locale == "enUS" or locale == "enGB"
+    for _, names in ipairs({addon.MaterialNames, addon.WritMaterialNames}) do
+        for itemID, name in pairs(names) do Discovery.Observe(itemID, english and name or nil) end
+    end
+    for _, definitions in ipairs({addon.Crates, addon.Writs}) do
+        for itemID, definition in pairs(definitions) do
+            Discovery.Observe(itemID, english and definition.name or nil)
+        end
+    end
     Discovery.Bags()
     local frame = CreateFrame("Frame")
     Discovery.frame = frame

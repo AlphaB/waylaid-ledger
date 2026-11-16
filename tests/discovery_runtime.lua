@@ -1,6 +1,6 @@
 local test,equal=...
 
-test("empty install discovers and prices complete crates and writs using one bulk scan",function()
+test("bundled install discovers additional crates and writs using one bulk scan",function()
     local saved={C_AuctionHouse=C_AuctionHouse,C_Item=C_Item,C_TooltipInfo=C_TooltipInfo,C_Container=C_Container,
         WaylaidLedgerDB=WaylaidLedgerDB,Auctionator=Auctionator,TSM_API=TSM_API,
         WaylaidLedgerFrame=WaylaidLedgerFrame,WaylaidLedgerReportFrame=WaylaidLedgerReportFrame,
@@ -17,7 +17,16 @@ test("empty install discovers and prices complete crates and writs using one bul
         local r=records[index+1]
         return names[r[1]],nil,r[2],1,nil,1,nil,1,1,r[3],nil,nil,nil,nil,nil,0,r[1],true
     end
-    C_AuctionHouse=f.api;Auctionator=nil;TSM_API=nil;WaylaidLedgerDB=nil
+    local marketKey=table.concat({GetCurrentRegion(),GetNormalizedRealmName(),UnitFactionGroup("player"),WOW_PROJECT_ID,"default"},":")
+    local cached={items={
+        [248683]={kind="estimate",unitPrice=50,scannedAt=time()},
+        [2770]={kind="estimate",unitPrice=5,scannedAt=time()},
+        [2771]={kind="estimate",unitPrice=6,scannedAt=time()},
+        [264037]={kind="estimate",unitPrice=20,scannedAt=time()},
+        [8069]={kind="estimate",unitPrice=2,scannedAt=time()},
+    },failures={}}
+    local settings={schema=1,markets={[marketKey]=cached},source="own",writSource="own"}
+    C_AuctionHouse=f.api;Auctionator=nil;TSM_API=nil;WaylaidLedgerDB=settings
     C_Container={GetContainerNumSlots=function() return 0 end}
     C_Item={GetItemNameByID=function(id) return names[id] end,RequestLoadItemDataByID=function() end}
     C_TooltipInfo={GetItemByID=function(id)
@@ -36,7 +45,13 @@ test("empty install discovers and prices complete crates and writs using one bul
         AuctionHouseFrame=CreateFrame("Frame",nil,UIParent)
         AuctionHouseFrame.Tabs={CreateFrame("Button",nil,AuctionHouseFrame)}
         AuctionHouseFrameDisplayMode={Buy="buy"}
-        equal(next(a.Crates),nil);equal(next(a.Writs),nil)
+        equal(#a.Catalog.AllCrates(),30);equal(#a.Catalog.AllContracts("writs"),150)
+        equal(a.db,settings);equal(a:GetMarket(),cached)
+        local savedCrate=a.Shopping.Entry("crates",248683)
+        equal(savedCrate.delivery,100);equal(savedCrate.total,150)
+        local savedWrit=a.Shopping.Entry("writs",264037)
+        equal(savedWrit.delivery,400);equal(savedWrit.total,420)
+        equal(requests,0)
         host.scripts.OnEvent(host,"AUCTION_HOUSE_SHOW")
         a.UI.frame:Show()
         a.autoReason,a.autoPaused,a.lastExternalAt="panel",false,nil
@@ -53,8 +68,8 @@ test("empty install discovers and prices complete crates and writs using one bul
         equal(writ.purchase,20);equal(writ.delivery,1000);equal(writ.total,1020)
         local tip=CreateFrame("GameTooltip");a.Tooltip.Append(tip,21);assert(#tip.lines>2)
         a:SetSource("tsm");equal(a:GetRows(21)[1].status,"unknown")
-        local before=requests;a:StartScan("all");equal(requests,before)
-        a.db.replication[a.BulkScan.engine.cooldownKey]=nil
+        local before=requests;equal(a:StartScan("all"),true);equal(requests,before+1)
+        a:StopScan()
         if a.RefreshList then
             equal(a:RefreshList(),true)
             equal(a.refreshJob,nil);equal(a.pendingProviderScan,nil)
@@ -65,9 +80,9 @@ test("empty install discovers and prices complete crates and writs using one bul
         frame.scripts.OnEvent(frame,"REPLICATE_ITEM_LIST_UPDATE")
         while frame.scripts.OnUpdate do frame.scripts.OnUpdate() end
         while a.Discovery.frame.scripts.OnUpdate do a.Discovery.frame.scripts.OnUpdate() end
-        a:StartScan("deep");equal(#a.scanner.queue,4);equal(a.scanner.bulkMode,false)
+        a:StartScan("deep");equal(#a.scanner.queue,428);equal(a.scanner.bulkMode,false)
         a:StopScan()
-        a.db.source="auto";a.db.replication[a.BulkScan.engine.cooldownKey]=nil
+        a.db.source="auto"
         a:GetMarket().bulkAt=nil
         a.UI.auctionHost:Show()
         a.UI.SelectBrowserTab("writs")
@@ -81,16 +96,13 @@ test("empty install discovers and prices complete crates and writs using one bul
         while frame.scripts.OnUpdate do frame.scripts.OnUpdate() end
         while a.Discovery.frame.scripts.OnUpdate do a.Discovery.frame.scripts.OnUpdate() end
         equal(a.scanner.active,false)
-        -- Expire the server cooldown after completing an automatic browse scan.
-        local wall=a.scanner.runtime.wallTime()
-        a.scanner.runtime.wallTime=function() return wall+901 end
+        -- A completed automatic browse scan must not own the next manual refresh.
         equal(a:RefreshList(a.BrowseUI.views.writs),true)
         equal(a.scanAutomatic,false);equal(a.scanBrowser,false);equal(a.scanOnOpen,false)
         equal(a.scanContext.reason,"manual")
         a.UI.auctionHost:Hide()
         equal(a.scanner.active,true,"leaving the list must preserve the explicit refresh")
         a:StopScan()
-        a.scanner.runtime.wallTime=function() return wall+1802 end
         a.scanBrowser,a.scanOnOpen=true,true
         a.NativeShopping.pendingQuantity={itemID=11,quantity=200}
         equal(a:BeginScan({},"manual","writs"),true)

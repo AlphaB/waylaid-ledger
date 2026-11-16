@@ -169,7 +169,7 @@ function Browse.Create(host, kind)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine(L["Refresh list"], 1, 0.82, 0)
         GameTooltip:AddLine(L["Refresh prices for this list. Uses a full AH snapshot when supported; otherwise scans its items."], 1, 1, 1, true)
-        GameTooltip:AddLine(addon.BulkScan.engine and L["Full AH scans respect the server cooldown; saved prices remain available."]
+        GameTooltip:AddLine(addon.BulkScan.engine and L["Full AH scans wait for server readiness; saved prices remain available."]
             or (addon.db.refreshAuctionator and L["Then open a limited Auctionator Shopping search when available."]
                 or L["Own scanner only. Auctionator follow-up is configurable in Settings."]), 0.7, 0.7, 0.7, true)
         GameTooltip:Show()

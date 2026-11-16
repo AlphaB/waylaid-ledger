@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.7.1
+
+- Restore the complete 30-crate / 150-writ fallback catalog after discovery migration.
+- Preserve cached prices and learned bundles when descriptions contain only loading or flavor text.
+- Parse crate Use lists with named colors, inline bullets and escaped line breaks.
+- Remove the addon full-scan cooldown and ignore old saved lockout timestamps.
+- Keep server readiness, single-flight scanning, cancellation and timeout checks.
+- 146 Lua 5.1 regression tests.
 
 - Preserve equipment variant queries, complete contract/inventory scopes, scoped refresh and TSM export.
 - Cover native equipment handoff with the unmodified Forever query contract.

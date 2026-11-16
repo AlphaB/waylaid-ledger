@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The lowest known filling cost is highlighted in green for all price sources,
 including cached prices. Auctionator and TSM are optional price providers. Own scans support both crate and writ costs.
 
-Version **0.7.0** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.7.1** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -19,8 +19,8 @@ Version **0.7.0** · Forever **1.60.1 / interface 16001** · No addon dependenci
    inside another nested `WaylaidLedger` folder. The install ZIP contains only
    the addon and its licenses; developer sources live in this repository.
 3. Restart the game, enable **Waylaid Ledger** in the AddOns menu, and log in.
-4. Discover requirements with a first AH scan (see below). After discovery,
-   saved scan prices or optional Auctionator/TSM estimates also work away from the AH.
+4. The complete fallback crate/writ lists are available immediately. Refresh at the AH
+   for current prices; saved prices or optional Auctionator/TSM estimates work away from the AH.
 5. Visit an auctioneer and select **Waylaid**, then its internal **Craftsman's Writs** or
    **Waylaid Crates** tab. Each list shows
    its catalog in order of **purchase + delivery** cost. Click a row to open
@@ -46,7 +46,8 @@ keywords and saved setting values remain stable.
 
 Localized tooltip discovery recognizes contract names and supported delivery
 formats. Plain plural/declined names still need an exact match or an item link;
-unresolved descriptions never become partial shopping bundles. See
+bundled quantities remain available when a client description cannot be resolved.
+New unresolved items never become partial shopping bundles. See
 [discovery formats and limitations](docs/INGAME_DATA.md).
 
 Shopping prefers Auctionator when available. Otherwise, a built-in checklist
@@ -56,21 +57,20 @@ purchases. Built-in Forever controller navigation supports the lists, controls
 and basket; see [integration notes](docs/INTEGRATIONS.md#current-behavior-070).
 Localized rendering and controller behavior still need a live-client check.
 
-## In-game discovery and fast scans
+## Catalog and in-game discovery
 
-Requirements now come from the game's item descriptions. No delivery catalog or
-web importer is bundled. See [in-game data and scanning](docs/INGAME_DATA.md).
-On first use, visit an auctioneer and run `/wll scan all` (or **Full AH scan** in
-scan controls). The lists fill as items and descriptions are discovered. A bulk
-scan started by another addon is reused automatically while Waylaid Ledger is loaded.
+The addon includes the previous **30 crate / 150 writ** catalog as a fallback,
+so the complete lists and delivery quantities appear immediately after upgrading.
+Existing market prices and settings are retained. Complete in-game descriptions
+update those quantities and can add new items. Generic writ flavor text or
+loading text does not erase known bundles. See [in-game data](docs/INGAME_DATA.md).
 
-The full scan uses one replication request, rather than hundreds of item searches.
-The server's full-scan cooldown is 15 minutes; saved prices remain usable between
-scans. `/wll scan deep` explicitly requests detailed prices for learned items.
+Use **Refresh** or `/wll scan all` at the auction house to update prices with one
+full AH snapshot. The addon has no fixed full-scan cooldown; Refresh can request
+another snapshot after the current scan finishes or is stopped. Client readiness
+and server restrictions still apply. `/wll scan deep` requests detailed prices
+for known purchases and delivery goods with the normal per-item request budget.
 Bulk prices are unit-price estimates; detailed scans retain stock and stack checks.
-
-The fixed catalog sizes and per-item scan timings in older release notes below
-are historical. Only items encountered in game can appear in the learned lists.
 
 ## What the tooltip means
 
@@ -157,9 +157,9 @@ from the auction house.
 
 ## Ranked auction lists
 
-Inside the Waylaid auction tab, **Craftsman's Writs** lists discovered identified writs,
+Inside the Waylaid auction tab, **Craftsman's Writs** lists known identified writs,
 and **Waylaid Crates** lists
-discovered identified crates. Columns show the purchase price of one writ/crate, the
+known identified crates. Columns show the purchase price of one writ/crate, the
 full delivery cost, and their sum. Rows with known totals sort from cheapest to
 most expensive; unknown totals follow alphabetically. Missing data is never counted as zero. Prices have no estimate prefixes or
 age markers; detailed provenance remains available on hover.
@@ -377,8 +377,8 @@ depth, indivisible auctions, randomized exhaustive cross-checks, stale/unknown
 results, pagination, throttling, retry timeouts, interruptions, owned-stock
 filtering, profile isolation, full bootstrap, tooltip text, provider priorities,
 source settings, API errors, price-age semantics, callbacks, and shopping handoff.
-The default suite has 122 tests. Three additional contract tests run the actual
-unmodified public API Lua from separately downloaded release ZIPs (125 total):
+The default suite has 146 tests. Three additional contract tests run the actual
+unmodified public API Lua from separately downloaded release ZIPs (149 total):
 
 ```sh
 python3 tests/run.py --auctionator /path/to/Auctionator-347.zip --tsm /path/to/TradeSkillMaster.zip
@@ -388,7 +388,7 @@ These exercise the public functions with internal services stubbed. They do not
 claim to run either entire addon or the live WoW client. The full upstream Auctionator/TSM packages are not redistributed; only the
 separately licensed shared tab libraries are bundled.
 
-Requirements are learned at runtime, with no developer refresh/import step.
+Complete runtime descriptions update the bundled fallback requirements.
 CI runs the Lua suite and uploads the clean install ZIP as the
 **WaylaidLedger-install** artifact. `python3 tools/package.py` builds the same
 single-folder archive locally. See [docs/INGAME_DATA.md](docs/INGAME_DATA.md).
