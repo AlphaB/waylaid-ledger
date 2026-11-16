@@ -33,7 +33,7 @@ local function fakeAuctionator(prices)
         state.reads = state.reads + 1
         return prices[id]
     end
-    api.GetAuctionAgeByItemID = function(caller, _id)
+    api.GetAuctionAgeByItemID = function(caller, _)
         equal(caller, "WaylaidLedger")
         return state.days or 0
     end
@@ -113,7 +113,7 @@ test("cached estimates remain eligible; all tied lowest costs highlight amber", 
     equal(rows[3].bestEstimate, true)
 end)
 test("resolved options highlight the single lowest known cost across sources", function()
-    local rows, known = resolve({ [1] = fresh({ { quantity = 20, unitPrice = 10 } }) }, "auto", function(source, _id)
+    local rows, known = resolve({ [1] = fresh({ { quantity = 20, unitPrice = 10 } }) }, "auto", function(source, _)
         return estimate(source, 1, 0)
     end)
     equal(known, false)
@@ -337,6 +337,8 @@ test("source settings persist and explicit unavailable source stays unknown", fu
         TooltipDataProcessor.callback, WaylaidLedgerFrame, WaylaidLedgerReportFrame, SlashCmdList.WAYLAIDLEDGER
     local reloaded = {}
     for _, name in ipairs({
+        "Localization",
+        "Locales",
         "Data",
         "WritData",
         "Catalog",
@@ -346,6 +348,8 @@ test("source settings persist and explicit unavailable source stays unknown", fu
         "WritPricing",
         "Shopping",
         "Scanner",
+        "Navigation",
+        "NativeShopping",
         "Tooltip",
         "UI",
         "BrowseUI",
@@ -354,7 +358,7 @@ test("source settings persist and explicit unavailable source stays unknown", fu
     }) do
         assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/" .. name .. ".lua"))("WaylaidLedger", reloaded)
     end
-    for _, name in ipairs({ "Discovery", "BulkScan" }) do
+    for _, name in ipairs({ "DiscoveryLocales", "Discovery", "BulkScan" }) do
         assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/" .. name .. ".lua"))("WaylaidLedger", reloaded)
     end
     -- Core registers ADDON_LOADED on the newly created unnamed frame. Locate it

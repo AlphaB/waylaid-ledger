@@ -1,4 +1,5 @@
 local _, addon = ...
+local L = addon.L
 
 -- Pure pricing functions. All money is integer copper. Snapshots contain only
 -- buyable auctions, with current-character owned quantities removed by Scanner.
@@ -101,7 +102,7 @@ function Pricing.Resolve(crate, snapshots, now, maxAge, failures, mode, lookup)
     local rows, allVerified = {}, true
     for index, scan in ipairs(scanRows) do
         scan.source, scan.sourceLabel =
-            scan.estimated and "replicate" or "own", scan.estimated and "AH full scan" or "Own scan"
+            scan.estimated and "replicate" or "own", scan.estimated and L["AH full scan"] or L["Own scan"]
         scan.best = false
         local freshScan = scan.status ~= "unknown" and not scan.stale and not scan.error
         local row = scan

@@ -1,4 +1,5 @@
 local _, addon = ...
+local L = addon.L
 addon.MinimapButton = {}
 local Button = addon.MinimapButton
 
@@ -53,8 +54,8 @@ function Button.Create()
         end
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:AddLine("Waylaid Ledger", 1, 0.82, 0)
-        GameTooltip:AddLine("Left-click: open | Right-click: settings", 1, 1, 1)
-        GameTooltip:AddLine("Drag to move around the minimap", 0.7, 0.7, 0.7)
+        GameTooltip:AddLine(L["Left-click: open | Right-click: settings"], 1, 1, 1)
+        GameTooltip:AddLine(L["Drag to move around the minimap"], 0.7, 0.7, 0.7)
         GameTooltip:Show()
     end)
     frame:SetScript("OnLeave", function()

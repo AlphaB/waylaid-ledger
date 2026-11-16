@@ -1,4 +1,5 @@
 local _, addon = ...
+local L = addon.L
 addon.Tooltip = {}
 local Tooltip = addon.Tooltip
 local watched = setmetatable({}, { __mode = "k" })
@@ -17,24 +18,24 @@ local function appendRows(tooltip, rows, detailed, compare)
     for _, row in ipairs(rows) do
         local label = string.format("%dx %s", row.quantity, addon.Catalog.ItemName(row.itemID))
         if (owned[row.itemID] or 0) > 0 then
-            label = label .. " (" .. owned[row.itemID] .. " owned)"
+            label = label .. string.format(L[" (%d owned)"], owned[row.itemID])
         end
-        local value, red, green, blue = "Not scanned", 0.65, 0.65, 0.65
+        local value, red, green, blue = L["Not scanned"], 0.65, 0.65, 0.65
         if row.status == "ok" then
             value = money(row.cost)
             red, green, blue = 1, 1, 1
             if row.purchased and row.purchased > row.quantity then
-                value = value .. " (buy " .. row.purchased .. ")"
+                value = value .. string.format(L[" (buy %d)"], row.purchased)
             end
         elseif row.status == "short" then
-            value = row.available == 0 and "None listed" or ("Only " .. row.available)
+            value = row.available == 0 and L["None listed"] or string.format(L["Only %d"], row.available)
             red, green, blue = 1, 0.45, 0.35
         elseif row.source ~= "own" then
-            value = "No price"
+            value = L["No price"]
         end
         if row.stale or row.error then
             if row.error then
-                value = value .. " failed"
+                value = value .. L[" failed"]
             end
             red, green, blue = 0.65, 0.65, 0.65
         end
@@ -45,14 +46,14 @@ local function appendRows(tooltip, rows, detailed, compare)
         if detailed then
             value = value .. " - " .. (row.sourceLabel or row.source)
             if row.age then
-                value = value .. ", " .. math.floor(row.age / 60) .. "m"
+                value = value .. ", " .. string.format(L["%dm"], math.floor(row.age / 60))
             elseif row.ageDays ~= nil then
-                value = value .. ", " .. row.ageDays .. "d"
+                value = value .. ", " .. string.format(L["%dd"], row.ageDays)
             elseif row.estimated then
-                value = value .. ", age unknown"
+                value = value .. L[", age unknown"]
             end
             if row.scanError then
-                value = value .. ", own scan failed"
+                value = value .. L[", own scan failed"]
             end
         end
         if winner then
@@ -90,7 +91,7 @@ function Tooltip.Append(tooltip, itemID, data)
     if itemID == 248549 then
         tooltip:AddLine(" ")
         tooltip:AddLine("Waylaid Ledger", 1, 0.82, 0)
-        tooltip:AddLine("Identify this shipment first to compare its filling costs.", 0.75, 0.75, 0.75, true)
+        tooltip:AddLine(L["Identify this shipment first to compare its filling costs."], 0.75, 0.75, 0.75, true)
         return
     end
     addon.lastContractID = itemID
@@ -99,7 +100,7 @@ function Tooltip.Append(tooltip, itemID, data)
         tooltip:AddLine(" ")
         tooltip:AddLine("Waylaid Ledger", 1, 0.82, 0)
         tooltip:AddLine(
-            "Delivery requirements unresolved. Run a full AH scan, then hover this item again.",
+            L["Delivery requirements unresolved. Run a full AH scan, then hover this item again."],
             0.75,
             0.75,
             0.75,
@@ -112,12 +113,12 @@ function Tooltip.Append(tooltip, itemID, data)
         local rows, total = addon.WritPricing.Rows(itemID)
         local detailed = addon.db.tooltipDetails or (IsShiftKeyDown and IsShiftKeyDown())
         tooltip:AddLine(" ")
-        tooltip:AddLine("Waylaid Ledger - delivery estimate", 1, 0.82, 0)
+        tooltip:AddLine(L["Waylaid Ledger - delivery estimate"], 1, 0.82, 0)
         appendRows(tooltip, rows, detailed)
         if #rows > 1 then
             tooltip:AddDoubleLine(
-                "Total",
-                total and money(total) or "Incomplete prices",
+                L["Total"],
+                total and money(total) or L["Incomplete prices"],
                 0.75,
                 0.75,
                 0.75,

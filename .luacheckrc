@@ -8,15 +8,16 @@ exclude_files = { "WaylaidLedger/Libs/**" }
 -- WoW API and optional provider globals used by the addon. Keep these read-only
 -- in production so accidental global assignments still fail lint.
 local wowGlobals = {
-    "AuctionHouseFrame", "AuctionHouseFrameDisplayMode", "Auctionator",
+    "AuctionHouseFrame", "AuctionHouseFrameDisplayMode", "AuctionHouseFrameMixin", "AuctionHouseSearchContext", "Auctionator",
     "C_AuctionHouse", "C_Bank", "C_Container", "C_Item", "C_TooltipInfo",
     "ChatFontNormal", "CreateDataProvider", "CreateFrame", "CreateScrollBoxListLinearView",
     "DEFAULT_CHAT_FRAME", "Enum", "GameTooltip", "GetBuildInfo", "GetCurrentRegion",
     "GetCursorPosition", "GetItemInfoInstant", "GetLocale", "GetMoneyString",
     "GetNormalizedRealmName", "GetRealmName", "GetTime", "HideUIPanel", "IsShiftKeyDown",
-    "LibStub", "Minimap", "NUM_BAG_SLOTS", "NUM_TOTAL_EQUIPPED_BAG_SLOTS",
+    "GamepadMode", "InCombatLockdown", "InputUtil", "LibStub", "Minimap", "NUM_BAG_SLOTS", "NUM_TOTAL_EQUIPPED_BAG_SLOTS",
     "PanelTemplates_DeselectTab", "PanelTemplates_SelectTab", "PanelTemplates_TabResize",
-    "ScrollUtil", "SearchBoxTemplate_OnTextChanged", "Settings", "SettingsPanel",
+    "SMART_NAV_INPUT_DIRECTION", "ScrollBoxConstants", "ScrollUtil", "SearchBoxTemplate_OnTextChanged", "Settings", "SettingsPanel",
+    "SmartNavigation", "SmartNavigation_AddJumpNavigationOverride", "SmartNavigation_MarkFrameIgnored",
     "TSM_API", "TooltipDataProcessor", "UIParent", "UnitFactionGroup", "UnitGUID", "UnitName",
     "WOW_PROJECT_ID", "date", "debugprofilestop", "hooksecurefunc", "issecretvalue", "time", "tinsert",
 }
@@ -43,5 +44,5 @@ for _, name in ipairs({
 end
 files["tests/**/*.lua"] = {
     globals = testGlobals,
-    read_globals = { "PROJECT_ROOT", "UPSTREAM_AUCTIONATOR", "UPSTREAM_TSM", "UPSTREAM_TSM_GROUP_IMPORT" },
+    read_globals = { "LOCALIZATION_KEYS", "PROJECT_ROOT", "UPSTREAM_AUCTIONATOR", "UPSTREAM_FOREVER_UI", "UPSTREAM_TSM", "UPSTREAM_TSM_GROUP_IMPORT" },
 }

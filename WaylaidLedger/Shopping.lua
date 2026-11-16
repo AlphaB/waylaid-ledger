@@ -1,16 +1,61 @@
 local _, addon = ...
+local L = addon.L
 
--- Complete acquisition baskets share the same source policy for the contract
--- purchase and finished delivery goods, including quantity-aware own scans.
+-- Complete acquisition baskets share the same depth-aware scans as tooltips.
 addon.Shopping = {}
 local Shopping = addon.Shopping
 
 local function purchaseQuote(kind, itemID)
-    local mode = kind == "writs" and addon.db.writSource or addon.db.source
+    local mode = Shopping.Source(kind)
     if mode == "off" then
         return nil
     end
     return addon:ResolveRows({ { itemID = itemID, quantity = 1 } }, mode)[1]
+end
+
+function Shopping.Source(kind)
+    return kind == "writs" and addon.db.writSource or addon.db.source
+end
+
+-- Includes purchases as well as every delivery alternative. No query is issued
+-- by rendering/repricing; Core schedules this list through the single scanner.
+function Shopping.ScanItems(kind, force, onlyID)
+    local mode = Shopping.Source(kind)
+    if mode ~= "auto" and mode ~= "own" then
+        return {}
+    end
+    local definitions = kind == "writs" and addon.Writs or addon.Crates
+    local unique, items, market = {}, {}, addon:GetMarket()
+    for itemID, definition in pairs(definitions) do
+        if not onlyID or itemID == onlyID then
+            unique[itemID] = true
+            for _, requirement in ipairs(definition.requirements or definition.options) do
+                unique[requirement.itemID] = true
+            end
+        end
+    end
+    for itemID in pairs(unique) do
+        local snapshot = market.items[itemID]
+        local fresh = snapshot
+            and not snapshot.error
+            and not market.failures[itemID]
+            and time() - snapshot.scannedAt <= addon.db.maxAge
+        local estimate
+        if not force and not fresh and mode == "auto" and addon.db.profile == "default" then
+            for _, source in ipairs({ "auctionator", "tsm" }) do
+                local quote = addon.Providers.Read(source, itemID)
+                if quote and not quote.stale then
+                    estimate = true
+                    break
+                end
+            end
+        end
+        if force or (not fresh and not estimate) then
+            items[#items + 1] = itemID
+        end
+    end
+    table.sort(items)
+    return items
 end
 
 function Shopping.Entry(kind, itemID)
@@ -21,12 +66,13 @@ function Shopping.Entry(kind, itemID)
     local entry =
         { kind = kind, itemID = itemID, name = addon.Catalog.ItemName(itemID), requirements = {}, deliveryRows = {} }
     entry.purchaseQuote = purchaseQuote(kind, itemID)
-    if entry.purchaseQuote and entry.purchaseQuote.status == "ok" then
+    if entry.purchaseQuote and entry.purchaseQuote.status == "ok" and not entry.purchaseQuote.error then
         entry.purchase = entry.purchaseQuote.cost
         entry.stale = entry.purchaseQuote.stale or false
     end
     if definition.unresolved then
-        entry.reason = definition.reason or "Delivery requirements unresolved. Run a full AH scan."
+        -- Keep the parser's raw detail on the definition for diagnostics.
+        entry.reason = L["Delivery requirements unresolved. Run a full AH scan."]
         entry.canShop = false
         return entry
     end
@@ -34,7 +80,7 @@ function Shopping.Entry(kind, itemID)
         entry.deliveryRows, entry.delivery, entry.deliveryStale = addon.WritPricing.Rows(itemID)
         entry.requirements = definition.requirements
         if addon.db.writSource == "off" then
-            entry.reason = "Writ prices are disabled in settings."
+            entry.reason = L["Writ prices are disabled in settings."]
         end
     else
         local rows = addon:GetRows(itemID)
@@ -44,7 +90,7 @@ function Shopping.Entry(kind, itemID)
             entry.delivery, entry.deliveryStale, entry.optionIndex = best.cost, best.stale, index
             entry.requirements = { definition.options[index] }
         else
-            entry.reason = "Scan crate materials or update Auctionator/TSM prices to choose a filling option."
+            entry.reason = L["Scan crate materials or update Auctionator/TSM prices to choose a filling option."]
         end
     end
     entry.stale = entry.stale or entry.deliveryStale or false
@@ -106,22 +152,30 @@ function Shopping.DeliveryLabel(entry)
     for _, requirement in ipairs(entry.requirements) do
         names[#names + 1] = requirement.quantity .. "x " .. addon.Catalog.ItemName(requirement.itemID)
     end
-    return #names > 0 and table.concat(names, ", ") or "Delivery price unavailable"
+    return #names > 0 and table.concat(names, ", ") or L["Delivery price unavailable"]
 end
 
-function Shopping.Terms(entry)
+function Shopping.Requirements(entry)
     if not entry or not entry.canShop then
-        return nil, entry and entry.reason or "Unknown item."
+        return nil, entry and entry.reason or L["Unknown item."]
     end
     local requirements = { { itemID = entry.itemID, quantity = 1 } }
     for _, requirement in ipairs(entry.requirements) do
         requirements[#requirements + 1] = requirement
     end
+    return requirements
+end
+
+function Shopping.Terms(entry)
+    local requirements, reason = Shopping.Requirements(entry)
+    if not requirements then
+        return nil, reason
+    end
     local terms = {}
     for _, requirement in ipairs(requirements) do
         local name = addon.Catalog.SearchName(requirement.itemID)
         if not name then
-            return nil, "An item name is still loading. Try the search again in a moment."
+            return nil, L["An item name is still loading. Try the search again in a moment."]
         end
         terms[#terms + 1] = { searchString = name, categoryKey = "", isExact = true, quantity = requirement.quantity }
     end

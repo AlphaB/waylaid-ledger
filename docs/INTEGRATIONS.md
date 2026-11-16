@@ -1,5 +1,39 @@
 # Auction addon integrations
 
+## Current behavior (0.7.0)
+
+Auctionator and TSM remain optional public-API adapters. Auto reuses fresh own
+snapshots, then provider estimates, and schedules missing/stale items through the
+shared scanner while a ranked list is visible. Scope includes learned purchases and
+delivery goods; synthetic fixtures cover 126 crate items or 300 writ items. Own is supported independently
+for both categories. Forced Auctionator/TSM modes retain their explicit policy.
+
+Row shopping prefers Auctionator advanced shopping; when unavailable, an ID-based
+basket opens `AuctionHouseFrame:SelectBrowseResult` and `QueryItem` with the
+correct BuyItems/BuyCommodities context. Equipment passes the item-ID variant
+query flag. Native quantity-selection events preserve commodity quantities
+through asynchronous list/display refreshes. The standard UI owns listing selection and purchase
+confirmation. No purchase API is invoked by Waylaid Ledger. The same readiness
+and rolling request budget gates opening a basket item.
+
+Native controller support uses Blizzard security-wrapped `RefreshButtonGroups`,
+`SetScrollFrameForFrame`, `SetTargetButtonForFrame`, and FrameControlsManager
+show/hide/focus entry points. Dynamic directional overrides resolve virtual rows
+after synchronous nearest scrolling. No bindings or native internal tables are
+modified. Calls wait until out of combat and tolerate late gamepad addon loading.
+
+Contracts checked against the Forever branch on 2026-11-16:
+
+- [Auction frame and purchase navigation](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_AuctionHouseUI/Shared/Blizzard_AuctionHouseFrame.lua)
+- [Commodity quantity selection](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_AuctionHouseUI/Shared/Blizzard_AuctionHouseCommoditiesBuyFrame.lua)
+- [Native SmartNavigation](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_GamepadSmartNavigation/SmartNavigation.lua)
+- [Navigation customization](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_GamepadSmartNavigation/Utility.lua)
+- [Frame focus manager](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_GamepadSharedUtility/FrameControlsManager.lua)
+
+The earlier sections below record historical integration behavior. The scoped
+scanning section describes the detailed fallback; replication-capable clients
+use the full-snapshot refresh documented in [INGAME_DATA.md](INGAME_DATA.md).
+
 Implemented in version 0.2.0. Release sources inspected on 2026-11-15:
 
 | Provider | Reviewed release | Primary distribution |
@@ -104,7 +138,7 @@ user to retry instead of searching with the wrong language.
 
 ## Validation performed
 
-- 122 standard Lua 5.1 tests execute the production modules.
+- The standard Lua 5.1 suite executes production modules, including all official locales.
 - Two optional tests execute the **unmodified public API source** from Auctionator
   347 and TSM 4.15.7, with their internal services and UI stubbed.
 - Auctionator contract check: returned copper and day age, update registration,

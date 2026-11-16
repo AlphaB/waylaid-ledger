@@ -38,7 +38,7 @@ local function fixture(action)
             Bags = function() end,
         },
     }
-    for _, name in ipairs({ "Scanner", "BulkScan", "Pricing" }) do
+    for _, name in ipairs({ "Localization", "Locales", "Scanner", "BulkScan", "Pricing" }) do
         assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/" .. name .. ".lua"))("WaylaidLedger", a)
     end
     local api = {

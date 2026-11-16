@@ -1,4 +1,5 @@
 local _, addon = ...
+local L = addon.L
 
 -- Event-driven, single-flight auction scanner. Injected dependencies keep its
 -- state machine testable without a game client or network connection.
@@ -39,22 +40,22 @@ end
 function Scanner:SetOpen(open)
     self.open = open
     if open and not self.active then
-        self.message = "Auction house open. Ready to scan."
+        self.message = L["Auction house open. Ready to scan."]
     end
     if not open then
-        self:Stop("Auction house closed; completed prices were kept.")
+        self:Stop(L["Auction house closed; completed prices were kept."])
     end
 end
 
 function Scanner:Start(itemIDs)
     if not self.open then
-        return false, "Open the auction house first."
+        return false, L["Open the auction house first."]
     end
     if self.active then
-        return false, "A scan is already running. Stop it before starting another."
+        return false, L["A scan is already running. Stop it before starting another."]
     end
     if #itemIDs == 0 then
-        return false, "No matching writs or crates to scan."
+        return false, L["No matching writs or crates to scan."]
     end
     self.queue, self.index, self.completed, self.failed = {}, 1, 0, 0
     local seen = {}
@@ -64,7 +65,7 @@ function Scanner:Start(itemIDs)
             self.queue[#self.queue + 1] = itemID
         end
     end
-    self.active, self.pending, self.message = true, nil, "Scanning..."
+    self.active, self.pending, self.message = true, nil, L["Scanning..."]
     self:Log("Start scan: " .. #self.queue .. " materials")
     self:Notify()
     self:Tick()
@@ -76,7 +77,7 @@ function Scanner:Stop(message)
         return
     end
     self.active, self.pending = false, nil
-    self.message = message or "Scan stopped; completed prices were kept."
+    self.message = message or L["Scan stopped; completed prices were kept."]
     self:Log(self.message)
     self:Notify()
 end
@@ -87,7 +88,7 @@ function Scanner:ExternalQuery()
     end
     self:RecordRequest()
     if self.active then
-        self:Stop("Scan stopped because another auction search started. Scan again when the auction house is idle.")
+        self:Stop(L["Scan stopped because another auction search started. Scan again when the auction house is idle."])
     end
 end
 
@@ -105,7 +106,7 @@ function Scanner:Advance()
     self.index, self.pending = self.index + 1, nil
     if self.index > #self.queue then
         self.active = false
-        self.message = string.format("Scan finished: %d materials updated, %d failed.", self.completed, self.failed)
+        self.message = string.format(L["Scan finished: %d materials updated, %d failed."], self.completed, self.failed)
         self:Log(self.message)
     end
     self:Notify()
