@@ -185,3 +185,5 @@ Primary contracts checked against the Forever client source and Auctionator 347:
 Live Forever testing is still required for exact tooltip wording, asynchronous
 item-data delivery, server cooldown behavior, elapsed scan time, and actual UI
 rendering. `/wll inspect <itemID>` provides description text for unsupported cases.
+
+Base reward metadata for cost-per-point ranking is documented in [REWARDS.md](REWARDS.md).

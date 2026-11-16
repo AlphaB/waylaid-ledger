@@ -15,6 +15,22 @@ local function amount(value)
     return value and addon.Money(value) or "—"
 end
 
+local function unitAmount(value)
+    -- A positive fraction of a copper must not appear as a free reward.
+    return value and addon.Money(math.ceil(value)) or "—"
+end
+
+local function unitTitle(kind)
+    return kind == "writs" and L["Cost / reputation"] or L["Cost / Favor"]
+end
+
+local function rewardLabel(entry)
+    if not entry.reward then
+        return L["Reward unknown"]
+    end
+    return string.format(entry.kind == "writs" and L["%d rep"] or L["%d Favor"], entry.reward)
+end
+
 local function quoteLabel(quote)
     if not quote or quote.status ~= "ok" then
         return L["No price"]
@@ -45,18 +61,29 @@ function Browse.ShowTooltip(row)
         )
     end
     GameTooltip:AddDoubleLine(L["Total"], amount(entry.total), 1, 0.82, 0, 1, 0.82, 0)
+    GameTooltip:AddLine(rewardLabel(entry), 1, 1, 1)
+    GameTooltip:AddDoubleLine(unitTitle(entry.kind), unitAmount(entry.unitCost), 1, 0.82, 0, 1, 0.82, 0)
+    GameTooltip:AddLine(L["Base rewards; bonuses and gold rewards are excluded."], 0.85, 0.85, 0.85, true)
+    if not entry.reward then
+        GameTooltip:AddLine(L["Reward unverified; excluded from cost-per-reward ranking."], 0.85, 0.85, 0.85, true)
+    end
     GameTooltip:Show()
 end
 
 local function layoutRow(row, width)
-    local column = math.min(135, width * 0.19)
-    row.name:SetWidth(math.max(80, width - 3 * column - 46))
-    row.deliveryName:SetWidth(math.max(80, width - 3 * column - 46))
-    for index, label in ipairs({ row.purchase, row.delivery, row.total }) do
+    local column = math.min(125, width * 0.16)
+    row.name:SetWidth(math.max(80, width - 4 * column - 46))
+    row.deliveryName:SetWidth(math.max(80, width - 4 * column - 46))
+    for index, label in ipairs({ row.purchase, row.delivery, row.total, row.unitCost }) do
         label:ClearAllPoints()
-        label:SetPoint("RIGHT", row, "RIGHT", -(3 - index) * column - 6, 0)
+        if index == 4 then
+            label:SetPoint("TOPRIGHT", row, "TOPRIGHT", -6, -3)
+        else
+            label:SetPoint("RIGHT", row, "RIGHT", -(4 - index) * column - 6, 0)
+        end
         label:SetWidth(column - 10)
     end
+    row.reward:SetWidth(column - 10)
 end
 
 local function initializeRow(view, row, entry)
@@ -82,6 +109,9 @@ local function initializeRow(view, row, entry)
         row.purchase = text(row, "GameFontHighlightSmall", "RIGHT")
         row.delivery = text(row, "GameFontHighlightSmall", "RIGHT")
         row.total = text(row, "GameFontHighlightSmall", "RIGHT")
+        row.unitCost = text(row, "GameFontHighlightSmall", "RIGHT")
+        row.reward = text(row, "GameFontDisableSmall", "RIGHT")
+        row.reward:SetPoint("TOPRIGHT", row, "TOPRIGHT", -6, -18)
         row:SetScript("OnClick", function(self)
             addon:ShopEntry(self.entry.kind, self.entry.itemID)
         end)
@@ -100,6 +130,10 @@ local function initializeRow(view, row, entry)
     row.purchase:SetText(amount(entry.purchase))
     row.delivery:SetText(amount(entry.delivery))
     row.total:SetText(amount(entry.total))
+    row.unitCost:SetText(unitAmount(entry.unitCost))
+    row.reward:SetText(rewardLabel(entry))
+    local unitColor = entry.unitCost and 1 or 0.65
+    row.unitCost:SetTextColor(unitColor, unitColor, unitColor)
     local color = entry.total and 1 or 0.65
     for _, label in ipairs({ row.name, row.purchase, row.delivery, row.total }) do
         label:SetTextColor(color, color, color)
@@ -111,12 +145,12 @@ end
 
 function Browse.Layout(view)
     local width = math.max(500, view.host:GetWidth() - 50)
-    local column = math.min(135, width * 0.19)
+    local column = math.min(125, width * 0.16)
     view.summary:SetWidth(math.max(40, view.host:GetWidth() - 470))
     for index, header in ipairs(view.headers) do
         header:ClearAllPoints()
-        header:SetPoint("TOPLEFT", view.inset, "TOPLEFT", index == 1 and 4 or (width - (5 - index) * column + 4), -3)
-        header:SetWidth(index == 1 and (width - 3 * column) or column)
+        header:SetPoint("TOPLEFT", view.inset, "TOPLEFT", index == 1 and 4 or (width - (6 - index) * column + 4), -3)
+        header:SetWidth(index == 1 and (width - 4 * column) or column)
         addon.Localization.ButtonText(header, header:GetText())
     end
     view.scroll:ForEachFrame(function(row)
@@ -305,7 +339,7 @@ function Browse.Create(host, kind)
     view.inset = CreateFrame("Frame", nil, host, "InsetFrameTemplate")
     view.inset:SetPoint("TOPLEFT", 10, -40)
     view.inset:SetPoint("BOTTOMRIGHT", -10, -4)
-    for index, title in ipairs({ L["Item / delivery goods"], L["Purchase"], L["Delivery"], L["Total (lowest first)"] }) do
+    for index, title in ipairs({ L["Item / delivery goods"], L["Purchase"], L["Delivery"], L["Total"], unitTitle(kind) }) do
         local header = CreateFrame("Button", nil, view.inset, "ColumnDisplayButtonNoScriptsTemplate")
         header:SetText(title)
         header:EnableMouse(false)

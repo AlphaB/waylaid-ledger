@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0
+
+- Rank complete writ baskets by cost per base reputation and crate baskets by cost per Merchant's Favor.
+- Show reward quantities and per-point costs alongside purchase, delivery and total prices in both lists and tooltips.
+- Add locale-independent reward metadata for 150 writs and 30 crates, using Wowhead research and a user-selected Artisan reward.
+- Use 30 Favor for every Artisan crate, including Earthly/Flowering herbs and processed goods, in cost-per-Favor ranking.
+- Preserve fractional-copper sorting with deterministic ties; round displayed unit costs up to a copper.
+- Translate new reward labels into all supported client languages.
+- Document sources, cash-reward exclusions and remaining live-client verification in REWARDS.md.
+
 ## 0.8.6
 
 - Suspend tooltip price calculation and automatic list rebuilding throughout Auctionator full scans, then restore visible tooltip costs once.

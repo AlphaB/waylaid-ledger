@@ -33,3 +33,5 @@ buyable offers and support stock checks, commodity price tiers and whole-stack
 optimization. Fresh detailed shortages take priority over bulk estimates.
 Auctionator/TSM public API values retain their provider identity and freshness
 limitations; they are not presented as verified inventory.
+
+Base reward metadata for cost-per-point ranking is documented in [REWARDS.md](REWARDS.md).

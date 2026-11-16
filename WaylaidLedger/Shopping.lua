@@ -65,6 +65,7 @@ function Shopping.Entry(kind, itemID)
     end
     local entry =
         { kind = kind, itemID = itemID, name = addon.Catalog.ItemName(itemID), requirements = {}, deliveryRows = {} }
+    entry.reward = addon.Rewards.Amount(kind, itemID)
     entry.purchaseQuote = purchaseQuote(kind, itemID)
     if entry.purchaseQuote and entry.purchaseQuote.status == "ok" and not entry.purchaseQuote.error then
         entry.purchase = entry.purchaseQuote.cost
@@ -118,10 +119,21 @@ function Shopping.Entry(kind, itemID)
             end
         end
     end
+    entry.unitCost = addon.Rewards.UnitCost(entry.total, entry.reward)
     return entry
 end
 
 function Shopping.Less(left, right)
+    -- Compare the unrounded ratios; rounding is only for the money display.
+    if left.unitCost ~= nil and right.unitCost == nil then
+        return true
+    end
+    if left.unitCost == nil and right.unitCost ~= nil then
+        return false
+    end
+    if left.unitCost ~= right.unitCost then
+        return left.unitCost < right.unitCost
+    end
     if left.total ~= nil and right.total == nil then
         return true
     end

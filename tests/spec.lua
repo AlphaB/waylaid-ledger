@@ -24,6 +24,7 @@ for _, name in ipairs({
     "Locales",
     "Data",
     "WritData",
+    "Rewards",
     "Catalog",
     "Inventory",
     "Pricing",

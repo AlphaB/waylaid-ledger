@@ -2,7 +2,7 @@
 ## Title: Waylaid Ledger
 ## Notes: Compare complete writ and crate delivery costs and shop at the auction house.
 ## Author: Mikhail Salosin
-## Version: 0.8.6
+## Version: 0.9.0
 ## OptionalDeps: Auctionator, TradeSkillMaster
 ## SavedVariables: WaylaidLedgerDB
 ## Category: Auction & Economy
@@ -13,6 +13,7 @@ Localization.lua
 Locales.lua
 Data.lua
 WritData.lua
+Rewards.lua
 DiscoveryLocales.lua
 Discovery.lua
 Catalog.lua
