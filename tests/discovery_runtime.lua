@@ -274,6 +274,7 @@ test("bundled install discovers additional crates and writs using one bulk scan"
             },
         }
         a.Providers.Install()
+        a:Command("debug on")
         a.db.scanOnOpen = true
         host.scripts.OnEvent(host, "AUCTION_HOUSE_SHOW")
         assert(a.autoDue)
@@ -333,6 +334,11 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         dbUpdate()
         assert(a.Providers.scan, "price callbacks must not unlock an active full scan")
         listener:ReceiveEvent(events.ScanComplete, { { replicateInfo = {} } })
+        local diagnostics = table.concat(a.db.log, "\n")
+        assert(diagnostics:find("[auctionator.progress]", 1, true))
+        assert(diagnostics:find("ScanComplete", 1, true))
+        assert(diagnostics:find("ignoredDiscoveryEvents=120000", 1, true))
+        assert(#a.db.log < 60, "diagnostics flooded the log during Auctionator's event storm")
         equal(a.Providers.scan, nil)
         equal(a.autoDue, nil)
         equal(requests, externalRequests)
@@ -340,10 +346,12 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         -- Failure and AH closure also release status, without resuming queries.
         listener:ReceiveEvent(events.ScanStart)
         listener:ReceiveEvent(events.ScanFailed)
+        assert(a.db.log[#a.db.log]:find("ScanFailed", 1, true))
         equal(a.Providers.scan, nil)
         equal(a.autoDue, nil)
         listener:ReceiveEvent(events.ScanStart)
         host.scripts.OnEvent(host, "AUCTION_HOUSE_CLOSED")
+        assert(table.concat(a.db.log, "\n"):find("auction house closed; elapsed=", 1, true))
         equal(a.Providers.scan, nil)
         equal(a.autoDue, nil)
         f.api.GetReplicateItemInfo, a.Discovery.Read, a.UI.Update = oldRows, oldRead, oldUpdate

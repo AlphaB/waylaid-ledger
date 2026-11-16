@@ -510,6 +510,21 @@ process = function()
     end
     queue, queued, cursor = {}, {}, 1
     Discovery.frame:SetScript("OnUpdate", nil)
+    if addon.Trace and addon.db and addon.db.debug then
+        local unresolved = 0
+        for _ in pairs(Discovery.pending) do
+            unresolved = unresolved + 1
+        end
+        addon:Trace(
+            "discovery.wave",
+            5,
+            "%d/%d descriptions; unresolved=%d changed=%s; sleeping until new data",
+            waveDone,
+            waveTotal,
+            unresolved,
+            tostring(dirty)
+        )
+    end
     -- One redraw per wave, including invalidated definitions. Failed parses stay
     -- pending but sleep until new item data, names or a later scan arrive.
     if dirty then
@@ -598,6 +613,10 @@ function Discovery.Install()
         -- Keep our discovery idle until its completion callback, even when its
         -- row loop finishes before its price database has been processed.
         if addon.Providers and addon.Providers.scan then
+            if addon.db and addon.db.debug then
+                local scan = addon.Providers.scan
+                scan.ignoredEvents = (scan.ignoredEvents or 0) + 1
+            end
             return
         end
         if event == "ITEM_DATA_LOAD_RESULT" then

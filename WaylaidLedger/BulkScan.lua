@@ -8,6 +8,12 @@ local BulkScan = addon.BulkScan
 local TIMEOUT, BATCH = 30, 250
 local BUDGET_MS = 2
 
+local function trace(...)
+    if addon.Trace then
+        addon:Trace(...)
+    end
+end
+
 function BulkScan.Supported(api)
     return type(api.ReplicateItems) == "function"
         and type(api.GetNumReplicateItems) == "function"
@@ -51,6 +57,16 @@ function BulkScan.Install(scanner)
             return
         end
         local own = job.own
+        trace(
+            "scan.end",
+            0,
+            "elapsed=%.1fs rows=%d/%s stage=%s; %s",
+            scanner.runtime.now() - job.startedAt,
+            job.index,
+            tostring(job.count or "unknown"),
+            job.resolving and "descriptions" or "auctions",
+            message
+        )
         cancel()
         if own then
             scanner.active, scanner.bulkMode = false, false
@@ -75,6 +91,10 @@ function BulkScan.Install(scanner)
         end
         if job.resolving then
             if addon.Discovery.IsWorking() then
+                if addon.db.debug and addon.Discovery.Progress then
+                    local done, total = addon.Discovery.Progress()
+                    trace("scan.descriptions", 5, "%d/%d descriptions; elapsed=%.1fs", done, total, now - job.startedAt)
+                end
                 if job.discoveryProgress ~= addon.Discovery.progress then
                     job.discoveryProgress, job.progressAt = addon.Discovery.progress, now
                 end
@@ -150,6 +170,7 @@ function BulkScan.Install(scanner)
         end
         job.progressAt = now
         if job.index < job.count then
+            trace("scan.progress", 5, "%d/%d auctions; elapsed=%.1fs", job.index, job.count, now - job.startedAt)
             if job.own then
                 scanner.message = string.format(L["Reading full scan: %d / %d auctions"], job.index, job.count)
             end
@@ -159,6 +180,7 @@ function BulkScan.Install(scanner)
         -- Resolve names only after indexing the entire market, so row order does
         -- not make a requirement fail when its goods appear later in the scan.
         job.resolving, job.seen = true, nil
+        trace("scan.stage", 0, "Read %d auctions; resolving delivery descriptions", job.count)
         addon.Discovery.Retry()
         updateStatus()
     end
@@ -177,6 +199,7 @@ function BulkScan.Install(scanner)
     end
     function scanner:Start(itemIDs, detailed)
         if addon.Providers and addon.Providers.scan then
+            trace("scan.rejected", 2, "Own scan blocked while Auctionator is scanning")
             return false, L["Another addon is scanning."]
         end
         if detailed then
@@ -198,12 +221,32 @@ function BulkScan.Install(scanner)
         self.completed, self.failed, self.active, self.bulkMode = 0, 0, true, true
         self.message = L["Requesting one full auction-house snapshot..."]
         observe(true)
+        if addon.traceState then
+            addon.traceState["scan.progress"], addon.traceState["scan.descriptions"] = nil, nil
+        end
+        trace(
+            "scan.start",
+            0,
+            "Full snapshot; reason=%s scope=%s; waiting for auction API readiness",
+            tostring(addon.scanContext and addon.scanContext.reason),
+            tostring(addon.scanContext and addon.scanContext.category)
+        )
         engine.job.waiting = true
         redraw()
         self:Tick()
         return true
     end
     function scanner:Stop(message)
+        if engine.job then
+            trace(
+                "scan.cancel",
+                0,
+                "elapsed=%.1fs rows=%d; %s",
+                self.runtime.now() - engine.job.startedAt,
+                engine.job.index,
+                message or "stop requested / another addon took the auction house"
+            )
+        end
         self.bulkMode = false
         cancel()
         return stop(self, message)
@@ -215,6 +258,7 @@ function BulkScan.Install(scanner)
         end
         if job.waiting and self.api.IsThrottledMessageSystemReady() then
             job.waiting = nil
+            trace("scan.request", 0, "Sending ReplicateItems; waiting for auction snapshot")
             local ok, reason = self:Send("ReplicateItems")
             if not ok then
                 finish(string.format(L["Full scan could not start: %s"], tostring(reason)))
@@ -240,6 +284,13 @@ function BulkScan.Install(scanner)
                 return
             end
             job.received, job.count, job.at = true, count, scanner.runtime.wallTime()
+            trace(
+                "scan.received",
+                0,
+                "Snapshot contains %d auctions; elapsed=%.1fs",
+                count,
+                scanner.runtime.now() - job.startedAt
+            )
             job.progressAt = scanner.runtime.now()
             updateStatus()
         elseif event == "AUCTION_HOUSE_CLOSED" then
