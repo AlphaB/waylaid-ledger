@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The lowest known filling cost is highlighted in green for all price sources,
 including cached prices. Auctionator and TSM are optional price providers. Own scans support both crate and writ costs.
 
-Version **0.7.2** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.8.0** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -386,6 +386,7 @@ stylua --check WaylaidLedger tests
 python3 -m ruff check .
 python3 -m ruff format --check .
 python3 tests/run.py
+python3 tests/scan_performance.py --verify
 python3 tools/package.py
 ```
 
@@ -398,8 +399,8 @@ depth, indivisible auctions, randomized exhaustive cross-checks, stale/unknown
 results, pagination, throttling, retry timeouts, interruptions, owned-stock
 filtering, profile isolation, full bootstrap, tooltip text, provider priorities,
 source settings, API errors, price-age semantics, callbacks, and shopping handoff.
-The default suite has 195 tests. Three additional contract tests run the actual
-unmodified public API Lua from separately downloaded release ZIPs (198 total):
+The default suite has 202 tests. Three additional contract tests run the actual
+unmodified public API Lua from separately downloaded release ZIPs (205 total):
 
 ```sh
 python3 tests/run.py --auctionator /path/to/Auctionator-347.zip --tsm /path/to/TradeSkillMaster.zip

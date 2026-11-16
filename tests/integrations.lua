@@ -196,6 +196,50 @@ test("provider cache is short-lived, caches misses and invalidates on DB updates
     equal(f.reads, 4)
     GetTime = originalTime
 end)
+test("Auctionator callback bursts invalidate prices immediately but defer redraws without discovery retries", function()
+    reset()
+    local prices = { [1] = 10 }
+    local f = fakeAuctionator(prices)
+    local oldTime, oldUI, oldTooltip, oldRetry = GetTime, addon.UI.Update, addon.Tooltip.Refresh, addon.Discovery.Retry
+    local now, updates, refreshes, retries = 0, 0, 0, 0
+    GetTime = function()
+        return now
+    end
+    addon.UI.Update = function()
+        updates = updates + 1
+    end
+    addon.Tooltip.Refresh = function()
+        refreshes = refreshes + 1
+    end
+    addon.Discovery.Retry = function()
+        retries = retries + 1
+    end
+    local ok, err = pcall(function()
+        Providers.Install()
+        equal(Providers.Read("auctionator", 1).unitPrice, 10)
+        prices[1] = 20
+        f.callback()
+        equal(Providers.Read("auctionator", 1).unitPrice, 20)
+        for _ = 1, 600 do
+            f.callback()
+            now = now + 1 / 60
+            Providers.frame.scripts.OnUpdate()
+        end
+        equal(updates, 0)
+        equal(refreshes, 0)
+        equal(retries, 0)
+        now = now + 0.3
+        Providers.frame.scripts.OnUpdate()
+        equal(updates, 1)
+        equal(refreshes, 1)
+        equal(retries, 0)
+        equal(Providers.frame.scripts.OnUpdate, nil)
+    end)
+    GetTime, addon.UI.Update, addon.Tooltip.Refresh, addon.Discovery.Retry = oldTime, oldUI, oldTooltip, oldRetry
+    Providers.frame:SetScript("OnUpdate", nil)
+    Providers.refreshAt = nil
+    assert(ok, err)
+end)
 test("list Refresh invalidates provider cache and starts an own scan without clearing snapshots", function()
     reset()
     local oldWrit = addon.db.writSource

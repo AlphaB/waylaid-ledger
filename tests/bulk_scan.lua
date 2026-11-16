@@ -36,6 +36,13 @@ local function fixture(action)
                 return 0
             end,
             Bags = function() end,
+            Prune = function() end,
+            IsWorking = function()
+                return f.resolving
+            end,
+            Scope = function()
+                return f.scope or f.observed
+            end,
         },
     }
     for _, name in ipairs({ "Localization", "Locales", "Scanner", "BulkScan", "Pricing" }) do
@@ -106,13 +113,32 @@ test("6000 auctions use one request and bounded processing batches", function()
             f.frame.scripts.OnUpdate()
             batches = batches + 1
         end
-        equal(batches, 24)
+        equal(batches, 25)
         equal(f.scanner.completed, 6000)
         equal(f.calls, 1)
         local quote = f.addon.Pricing.Quote(f.market.items[6000], 200)
         equal(quote.cost, 2000)
         equal(quote.estimated, true)
         equal(quote.available, nil)
+    end)
+end)
+test("duplicate auctions do not allocate a Lua tuple table for every row", function()
+    fixture(function(f)
+        local row = f.row(11, "Herb", 10, 100)
+        for index = 1, 30000 do
+            f.rows[index] = row
+        end
+        f.scanner:Start({})
+        collectgarbage("collect")
+        collectgarbage("stop")
+        local before = collectgarbage("count")
+        local ok, err = pcall(function()
+            f.deliver()
+            assert(collectgarbage("count") - before < 256, "scan allocated per-auction temporary objects")
+            equal(f.market.items[11].unitPrice, 10)
+        end)
+        collectgarbage("restart")
+        assert(ok, err)
     end)
 end)
 test("bulk snapshots use correct buyout tuple index and retain minimum unit prices", function()
@@ -165,6 +191,47 @@ test("another addon's bulk response is reused without sending a second query", f
         equal(f.calls, 1)
         equal(f.scanner:Start({ 11 }), true)
         equal(f.calls, 2)
+    end)
+end)
+test("bulk commits only the scope resolved from descriptions and can be cancelled before commit", function()
+    fixture(function(f)
+        f.rows = { f.row(11, "Herb", 20, 100), f.row(12, "Unrelated", 1, 100), f.row(31, "Writ", 1, 50) }
+        f.resolving = true
+        f.scope = { [31] = true }
+        f.scanner:Start({})
+        f.frame.scripts.OnEvent(f.frame, "REPLICATE_ITEM_LIST_UPDATE")
+        f.frame.scripts.OnUpdate()
+        f.frame.scripts.OnUpdate()
+        equal(next(f.market.items), nil)
+        f.scope[11] = true
+        f.resolving = false
+        f.frame.scripts.OnUpdate()
+        equal(f.market.items[11].unitPrice, 5)
+        equal(f.market.items[31].unitPrice, 50)
+        equal(f.market.items[12], nil)
+        equal(f.scanner.completed, 2)
+        f.market.items = {}
+        f.scanner:Start({})
+        f.frame.scripts.OnEvent(f.frame, "REPLICATE_ITEM_LIST_UPDATE")
+        f.frame.scripts.OnUpdate()
+        f.scanner:Stop()
+        equal(f.frame.scripts.OnUpdate, nil)
+        equal(next(f.market.items), nil)
+    end)
+end)
+test("stalled delivery resolution times out without committing a snapshot", function()
+    fixture(function(f)
+        f.rows = { f.row(11, "Herb", 20, 100) }
+        f.resolving = true
+        f.scanner:Start({})
+        f.frame.scripts.OnEvent(f.frame, "REPLICATE_ITEM_LIST_UPDATE")
+        f.frame.scripts.OnUpdate()
+        f.frame.scripts.OnUpdate()
+        f.now = 31
+        f.frame.scripts.OnUpdate()
+        equal(f.frame.scripts.OnUpdate, nil)
+        equal(f.scanner.active, false)
+        equal(next(f.market.items), nil)
     end)
 end)
 test("cancelled and closed full scans ignore late responses", function()
@@ -248,6 +315,7 @@ test("slow replication reads yield on elapsed time without timing out a progress
             f.frame.scripts.OnUpdate()
             equal(reads, frame)
         end
+        f.frame.scripts.OnUpdate()
         equal(f.scanner.completed, 100)
         equal(f.scanner.active, false)
         equal(f.market.items[100].unitPrice, 10)

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0
+
+- Ignore unrelated item-load events and wait for 250 ms of quiet before retrying delivery descriptions.
+- Coalesce Auctionator price-update redraws; price changes no longer reparse delivery descriptions.
+- Remove per-auction tuple/closure allocations and reuse normalized contract-prefix patterns.
+- Resolve new deliveries before committing scan prices, then retain only contracts and delivery goods.
+- Release the temporary market name index and prune unrelated estimates from older saved databases.
+- Preserve fresh detailed snapshots, localized-name ambiguity, cancellation and progress timeouts.
+- Add a repeated 100,000-auction CPU/memory benchmark and regressions for events spread across frames.
+- 202 Lua 5.1 regression tests; Lua/Python lint and formatting checks pass.
+
 ## 0.7.2
 
 - Remove the legacy standalone scan/shopping popup; use auction lists and official settings.

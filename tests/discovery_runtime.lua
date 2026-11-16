@@ -148,6 +148,9 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         equal(view.summary.text, "Auctions 0/4")
         while frame.scripts.OnUpdate do
             frame.scripts.OnUpdate()
+            if a.Discovery.frame.scripts.OnUpdate then
+                a.Discovery.frame.scripts.OnUpdate()
+            end
         end
         while a.Discovery.frame.scripts.OnUpdate do
             a.Discovery.frame.scripts.OnUpdate()
@@ -189,6 +192,9 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         frame.scripts.OnEvent(frame, "REPLICATE_ITEM_LIST_UPDATE")
         while frame.scripts.OnUpdate do
             frame.scripts.OnUpdate()
+            if a.Discovery.frame.scripts.OnUpdate then
+                a.Discovery.frame.scripts.OnUpdate()
+            end
         end
         while a.Discovery.frame.scripts.OnUpdate do
             a.Discovery.frame.scripts.OnUpdate()
@@ -220,6 +226,9 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         frame.scripts.OnEvent(frame, "REPLICATE_ITEM_LIST_UPDATE")
         while frame.scripts.OnUpdate do
             frame.scripts.OnUpdate()
+            if a.Discovery.frame.scripts.OnUpdate then
+                a.Discovery.frame.scripts.OnUpdate()
+            end
         end
         while a.Discovery.frame.scripts.OnUpdate do
             a.Discovery.frame.scripts.OnUpdate()

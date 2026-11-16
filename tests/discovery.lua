@@ -8,6 +8,7 @@ local function fixture(action, locale)
         time = time,
         C_Container = C_Container,
         debugprofilestop = debugprofilestop,
+        GetTime = GetTime,
     }
     local a = { db = {}, Crates = {}, Writs = {}, MaterialNames = {}, WritMaterialNames = {} }
     local names, tips = {}, {}
@@ -32,6 +33,13 @@ local function fixture(action, locale)
         return 100
     end
     C_Container = nil
+    local now = 0
+    GetTime = function()
+        return now
+    end
+    function a.advance(seconds)
+        now = now + seconds
+    end
     assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/Localization.lua"))("WaylaidLedger", a)
     assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/Locales.lua"))("WaylaidLedger", a)
     assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/DiscoveryLocales.lua"))("WaylaidLedger", a)
@@ -40,6 +48,7 @@ local function fixture(action, locale)
     function a.drain()
         local frames = 0
         while a.Discovery.frame.scripts.OnUpdate do
+            a.advance(0.3)
             frames = frames + 1
             assert(frames < 1000, "discovery retries did not sleep")
             a.Discovery.frame.scripts.OnUpdate()
@@ -55,6 +64,100 @@ local function fixture(action, locale)
     debugprofilestop = saved.debugprofilestop
     assert(ok, err)
 end
+
+test("item loads spread over a scan do not continually reparse unresolved contracts", function()
+    fixture(function(a, names)
+        local reads = 0
+        C_TooltipInfo.GetItemByID = function()
+            reads = reads + 1
+            return { lines = {} }
+        end
+        for id = 100, 279 do
+            a.Discovery.Observe(id, "Craftsman's Writ: Test " .. id)
+        end
+        a.Discovery.Retry()
+        a.drain()
+        equal(reads, 180)
+        reads = 0
+        local frame = a.Discovery.frame
+        for index = 1, 600 do
+            local id = 1000 + index
+            names[id] = "Unrelated auction item " .. index
+            frame.scripts.OnEvent(frame, "ITEM_DATA_LOAD_RESULT", id, true)
+            a.advance(1 / 60)
+            if frame.scripts.OnUpdate then
+                frame.scripts.OnUpdate()
+            end
+        end
+        equal(reads, 0, "delivery retries must wait for the item-load burst to settle")
+        a.drain()
+        equal(reads, 0)
+    end)
+end)
+
+test("candidate loads across frames wait for quiet and still read the latest description", function()
+    fixture(function(a, names, tips)
+        names[31] = "Craftsman's Writ: Test"
+        a.Discovery.Observe(11, "Herb")
+        a.Discovery.Observe(31)
+        tips[31] = { lines = { { leftText = "Deliver 3 Herb" } } }
+        a.Discovery.Retry()
+        a.drain()
+        local reads = 0
+        C_TooltipInfo.GetItemByID = function(id)
+            reads = reads + 1
+            return tips[id]
+        end
+        local frame = a.Discovery.frame
+        for _ = 1, 600 do
+            frame.scripts.OnEvent(frame, "ITEM_DATA_LOAD_RESULT", 31, true)
+            a.advance(1 / 60)
+            frame.scripts.OnUpdate()
+        end
+        equal(reads, 0)
+        tips[31] = { lines = { { leftText = "Deliver 9 Herb" } } }
+        a.drain()
+        equal(reads, 1)
+        equal(a.Writs[31].requirements[1].quantity, 9)
+        equal(frame.scripts.OnUpdate, nil)
+    end)
+end)
+
+test("upgrade prunes whole-market estimates and names without losing contracts or ambiguity", function()
+    fixture(function(a)
+        local exact = { kind = "commodity", offers = {}, scannedAt = 100 }
+        local known = { kind = "estimate", unitPrice = 5, scannedAt = 100 }
+        a.db.markets = {
+            first = {
+                items = { [11] = known, [900] = { kind = "estimate" }, [901] = exact },
+                failures = {
+                    [900] = "timeout",
+                },
+            },
+            second = { items = { [11] = known, [902] = { kind = "estimate" } }, failures = {} },
+        }
+        a.db.discovery.locales.enUS = {
+            build = 16001,
+            names = { [11] = "Herb", [12] = "Herb", [31] = "Craftsman's Writ: Test", [900] = "Unrelated item" },
+            crates = {},
+            writs = { [31] = { name = "Craftsman's Writ: Test", requirements = { { itemID = 11, quantity = 3 } } } },
+        }
+        a.Discovery.Install()
+        equal(a.db.markets.first.items[11], known)
+        equal(a.db.markets.first.items[901], exact)
+        equal(a.db.markets.first.items[900], nil)
+        equal(a.db.markets.first.failures[900], nil)
+        equal(a.db.markets.second.items[902], nil)
+        equal(a.db.markets.second.items[11], known)
+        equal(a.Discovery.store.names[900], nil)
+        equal(a.Discovery.store.names[11], "Herb")
+        equal(a.Discovery.names.Herb, nil)
+        equal(a.Discovery.names.herb, false)
+        equal(a.Writs[31].requirements[1].quantity, 3)
+        a.Discovery.Prune()
+        equal(a.Discovery.names.herb, false)
+    end)
+end)
 
 test("requirements start empty and are learned from live descriptions and exact AH names", function()
     fixture(function(a, _, tips)
