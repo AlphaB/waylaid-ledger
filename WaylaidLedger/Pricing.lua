@@ -22,6 +22,9 @@ function Pricing.Quote(snapshot, required)
     if not snapshot then
         return { status = "unknown" }
     end
+    if snapshot.kind == "estimate" then
+        return { status = "ok", cost = math.ceil(snapshot.unitPrice * required), estimated = true }
+    end
     local available = 0
     for _, offer in ipairs(snapshot.offers) do
         available = available + offer.quantity
@@ -96,7 +99,8 @@ function Pricing.Resolve(crate, snapshots, now, maxAge, failures, mode, lookup)
     local scanRows = Pricing.Evaluate(crate, snapshots, now, maxAge, failures)
     local rows, allVerified = {}, true
     for index, scan in ipairs(scanRows) do
-        scan.source, scan.sourceLabel = "own", "Own scan"
+        scan.source, scan.sourceLabel = scan.estimated and "replicate" or "own",
+            scan.estimated and "AH full scan" or "Own scan"
         scan.best = false
         local freshScan = scan.status ~= "unknown" and not scan.stale and not scan.error
         local row = scan

@@ -88,6 +88,7 @@ function Providers.Install()
     if api and Providers.boundAPI ~= api and type(api.RegisterForDBUpdate) == "function" then
         local ok, errorMessage = pcall(api.RegisterForDBUpdate, CALLER, function()
             Providers.Invalidate()
+            if addon.Discovery then addon.Discovery.Retry() end
             if addon.Tooltip then
                 addon.Tooltip.Refresh()
             end

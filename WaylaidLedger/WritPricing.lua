@@ -11,10 +11,11 @@ function addon.WritPricing.Rows(itemID)
     for _, row in ipairs(rows) do
         -- Requirements are cumulative; no individual requirement is a winner.
         row.best, row.bestEstimate = false, false
-        if row.status == "ok" then
+        if row.status == "ok" and not row.error then
             total = total + row.cost
             stale = stale or row.stale or false
         else complete = false end
     end
+    if writ.unresolved or #writ.requirements == 0 then return {}, nil end
     return rows, complete and total or nil, stale
 end

@@ -11,6 +11,5 @@ Auctionator and TradeSkillMaster are optional integrations. Their full source
 packages are external test inputs and are not redistributed. Blizzard texture
 paths reference assets supplied by the game; no game artwork is bundled.
 
-Catalogs store factual item IDs, names, required quantities, source URLs, and
-response hashes from Wowhead Forever. The addon does not bundle downloaded
-pages or query Wowhead at runtime.
+Item requirements and localized names are learned from in-game APIs and saved
+locally. No external delivery database, web pages, or importer is distributed.

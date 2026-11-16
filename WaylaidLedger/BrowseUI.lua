@@ -194,7 +194,9 @@ function Browse.Create(host, kind)
     list:SetElementInitializer("Button", function(row, entry) initializeRow(view, row, entry) end)
     ScrollUtil.InitScrollBoxListWithScrollBar(view.scroll, view.scrollBar, list)
     view.empty = text(view.inset, "GameFontDisable")
-    view.empty:SetPoint("TOPLEFT", 18, -55); view.empty:SetText("No matching items."); view.empty:Hide()
+    view.empty:SetPoint("TOPLEFT", 18, -55)
+    view.empty:SetText("No matching items. For first-time discovery, run /wll scan all at the AH.")
+    view.empty:Hide()
     host:SetScript("OnSizeChanged", function() Browse.Layout(view) end)
     return view
 end

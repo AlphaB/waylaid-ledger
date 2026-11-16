@@ -15,11 +15,16 @@ function Shopping.Entry(kind, itemID)
     local definition = kind == "writs" and addon.Writs[itemID]
         or (kind == "crates" and addon.Crates[itemID])
     if not definition then return nil end
-    local entry = { kind = kind, itemID = itemID, name = addon.Catalog.ItemName(itemID), requirements = {} }
+    local entry = { kind = kind, itemID = itemID, name = addon.Catalog.ItemName(itemID), requirements = {}, deliveryRows = {} }
     entry.purchaseQuote = purchaseQuote(kind, itemID)
     if entry.purchaseQuote and entry.purchaseQuote.status == "ok" then
         entry.purchase = entry.purchaseQuote.cost
         entry.stale = entry.purchaseQuote.stale or false
+    end
+    if definition.unresolved then
+        entry.reason = definition.reason or "Delivery requirements unresolved. Run a full AH scan."
+        entry.canShop = false
+        return entry
     end
     if kind == "writs" then
         entry.deliveryRows, entry.delivery, entry.deliveryStale = addon.WritPricing.Rows(itemID)
@@ -37,6 +42,17 @@ function Shopping.Entry(kind, itemID)
     entry.stale = entry.stale or entry.deliveryStale or false
     if entry.purchase and entry.delivery then entry.total = entry.purchase + entry.delivery end
     entry.canShop = #entry.requirements > 0
+    local mode = kind == "writs" and addon.db.writSource or addon.db.source
+    if (mode == "auto" or mode == "own") and (not entry.purchaseQuote or entry.purchaseQuote.status ~= "ok") then
+        local snapshot = addon:GetMarket().items[itemID]
+        if snapshot and snapshot.kind == "estimate" then
+            entry.purchaseQuote = addon.Pricing.Resolve({options={{itemID=itemID,quantity=1}}},
+                {[itemID]=snapshot}, time(), addon.db.maxAge, {}, "own", function() end)[1]
+            entry.purchase = entry.purchaseQuote.cost
+            entry.stale = entry.stale or entry.purchaseQuote.stale
+            if entry.delivery then entry.total = entry.purchase + entry.delivery end
+        end
+    end
     return entry
 end
 

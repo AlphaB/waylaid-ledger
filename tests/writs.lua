@@ -13,7 +13,7 @@ local function price(source, unitPrice, stale)
     return { source=source, unitPrice=unitPrice, stale=stale, ageDays=source=="auctionator" and (stale and 2 or 0) or nil }
 end
 
-test("150 Forever writs have positive delivery requirements and do not expand crate scans", function()
+test("synthetic writs have positive delivery requirements and do not expand crate scans", function()
     local count, items, newItems = 0, {}, 0
     for writID, writ in pairs(addon.Writs) do
         count = count + 1
@@ -27,7 +27,6 @@ test("150 Forever writs have positive delivery requirements and do not expand cr
     for id in pairs(items) do if not addon.MaterialNames[id] then newItems = newItems + 1 end end
     equal(count,150); equal(newItems,148)
     equal(#addon.Catalog.AllCrates(),30); equal(#addon.Catalog.Materials(addon.Catalog.AllCrates()),96)
-    equal(addon.Writs[264050].questID,94250)
     equal(addon.Writs[264050].requirements[1].itemID,4245)
     equal(addon.Writs[264050].requirements[1].quantity,1)
 end)

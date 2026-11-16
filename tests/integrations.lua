@@ -210,6 +210,9 @@ test("source settings persist and explicit unavailable source stays unknown",fun
     for _,name in ipairs({"Data","WritData","Catalog","Inventory","Pricing","Providers","WritPricing","Shopping","Scanner","Tooltip","UI","BrowseUI","Minimap","Core"}) do
         assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/"..name..".lua"))("WaylaidLedger",reloaded)
     end
+    for _,name in ipairs({"Discovery","BulkScan"}) do
+        assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/"..name..".lua"))("WaylaidLedger",reloaded)
+    end
     -- Core registers ADDON_LOADED on the newly created unnamed frame. Locate it
     -- via the mock registry exposed by spec.lua rather than changing production.
     local newHost=TEST_FRAMES[#TEST_FRAMES]

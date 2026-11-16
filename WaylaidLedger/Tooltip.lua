@@ -53,6 +53,8 @@ local function appendRows(tooltip, rows, detailed, compare)
 end
 
 function Tooltip.Append(tooltip, itemID)
+    addon.Discovery.Observe(itemID)
+    addon.Discovery.Read(itemID)
     local writ = addon.Writs[itemID]
     if not addon.db or (writ and addon.db.writSource == "off")
         or (not writ and not addon.Crates[itemID] and itemID ~= 248549) then
@@ -75,6 +77,13 @@ function Tooltip.Append(tooltip, itemID)
         return
     end
     addon.lastContractID = itemID
+    local definition = writ or addon.Crates[itemID]
+    if definition and definition.unresolved then
+        tooltip:AddLine(" ")
+        tooltip:AddLine("Waylaid Ledger", 1, 0.82, 0)
+        tooltip:AddLine("Delivery requirements unresolved. Run a full AH scan, then hover this item again.", 0.75, 0.75, 0.75, true)
+        return
+    end
     if writ then
         addon.lastWritID = itemID
         local rows, total = addon.WritPricing.Rows(itemID)

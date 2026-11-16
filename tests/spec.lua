@@ -15,11 +15,15 @@ local function loadModule(name)
     chunk("WaylaidLedger", addon)
 end
 for _, name in ipairs({ "Libs/LibStub", "Libs/LibAHTab", "Data", "WritData", "Catalog", "Inventory", "Pricing", "Providers", "WritPricing", "Shopping", "Scanner" }) do loadModule(name) end
+loadModule("Discovery")
+loadModule("BulkScan")
+assert(next(addon.Crates) == nil and next(addon.Writs) == nil, "Production catalog must start empty")
+assert(loadfile(PROJECT_ROOT .. "/tests/fixtures.lua"))(addon)
 local P = addon.Pricing
 local function commodity(offers, at) return {kind="commodity", offers=offers, scannedAt=at or 100} end
 local function item(offers) return {kind="item", offers=offers, scannedAt=100} end
 
-test("catalog has 30 crates and 96 valid, unique materials", function()
+test("synthetic catalog selection deduplicates materials", function()
     local crates = addon.Catalog.AllCrates()
     equal(#crates, 30)
     equal(#addon.Catalog.Materials(crates), 96)
@@ -381,4 +385,7 @@ assert(loadfile(PROJECT_ROOT .. "/tests/tooltip_age.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/settings.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/expanded_scan.lua"))(addon, test, equal, host)
 assert(loadfile(PROJECT_ROOT .. "/tests/upstream_contracts.lua"))(addon, test, equal)
+assert(loadfile(PROJECT_ROOT .. "/tests/discovery.lua"))(test, equal)
+assert(loadfile(PROJECT_ROOT .. "/tests/bulk_scan.lua"))(test, equal)
+assert(loadfile(PROJECT_ROOT .. "/tests/discovery_runtime.lua"))(test, equal)
 print(string.format("\n%d tests passed on %s",passed,_VERSION))

@@ -52,7 +52,7 @@ function UI.Create()
     end)
     UI.bags = button(panel, "Scan bags", 15, -114, 160, function() addon:StartScan("bags") end)
     UI.hovered = button(panel, "Scan hovered", 187, -114, 160, function() addon:StartScan("hovered") end)
-    UI.all = button(panel, "Scan all (424)", 359, -114, 160, function() addon:StartScan("all") end)
+    UI.all = button(panel, "Full AH scan", 359, -114, 160, function() addon:StartScan("all") end)
     UI.stop = button(panel, "Stop scan", 15, -147, 160, function() addon:StopScan() end)
     button(panel, "Copy diagnostics", 187, -147, 160, function() UI.ShowReport(addon:Report()) end)
 
@@ -76,7 +76,7 @@ function UI.Create()
     UI.crate:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
     UI.option = button(panel, "Hover a crate to choose a bundle", 15, -212, 505, function()
         local crate = addon.lastCrateID and addon.Crates[addon.lastCrateID]
-        if crate then
+        if crate and not crate.unresolved and #crate.options > 0 then
             UI.optionIndex = UI.optionIndex % #crate.options + 1
             UI.Update()
         end
@@ -121,7 +121,9 @@ function UI.Update(refreshBrowse)
     UI.source:SetText("Prices: " .. SOURCE_LABELS[addon.db.source] .. " (change)")
     UI.tsmKey:SetText(addon.db.tsmKey == "DBMarket" and "TSM: Market value (change)" or "TSM: Min buyout (change)")
     UI.tsmKey:SetEnabled(addon.Providers.Available("tsm"))
-    if scanner.active then
+    if scanner.active and scanner.bulkMode then
+        UI.status:SetText(scanner.message or "Reading the auction-house snapshot...")
+    elseif scanner.active then
         local itemID = scanner.pending and scanner.pending.itemID or scanner.queue[scanner.index]
         UI.status:SetText(string.format("Scanning %d/%d: %s\n%d updated, %d failed. Hover again for updated prices.",
             scanner.index, #scanner.queue, addon.Catalog.ItemName(itemID), scanner.completed, scanner.failed))
@@ -136,7 +138,7 @@ function UI.Update(refreshBrowse)
     end
     local crateID = addon.lastCrateID
     local crate = crateID and addon.Crates[crateID]
-    if crate then
+    if crate and not crate.unresolved and #crate.options > 0 then
         local rows = addon:GetRows(crateID)
         if UI.selectedCrateID ~= crateID then
             UI.selectedCrateID, UI.optionIndex = crateID, 1
@@ -158,7 +160,7 @@ function UI.Update(refreshBrowse)
     local canShop = scanner.open and crate ~= nil and addon.Providers.ShoppingAvailable()
     UI.search:SetEnabled(canShop)
     UI.shop:SetEnabled(canShop)
-    UI.option:SetEnabled(crate ~= nil)
+    UI.option:SetEnabled(crate ~= nil and not crate.unresolved and #crate.options > 0)
     UI.bags:SetEnabled(scanner.open and not scanner.active)
     UI.hovered:SetEnabled(scanner.open and not scanner.active and (addon.lastContractID ~= nil or crate ~= nil))
     UI.all:SetEnabled(scanner.open and not scanner.active)
