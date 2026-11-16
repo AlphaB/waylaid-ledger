@@ -367,7 +367,8 @@ function addon:Report()
         "Waylaid Ledger " .. self.version,
         string.format("Client %s build %s (%s), interface %s", version, build, buildDate, interface),
         "Locale " .. GetLocale() .. "; market " .. self:MarketKey(),
-        string.format("Catalog: 30 crates / 150 writs / 424 scan items; cached: %d; stale after: %ds", count, self.db.maxAge),
+        string.format("Catalog: %d learned crates / %d delivery items; cached: %d; stale after: %ds",
+            #self.Catalog.AllCrates(), #self.Catalog.Materials(self.Catalog.AllCrates()), count, self.db.maxAge),
         "Auction API: " .. tostring(C_AuctionHouse and type(C_AuctionHouse.SendSearchQuery)),
         "Modern tooltips: " .. tostring(TooltipDataProcessor ~= nil),
         "Auction house open: " .. tostring(self.scanner.open),
@@ -547,6 +548,7 @@ local function initialize()
     addon.db.writSource = WRIT_SOURCES[addon.db.writSource] and addon.db.writSource or "auto"
     addon.db.source = SOURCES[addon.db.source] and addon.db.source or "auto"
     addon.db.tsmKey = TSM_KEYS[tostring(addon.db.tsmKey):lower()] or "DBMinBuyout"
+    addon.Discovery.Install()
     local api = C_AuctionHouse
     if not api or not api.SendSearchQuery or not api.MakeItemKey then
         addon:Print("This client has no supported C_AuctionHouse API. Please send its /dump GetBuildInfo() output.")
@@ -621,6 +623,7 @@ local function initialize()
         "MODIFIER_STATE_CHANGED", "PLAYER_LOGOUT" }) do
         frame:RegisterEvent(event)
     end
+    addon.BulkScan.Install(addon.scanner)
     SLASH_WAYLAIDLEDGER1, SLASH_WAYLAIDLEDGER2 = "/wll", "/waylaidledger"
     SlashCmdList.WAYLAIDLEDGER = function(text) addon:Command(text) end
     addon:Log("Loaded on interface " .. tostring(select(4, GetBuildInfo())))

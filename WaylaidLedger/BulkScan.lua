@@ -1,0 +1,258 @@
+local _, addon = ...
+
+-- The same public replication API used by Auctionator's full scan. A snapshot
+-- supplies minimum-unit-price estimates, not verified stock or stack outlay.
+addon.BulkScan = {}
+local BulkScan = addon.BulkScan
+local COOLDOWN, TIMEOUT, BATCH = 15 * 60, 30, 250
+
+function BulkScan.Supported(api)
+    return type(api.ReplicateItems) == "function" and type(api.GetNumReplicateItems) == "function"
+        and type(api.GetReplicateItemInfo) == "function"
+end
+
+function BulkScan.Install(scanner)
+    if not BulkScan.Supported(scanner.api) then return end
+    local frame = CreateFrame("Frame")
+    local identity = (UnitGUID and UnitGUID("player")) or (UnitName and UnitName("player")) or "player"
+    local realm = addon.MarketBaseKey and addon:MarketBaseKey() or (GetRealmName and GetRealmName()) or "realm"
+    local key = realm .. ":" .. identity
+    addon.db.replication = addon.db.replication or {}
+    local cooldowns = addon.db.replication
+    local engine = { scanner = scanner, frame = frame, cooldownKey = key }
+    BulkScan.engine = engine
+    local start, stop, tick = scanner.Start, scanner.Stop, scanner.Tick
+    local function redraw()
+        scanner:Notify()
+        if addon.Tooltip then addon.Tooltip.Refresh() end
+    end
+    local function cancel()
+        engine.job = nil
+        frame:SetScript("OnUpdate", nil)
+    end
+    local function finish(message)
+        local job = engine.job
+        if not job then return end
+        local own = job.own
+        cancel()
+        if own then
+            scanner.active, scanner.bulkMode = false, false
+            scanner.message = message
+            scanner:Log(message)
+        end
+        redraw()
+    end
+    local function process()
+        local job = engine.job
+        if not job then return end
+        local now = scanner.runtime.now()
+        if now - job.startedAt > TIMEOUT then
+            -- Preserve completed estimates; never mark absent/partial rows sold out.
+            finish("Full scan did not complete. Retry when the auction house is idle.")
+            return
+        end
+        if not job.received then return end
+        local api = scanner.api
+        local limit = math.min(job.index + BATCH, job.count)
+        for index = job.index, limit - 1 do
+            local ok, info = pcall(function() return { api.GetReplicateItemInfo(index) } end)
+            if not ok then finish("Full scan data could not be read: " .. tostring(info)); return end
+            local name, quantity, buyout, itemID = info[1], info[3], info[10], info[17]
+            if type(itemID) == "number" and itemID > 0 then
+                if not job.seen[itemID] then
+                    job.seen[itemID] = true
+                    addon.Discovery.Observe(itemID, name)
+                end
+                if type(quantity) == "number" and quantity > 0 and type(buyout) == "number"
+                    and quantity < 1000000000 and quantity == math.floor(quantity)
+                    and buyout > 0 and buyout < 9007199254740 then
+                    local price = buyout / quantity
+                    local old = job.prices[itemID]
+                    if not old or price < old then job.prices[itemID] = price end
+                end
+            end
+        end
+        job.index = limit
+        if limit < job.count then
+            if job.own then scanner.message = string.format("Reading full scan: %d / %d auctions", limit, job.count) end
+            return
+        end
+        -- Resolve names only after indexing the entire market, so row order does
+        -- not make a requirement fail when its goods appear later in the scan.
+        addon.Discovery.Retry()
+        local count = 0
+        for itemID, price in pairs(job.prices) do
+            local previous = job.market.items[itemID]
+            if not previous or previous.kind == "estimate" or previous.error
+                or job.at - previous.scannedAt > addon.db.maxAge or job.market.failures[itemID] then
+                job.market.items[itemID] = { kind = "estimate", unitPrice = price, scannedAt = job.at }
+                job.market.failures[itemID] = nil
+            end
+            count = count + 1
+        end
+        job.market.bulkAt = job.at
+        if job.own then scanner.completed = count end
+        finish(string.format("Full scan finished: %d item prices. Delivery requirements learned from game descriptions.", count))
+    end
+    local function observe(own)
+        engine.job = { own = own, market = addon:GetMarket(), startedAt = scanner.runtime.now(),
+            at = scanner.runtime.wallTime(), prices = {}, seen = {}, index = 0 }
+        if not own then cooldowns[key] = scanner.runtime.wallTime() end
+        frame:SetScript("OnUpdate", process)
+    end
+    function scanner:Start(itemIDs, detailed)
+        if detailed then
+            if engine.job then return false, "Wait for the full scan to finish or stop it first." end
+            self.bulkMode = false
+            return start(self, itemIDs)
+        end
+        if not self.open then return false, "Open the auction house first." end
+        if self.active or engine.job then return false, "An auction scan is already running." end
+        local last = cooldowns[key]
+        if last and self.runtime.wallTime() - last < COOLDOWN then
+            self.message = "Full-scan cooldown: using saved prices. /wll scan deep refreshes known delivery items."
+            return false, self.message
+        end
+        -- A bulk refresh must not launch a redundant per-item provider scan.
+        addon.refreshJob, addon.pendingProviderScan, addon.providerDue = nil, nil, nil
+        self.queue, self.pending, self.index = {}, nil, 1
+        self.completed, self.failed, self.active, self.bulkMode = 0, 0, true, true
+        self.message = "Requesting one full auction-house snapshot..."
+        observe(true)
+        engine.job.waiting = true
+        redraw()
+        self:Tick()
+        return true
+    end
+    function scanner:Stop(message)
+        self.bulkMode = false
+        cancel()
+        return stop(self, message)
+    end
+    function scanner:Tick()
+        local job = engine.job
+        if not job or not job.own then return tick(self) end
+        if job.waiting and self.api.IsThrottledMessageSystemReady() then
+            job.waiting = nil
+            cooldowns[key] = self.runtime.wallTime()
+            local ok, reason = self:Send("ReplicateItems")
+            if not ok then
+                cooldowns[key] = nil
+                finish("Full scan could not start: " .. tostring(reason))
+            end
+        end
+        process()
+    end
+    frame:RegisterEvent("REPLICATE_ITEM_LIST_UPDATE")
+    frame:RegisterEvent("AUCTION_HOUSE_CLOSED")
+    frame:SetScript("OnEvent", function(_, event, itemID, success)
+        if event == "REPLICATE_ITEM_LIST_UPDATE" then
+            local job = engine.job
+            if not job or job.received or job.waiting then return end
+            local ok, count = pcall(scanner.api.GetNumReplicateItems)
+            if not ok or type(count) ~= "number" or count < 0 or count ~= math.floor(count) then
+                finish("Full scan returned an invalid auction count.")
+                return
+            end
+            job.received, job.count, job.at = true, count, scanner.runtime.wallTime()
+            process()
+        elseif event == "AUCTION_HOUSE_CLOSED" then
+            if engine.job and engine.job.own then scanner:Stop("Auction house closed; completed prices were kept.")
+            else cancel() end
+        end
+    end)
+    local beginScan, refreshList = addon.BeginScan, addon.RefreshList
+    if beginScan then
+        function addon:BeginScan(items, job, category)
+            if #items > 0 then return beginScan(self, items, job, category) end
+            -- First use has no derived item scope yet; replication discovers it.
+            self.scanMarket, self.scanAutomatic = self:GetMarket(), false
+            self.autoPaused, self.autoDue, self.autoReason = false, nil, nil
+            local ok, reason = scanner:Start({})
+            if not ok then self:Print(reason) end
+            self.UI.Update()
+            return ok
+        end
+    end
+    if refreshList then
+        function addon:RefreshList(view)
+            if view and view.visibleEntries and #view.visibleEntries == 0
+                and (next(self.Crates) ~= nil or next(self.Writs) ~= nil) then
+                self:Print("No matching writs or crates to scan.")
+                return false
+            end
+            self.Providers.Invalidate()
+            self.scanMarket, self.scanAutomatic = self:GetMarket(), false
+            self.autoPaused, self.autoDue, self.autoReason = false, nil, nil
+            local ok, reason = scanner:Start({})
+            if not ok then self:Print(reason) end
+            self.UI.Update()
+            return ok
+        end
+    end
+    local canAutoScan, autoScan, startScan = addon.CanAutoScan, addon.AutoScan, addon.StartScan
+    if canAutoScan then
+        function addon:CanAutoScan(reason)
+            local last = cooldowns[key]
+            if engine.job or (last and scanner.runtime.wallTime() - last < COOLDOWN) then return false end
+            return canAutoScan(self, reason)
+        end
+    end
+    if autoScan then
+        function addon:AutoScan()
+            -- A first scan must work before any item IDs or requirements exist.
+            local reason = self.autoReason
+            local needsDiscovery = not self:GetMarket().bulkAt or next(self.Discovery.pending) ~= nil
+            if reason and self:CanAutoScan(reason) and needsDiscovery then
+                local quiet = reason == "open" and 2 or 1
+                if self.lastExternalAt and GetTime() - self.lastExternalAt < quiet then
+                    self.autoDue = self.lastExternalAt + quiet
+                    return
+                end
+                self.autoReason, self.autoDue = nil, nil
+                self.scanAutomatic, self.scanMarket = true, self:GetMarket()
+                self.scanOnOpen, self.scanBrowser = reason == "open", reason == "browse"
+                self.scanContext = { reason = reason, category = reason == "browse"
+                    and self.UI.VisibleBrowserTab and self.UI.VisibleBrowserTab() or "crates" }
+                if self.NativeShopping then self.NativeShopping.pendingQuantity = nil end
+                scanner:Start({})
+                return
+            end
+            return autoScan(self)
+        end
+    end
+    if startScan then
+        function addon:StartScan(scope)
+            if scope == "deep" then
+                self.scanMarket, self.scanAutomatic = self:GetMarket(), false
+                self.scanOnOpen, self.scanBrowser = false, false
+                self.scanContext = { reason = "manual", category = "all" }
+                if self.NativeShopping then self.NativeShopping.pendingQuantity = nil end
+                self.autoPaused, self.autoDue, self.autoReason = false, nil, nil
+                local ids, unique = {}, {}
+                for _, definitions in ipairs({ self.Crates, self.Writs }) do
+                    for id, definition in pairs(definitions) do
+                        unique[id] = true
+                        for _, requirement in ipairs(definition.requirements or definition.options) do
+                            unique[requirement.itemID] = true
+                        end
+                    end
+                end
+                for id in pairs(unique) do ids[#ids + 1] = id end
+                table.sort(ids)
+                local ok, reason = scanner:Start(ids, true)
+                if not ok then self:Print(reason) end
+                return ok
+            end
+            return startScan(self, scope)
+        end
+    end
+    -- Passive observation reuses Auctionator's replication response without
+    -- reading its private database or starting a competing full scan.
+    hooksecurefunc(scanner.api, "ReplicateItems", function()
+        if not scanner.issuing then
+            cancel()
+            observe(false)
+        end
+    end)
+end

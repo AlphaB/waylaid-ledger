@@ -11,9 +11,11 @@ Libs/LibStub.lua
 Libs/LibAHTab.lua
 Data.lua
 WritData.lua
+Discovery.lua
 Catalog.lua
 Inventory.lua
 Pricing.lua
+BulkScan.lua
 Providers.lua
 WritPricing.lua
 Shopping.lua

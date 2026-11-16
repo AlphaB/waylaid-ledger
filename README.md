@@ -19,8 +19,8 @@ Version **0.7.0** · Forever **1.60.1 / interface 16001** · No addon dependenci
    inside another nested `WaylaidLedger` folder. The install ZIP contains only
    the addon and its licenses; developer sources live in this repository.
 3. Restart the game, enable **Waylaid Ledger** in the AddOns menu, and log in.
-4. Hover an identified crate. If Auctionator or TSM already has pricing data,
-   estimates appear immediately, including away from the auction house.
+4. Discover requirements with a first AH scan (see below). After discovery,
+   saved scan prices or optional Auctionator/TSM estimates also work away from the AH.
 5. Visit an auctioneer and select **Waylaid**, then its internal **Craftsman's Writs** or
    **Waylaid Crates** tab. Each list shows
    its catalog in order of **purchase + delivery** cost. Click a row to open
@@ -31,14 +31,25 @@ Version **0.7.0** · Forever **1.60.1 / interface 16001** · No addon dependenci
    compare its options. `/wll settings` changes price preferences.
    `/wll controls` opens the original scan and diagnostic controls.
 
-**Scan all** searches **424 unique item IDs**, including writs, crates, and delivery goods.
-**Scan writs** covers 300 IDs; **scan crates** covers 126. Filter a list before
-pressing Refresh to scan a smaller subset. Requests run as soon as the server is ready,
-with a 0.05s courtesy gap and at most 100 requests per rolling 60.1s window.
-Pagination, server latency, and other addons affect elapsed time. Fresh prices
-are reused by automatic refresh; manual scans deliberately refresh their scope. Prices
-remain available after leaving the auction house and across reloads/logins.
-The addon does not require Auctionator or TradeSkillMaster.
+**Full AH scan** uses one bulk request. Saved prices remain available after
+leaving the auction house and across reloads/logins. Auctionator and
+TradeSkillMaster are optional.
+
+## In-game discovery and fast scans
+
+Requirements now come from the game's item descriptions. No delivery catalog or
+web importer is bundled. See [in-game data and scanning](docs/INGAME_DATA.md).
+On first use, visit an auctioneer and run `/wll scan all` (or **Full AH scan** in
+scan controls). The lists fill as items and descriptions are discovered. A bulk
+scan started by another addon is reused automatically while Waylaid Ledger is loaded.
+
+The full scan uses one replication request, rather than hundreds of item searches.
+The server's full-scan cooldown is 15 minutes; saved prices remain usable between
+scans. `/wll scan deep` explicitly requests detailed prices for learned items.
+Bulk prices are unit-price estimates; detailed scans retain stock and stack checks.
+
+The fixed catalog sizes and per-item scan timings in older release notes below
+are historical. Only items encountered in game can appear in the learned lists.
 
 ## What the tooltip means
 
@@ -125,9 +136,9 @@ from the auction house.
 
 ## Ranked auction lists
 
-Inside the Waylaid auction tab, **Craftsman's Writs** lists all 150 known identified writs,
+Inside the Waylaid auction tab, **Craftsman's Writs** lists discovered identified writs,
 and **Waylaid Crates** lists
-all 30 identified crates. Columns show the purchase price of one writ/crate, the
+discovered identified crates. Columns show the purchase price of one writ/crate, the
 full delivery cost, and their sum. Rows with known totals sort from cheapest to
 most expensive; unknown totals follow alphabetically. Missing data is never counted as zero. Prices have no estimate prefixes or
 age markers; detailed provenance remains available on hover.
@@ -179,10 +190,9 @@ The existing legacy shopping commands remain available on older compatible APIs.
 
 ## Craftsman's Writ estimates
 
-Hover any of the **150 identified Forever Craftsman's Writs** to see the estimated
-price of its required finished goods. Exact item IDs and delivery quantities come
-from Wowhead's Forever quest objectives. Most need one item; Crafted Solid Shot
-requires **200**. These are delivery costs, excluding the writ's own purchase
+Hover a learned **Forever Craftsman's Writ** to see the estimated
+price of its required finished goods. Delivery quantities are learned from the
+client's descriptions; unresolved requirements never receive a fabricated total. These are delivery costs, excluding the writ's own purchase
 price, crafting reagents, quest rewards, and owned inventory deductions.
 
 The writ catalog has **150 distinct delivery items**. Complete writ scans add
@@ -337,8 +347,6 @@ Requirements for the developer tests: Python 3.10+ and `lupa==2.8`.
 
 ```sh
 python3 -m pip install -r requirements-dev.txt
-python3 tools/build_catalog.py
-python3 tools/build_writs.py
 python3 tests/run.py
 python3 tools/package.py
 ```
@@ -359,34 +367,7 @@ These exercise the public functions with internal services stubbed. They do not
 claim to run either entire addon or the live WoW client. The full upstream Auctionator/TSM packages are not redistributed; only the
 separately licensed shared tab libraries are bundled.
 
-`data/catalog.json` is the checked-in factual data source. It contains 30 crate
-IDs, each alternative bundle's material ID and quantity, source URLs, retrieval
-date, and hashes of the original XML responses. All 96 material IDs/names were
-individually verified against Wowhead's Forever XML on 2026-11-15.
-
-To refresh the existing catalog from Wowhead:
-
-```sh
-python3 tools/refresh_catalog.py --fresh
-python3 tests/run.py
-```
-
-Refreshing runs on the developer's computer, never inside the addon. Unknown
-material names stop the importer for review. Newly introduced crate IDs need to
-be added deliberately; the importer does not silently guess or claim to discover
-all future content. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for the API
-contract and source notes.
-
-`data/writs.json` records all 150 verified writ objectives, quest URLs, and page
-hashes. Rebuild its Lua catalog offline with `python3 tools/build_writs.py`.
-To refresh from Wowhead, run `python3 tools/import_writs.py --refresh`; failed or
-unresolved imports leave the previous catalog intact. The importer excludes
-legacy Argent Dawn writs and never guesses quest/item mappings or quantities.
-
-CI rebuilds both catalogs, runs the default suite, and uploads the clean install
-ZIP as the **WaylaidLedger-install** artifact. `python3 tools/package.py` builds
-the same single-folder archive locally.
-
-The editable data catalogs and generated runtime tables are explained in
-[docs/CATALOG.md](docs/CATALOG.md), including OR crate alternatives, AND writ
-objectives, scan deduplication, and the separate persisted price cache.
+Requirements are learned at runtime, with no developer refresh/import step.
+CI runs the Lua suite and uploads the clean install ZIP as the
+**WaylaidLedger-install** artifact. `python3 tools/package.py` builds the same
+single-folder archive locally. See [docs/INGAME_DATA.md](docs/INGAME_DATA.md).

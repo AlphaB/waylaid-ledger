@@ -9,9 +9,6 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install -r requirements-dev.txt
-      - run: python tools/build_catalog.py
-      - run: python tools/build_writs.py
-      - run: git diff --exit-code -- WaylaidLedger/Data.lua WaylaidLedger/WritData.lua
       - run: python tests/run.py
       - run: python tools/package.py
       - uses: actions/upload-artifact@v7
