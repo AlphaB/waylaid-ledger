@@ -1,12 +1,17 @@
 local _, addon = ...
 
--- Writ objectives are cumulative finished goods, priced from the same own
--- snapshots and optional providers used by crate alternatives.
+-- Writ objectives are a bundle of finished goods, not alternative ingredients.
+-- Resolve their full quantities, including the 200-unit ammunition objective.
 addon.WritPricing = {}
 function addon.WritPricing.Rows(itemID)
     local writ = addon.Writs[itemID]
     if not writ or addon.db.writSource == "off" then return {} end
-    local rows = addon:ResolveRows(writ.requirements, addon.db.writSource)
+    local market = addon:GetMarket()
+    local rows = addon.Pricing.Resolve({ options = writ.requirements }, market.items, time(), addon.db.maxAge,
+        market.failures, addon.db.writSource, function(source, requiredID)
+            if addon.db.profile ~= "default" then return nil end
+            return addon.Providers.Read(source, requiredID)
+        end)
     local total, complete, stale = 0, true, false
     for _, row in ipairs(rows) do
         -- Requirements are cumulative; no individual requirement is a winner.

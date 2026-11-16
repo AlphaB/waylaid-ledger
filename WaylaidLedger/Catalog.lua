@@ -106,6 +106,11 @@ function Catalog.SearchName(itemID)
     if C_Item and C_Item.RequestLoadItemDataByID then
         C_Item.RequestLoadItemDataByID(itemID)
     end
+    -- Discovery stores only names observed in this client locale/build. Unlike
+    -- the old English catalog fallback these are valid localized search terms.
+    local store = addon.Discovery and addon.Discovery.store
+    local observed = store and store.names[itemID]
+    if type(observed) == "string" and observed ~= "" then return observed end
     -- Shopping is name-based. An English display fallback is unsuitable for a
     -- localized auction search; wait for the client's name on other locales.
     local locale = GetLocale()

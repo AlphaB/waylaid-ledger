@@ -1,5 +1,37 @@
 # Auction addon integrations
 
+## Current behavior (0.7.0)
+
+Auctionator and TSM remain optional public-API adapters. Auto reuses fresh own
+snapshots, then provider estimates, and schedules missing/stale items through the
+shared scanner while a ranked list is visible. Scope includes purchases and
+delivery goods: 126 crate items or 300 writ items. Own is supported independently
+for both categories. Forced Auctionator/TSM modes retain their explicit policy.
+
+Row shopping prefers Auctionator advanced shopping; when unavailable, an ID-based
+basket opens `AuctionHouseFrame:SelectBrowseResult` and `QueryItem` with the
+correct BuyItems/BuyCommodities context. `BuyDisplay:SetQuantitySelected` sets
+commodity quantities. The standard UI owns listing selection and purchase
+confirmation. No purchase API is invoked by Waylaid Ledger. The same readiness
+and rolling request budget gates opening a basket item.
+
+Native controller support uses Blizzard security-wrapped `RefreshButtonGroups`,
+`SetScrollFrameForFrame`, `SetTargetButtonForFrame`, and FrameControlsManager
+show/hide/focus entry points. Dynamic directional overrides resolve virtual rows
+after synchronous nearest scrolling. No bindings or native internal tables are
+modified. Calls wait until out of combat and tolerate late gamepad addon loading.
+
+Contracts checked against the Forever branch on 2026-11-16:
+
+- [Auction frame and purchase navigation](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_AuctionHouseUI/Shared/Blizzard_AuctionHouseFrame.lua)
+- [Commodity quantity selection](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_AuctionHouseUI/Shared/Blizzard_AuctionHouseCommoditiesBuyFrame.lua)
+- [Native SmartNavigation](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_GamepadSmartNavigation/SmartNavigation.lua)
+- [Navigation customization](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_GamepadSmartNavigation/Utility.lua)
+- [Frame focus manager](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_GamepadSharedUtility/FrameControlsManager.lua)
+
+The following sections record earlier integration versions. Their provider-only
+writ/purchase scopes and Refresh behavior are superseded by 0.7.0 above.
+
 Implemented in version 0.2.0. Release sources inspected on 2026-11-15:
 
 | Provider | Reviewed release | Primary distribution |
@@ -104,7 +136,7 @@ user to retry instead of searching with the wrong language.
 
 ## Validation performed
 
-- 122 standard Lua 5.1 tests execute the production modules.
+- 108 standard Lua 5.1 tests execute the production modules.
 - Two optional tests execute the **unmodified public API source** from Auctionator
   347 and TSM 4.15.7, with their internal services and UI stubbed.
 - Auctionator contract check: returned copper and day age, update registration,
@@ -189,25 +221,3 @@ The native classic scrollbar's `Background.Middle` is explicitly given a neutral
 solid color. This avoids the green middle artwork on the reported client while
 retaining the native template, mouse-wheel, track, arrows and thumb bindings.
 Primary template: [TrimScrollBar.xml](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_SharedXML/Shared/Scroll/TrimScrollBar.xml).
-
-## Scoped scanning (v0.7.0)
-
-Refresh runs a fresh own scan for all IDs in the filtered category, including
-contract purchases and all delivery alternatives/objectives. A completed job
-can hand its frozen ID/quantity scope to `MultiSearchAdvanced` after the own
-scanner has stopped. This opens Auctionator Shopping, with no claim of silent
-or full-house scanning. Follow-up defaults on when supported and can be
-disabled in Settings. Stops, closure, profile changes or external queries cancel
-pending work. Names and capability checks precede the provider handoff.
-
-TSM 4.15.7's released `App/API.lua` contains no public scan-start API. Targeted
-Shopping scans are manual group operations. We export the supported legacy
-`group:Name,i:ID,...` format for the same filtered scope, without mutating TSM
-groups or calling its internal services. An optional test executes the released
-TSM `GroupImport.lua` parser against the exported format. A Shopping scan need
-not change historical DBMarket or app-supplied AuctionDB values.
-
-Own writ deliveries now use quantity-aware snapshots and support an explicit
-Own source. Purchase and delivery share their category's source preference,
-so Auto/Own can show complete self-scanned totals, including custom profiles.
-Forced provider modes still use only their selected databases.

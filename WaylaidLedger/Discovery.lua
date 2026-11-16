@@ -4,6 +4,7 @@ local _, addon = ...
 -- catalog. Indexes contain localized names observed in bags, tooltips or the AH.
 addon.Discovery = { names = {}, pending = {}, candidates = {} }
 local Discovery = addon.Discovery
+local Locales = addon.DiscoveryLocales
 local BATCH, BUDGET_MS = 5, 2
 local queue, queued, cursor = {}, {}, 1
 local retryRequested, dirty = false, false
@@ -26,12 +27,20 @@ local function text(value)
     if type(value) ~= "string" then return nil end
     return value:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
         :gsub("|H.-|h(.-)|h", "%1"):gsub("|T.-|t", "")
-        :gsub("\194\160", " "):gsub("^%s+", ""):gsub("%s+$", "")
+        :gsub("\194\160", " "):gsub(" ", " "):gsub("　", " ")
+        :gsub("：", ":"):gsub("^%s+", ""):gsub("%s+$", "")
 end
 
 local function kindOf(name)
-    if name:match("^Waylaid Crate:%s*%S") then return "crates" end
-    if name:match("^Craftsman's Writ:%s*%S") then return "writs" end
+    local formats = Locales[GetLocale()]
+    if not formats then return end
+    name = Locales.Key(name)
+    -- English fallback text can be supplied by partially localized clients.
+    for _, format in ipairs({ formats, Locales.enUS }) do
+        for _, kind in ipairs({ "crates", "writs" }) do
+            if name:match("^" .. Locales.Key(format[kind]) .. "%s*:%s*%S") then return kind end
+        end
+    end
 end
 
 function Discovery.Observe(itemID, name)
@@ -41,9 +50,10 @@ function Discovery.Observe(itemID, name)
         if C_Item and C_Item.RequestLoadItemDataByID then C_Item.RequestLoadItemDataByID(itemID) end
         return false
     end
-    local previous = Discovery.names[name]
+    local key = Locales.Key(name)
+    local previous = Discovery.names[key]
     -- Never guess between distinct items that have the same localized name.
-    Discovery.names[name] = previous == nil and itemID or (previous == itemID and itemID or false)
+    Discovery.names[key] = previous == nil and itemID or (previous == itemID and itemID or false)
     if Discovery.store then Discovery.store.names[itemID] = name end
     local kind = kindOf(name)
     if kind then
@@ -57,8 +67,13 @@ function Discovery.Observe(itemID, name)
     return previous == nil or (previous ~= false and previous ~= itemID)
 end
 
+local function stripName(name)
+    return text(name):gsub("。$", ""):gsub("；$", "")
+        :gsub("[%.;]$", ""):gsub("^%[", ""):gsub("%]$", "")
+end
+
 local function cleanName(name)
-    return text(name):gsub("[%.;]$", ""):gsub("^%[", ""):gsub("%]$", "")
+    return Locales.Key(stripName(name))
 end
 
 local function resolve(name, linkID)
@@ -72,9 +87,71 @@ local function resolve(name, linkID)
     return Discovery.names[name] or nil
 end
 
+local function deliveryBody(line, formats)
+    local value = Locales.Key(line)
+    for _, format in ipairs({ formats, Locales.enUS }) do
+        for _, pattern in ipairs(format.metadata or {}) do
+            if value:match(pattern) then return nil end
+        end
+        for _, excluded in ipairs(format.excluded) do
+            -- Allow the French space before a colon, including normalized NBSP.
+            local prefix = excluded:gsub(":$", "%%s*:")
+            if value:match("^" .. prefix) then return nil end
+        end
+    end
+    for _, format in ipairs({ formats, Locales.enUS }) do
+        for _, command in ipairs(format.delivery) do
+            local body = value:match("^" .. command .. "[:%s]+(.+)$")
+            if not body and format.compact then body = value:match("^" .. command .. "%s*:?%s*(%d.+)$") end
+            if body then return body end
+        end
+        for _, command in ipairs(format.required) do
+            -- Do not interpret level/skill requirements as delivery objectives.
+            local body = value:match("^" .. command .. "[:%s]+(%d.+)$")
+            if not body and format.compact then body = value:match("^" .. command .. "%s*:?%s*(%d.+)$") end
+            if body then return body end
+        end
+    end
+end
+
+local function quantityAndName(body, formats)
+    body = body:gsub("×", "x")
+    local quantity, name = body:match("^(%d+)%s+[xX]%s+(.+)$")
+    if not quantity then quantity, name = body:match("^(%d+)%s+(.+)$") end
+    if not quantity then quantity, name = body:match("^(%d+)%s*[xX]%s*(.+)$") end
+    if not quantity and formats.compact then quantity, name = body:match("^(%d+)%s*(%D.+)$") end
+    if not quantity then name, quantity = body:match("^(.+)%s+[xX]%s*(%d+)[%.;]?$") end
+    return quantity and tonumber(quantity), name
+end
+
+local function resolveDelivery(name, linked, formats)
+    local key = cleanName(name)
+    local itemID = resolve(key, linked[key])
+    if itemID then return itemID end
+    for _, wrapper in ipairs(formats.wrappers or {}) do
+        if key:sub(1, #wrapper) == wrapper then
+            local stripped = key:sub(#wrapper + 1)
+            itemID = resolve(stripped, linked[stripped])
+            if itemID then return itemID end
+        end
+    end
+    for _, format in ipairs({ formats, Locales.enUS }) do
+        for _, recipient in ipairs(format.recipient or {}) do
+            local start = key:find(recipient, 1, true)
+            if start then
+                local stripped = key:sub(1, start - 1)
+                itemID = resolve(stripped, linked[stripped])
+                if itemID then return itemID end
+            end
+        end
+    end
+end
+
 -- Accept explicit list entries and delivery sentences. Item names are resolved
 -- exactly; partial/missing objectives invalidate the entire definition.
 function Discovery.Parse(lines, kind, ownID)
+    local formats = Locales[GetLocale()]
+    if not formats then return nil, "Unsupported client locale: " .. tostring(GetLocale()) end
     local result, seen = {}, {}
     for _, raw in ipairs(lines or {}) do
         local source = type(raw) == "table" and raw.leftText or raw
@@ -82,10 +159,11 @@ function Discovery.Parse(lines, kind, ownID)
         -- Hyperlinks provide authoritative IDs even before the AH name index exists.
         if type(source) == "string" and not (issecretvalue and issecretvalue(source)) then
             for id, label in source:gmatch("|Hitem:(%d+).-|h(.-)|h") do
-                local name = cleanName(label)
+                local name = stripName(label)
+                local key = cleanName(name)
                 id = tonumber(id)
-                local previous = linked[name]
-                linked[name] = previous == nil and id or (previous == id and id or false)
+                local previous = linked[key]
+                linked[key] = previous == nil and id or (previous == id and id or false)
                 Discovery.Observe(id, name)
             end
         end
@@ -93,25 +171,12 @@ function Discovery.Parse(lines, kind, ownID)
         if value then
             for line in (value .. "\n"):gmatch("([^\n]*)\n") do
                 line = line:gsub("^%s+", ""):gsub("%s+$", "")
-                local lower = line:lower()
                 local body = line:match("^%-%s*(.+)") or line:match("^•%s*(.+)")
-                if not body and not lower:match("^use:") and not lower:match("reward") then
-                    local start = lower:find("deliver%s+") or lower:find("bring%s+")
-                        or lower:find("requires?[:%s]+%d")
-                    if start then
-                        local clause = line:sub(start)
-                        body = clause:match("^[^%s:]+[:%s]+(.+)")
-                        -- These suffixes describe the recipient, not the item.
-                        if body then body = body:gsub("%s+to%s+.+$", "") end
-                    end
-                end
+                if not body then body = deliveryBody(line, formats) end
                 if body then
-                    local quantity, name = body:match("^(%d+)%s*[xX]?%s+(.+)$")
-                    if not quantity then name, quantity = body:match("^(.+)%s+[xX]%s*(%d+)[%.;]?$" ) end
+                    local quantity, name = quantityAndName(body, formats)
                     if quantity then
-                        quantity = tonumber(quantity)
-                        local linkID = linked[cleanName(name)]
-                        local itemID = resolve(name, linkID)
+                        local itemID = resolveDelivery(name, linked, formats)
                         if not itemID or itemID == ownID or quantity <= 0 or quantity > 1000 or seen[itemID] then
                             return nil, "Unresolved or ambiguous delivery: " .. body
                         end

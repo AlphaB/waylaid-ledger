@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: Waylaid Ledger
-## Notes: Compare complete writ and crate delivery costs and shop with Auctionator.
+## Notes: Compare complete writ and crate delivery costs and shop at the auction house.
 ## Author: Mikhail Salosin
 ## Version: 0.7.0
 ## OptionalDeps: Auctionator, TradeSkillMaster
@@ -9,8 +9,11 @@
 
 Libs/LibStub.lua
 Libs/LibAHTab.lua
+Localization.lua
+Locales.lua
 Data.lua
 WritData.lua
+DiscoveryLocales.lua
 Discovery.lua
 Catalog.lua
 Inventory.lua
@@ -20,6 +23,8 @@ Providers.lua
 WritPricing.lua
 Shopping.lua
 Scanner.lua
+Navigation.lua
+NativeShopping.lua
 Tooltip.lua
 UI.lua
 BrowseUI.lua

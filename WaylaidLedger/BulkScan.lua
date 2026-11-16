@@ -1,4 +1,5 @@
 local _, addon = ...
+local L = addon.L
 
 -- The same public replication API used by Auctionator's full scan. A snapshot
 -- supplies minimum-unit-price estimates, not verified stock or stack outlay.
@@ -49,7 +50,7 @@ function BulkScan.Install(scanner)
         local now = scanner.runtime.now()
         if now - (job.progressAt or job.startedAt) > TIMEOUT then
             -- Preserve completed estimates; never mark absent/partial rows sold out.
-            finish("Full scan did not complete. Retry when the auction house is idle.")
+            finish(L["Full scan did not complete. Retry when the auction house is idle."])
             return
         end
         if not job.received then return end
@@ -58,7 +59,7 @@ function BulkScan.Install(scanner)
         local started = debugprofilestop and debugprofilestop()
         for index = job.index, limit - 1 do
             local ok, info = pcall(function() return { api.GetReplicateItemInfo(index) } end)
-            if not ok then finish("Full scan data could not be read: " .. tostring(info)); return end
+            if not ok then finish(string.format(L["Full scan data could not be read: %s"], tostring(info))); return end
             local name, quantity, buyout, itemID = info[1], info[3], info[10], info[17]
             if type(itemID) == "number" and itemID > 0 then
                 if not job.seen[itemID] then
@@ -78,7 +79,7 @@ function BulkScan.Install(scanner)
         end
         job.progressAt = now
         if job.index < job.count then
-            if job.own then scanner.message = string.format("Reading full scan: %d / %d auctions", job.index, job.count) end
+            if job.own then scanner.message = string.format(L["Reading full scan: %d / %d auctions"], job.index, job.count) end
             return
         end
         -- Resolve names only after indexing the entire market, so row order does
@@ -96,7 +97,7 @@ function BulkScan.Install(scanner)
         end
         job.market.bulkAt = job.at
         if job.own then scanner.completed = count end
-        finish(string.format("Full scan finished: %d item prices. Delivery requirements learned from game descriptions.", count))
+        finish(string.format(L["Full scan finished: %d item prices. Delivery requirements learned from game descriptions."], count))
     end
     local function observe(own)
         engine.job = { own = own, market = addon:GetMarket(), startedAt = scanner.runtime.now(),
@@ -106,22 +107,22 @@ function BulkScan.Install(scanner)
     end
     function scanner:Start(itemIDs, detailed)
         if detailed then
-            if engine.job then return false, "Wait for the full scan to finish or stop it first." end
+            if engine.job then return false, L["Wait for the full scan to finish or stop it first."] end
             self.bulkMode = false
             return start(self, itemIDs)
         end
-        if not self.open then return false, "Open the auction house first." end
-        if self.active or engine.job then return false, "An auction scan is already running." end
+        if not self.open then return false, L["Open the auction house first."] end
+        if self.active or engine.job then return false, L["An auction scan is already running."] end
         local last = cooldowns[key]
         if last and self.runtime.wallTime() - last < COOLDOWN then
-            self.message = "Full-scan cooldown: using saved prices. /wll scan deep refreshes known delivery items."
+            self.message = L["Full-scan cooldown: using saved prices. /wll scan deep refreshes known delivery items."]
             return false, self.message
         end
         -- A bulk refresh must not launch a redundant per-item provider scan.
         addon.refreshJob, addon.pendingProviderScan, addon.providerDue = nil, nil, nil
         self.queue, self.pending, self.index = {}, nil, 1
         self.completed, self.failed, self.active, self.bulkMode = 0, 0, true, true
-        self.message = "Requesting one full auction-house snapshot..."
+        self.message = L["Requesting one full auction-house snapshot..."]
         observe(true)
         engine.job.waiting = true
         redraw()
@@ -142,7 +143,7 @@ function BulkScan.Install(scanner)
             local ok, reason = self:Send("ReplicateItems")
             if not ok then
                 cooldowns[key] = nil
-                finish("Full scan could not start: " .. tostring(reason))
+                finish(string.format(L["Full scan could not start: %s"], tostring(reason)))
             end
         end
         -- Only the bulk frame processes rows, once per rendered frame. The core
@@ -159,13 +160,13 @@ function BulkScan.Install(scanner)
             if not job or job.received or job.waiting then return end
             local ok, count = pcall(scanner.api.GetNumReplicateItems)
             if not ok or type(count) ~= "number" or count < 0 or count ~= math.floor(count) then
-                finish("Full scan returned an invalid auction count.")
+                finish(L["Full scan returned an invalid auction count."])
                 return
             end
             job.received, job.count, job.at = true, count, scanner.runtime.wallTime()
             job.progressAt = scanner.runtime.now()
         elseif event == "AUCTION_HOUSE_CLOSED" then
-            if engine.job and engine.job.own then scanner:Stop("Auction house closed; completed prices were kept.")
+            if engine.job and engine.job.own then scanner:Stop(L["Auction house closed; completed prices were kept."])
             else cancel() end
         end
     end)
@@ -186,7 +187,7 @@ function BulkScan.Install(scanner)
         function addon:RefreshList(view)
             if view and view.visibleEntries and #view.visibleEntries == 0
                 and (next(self.Crates) ~= nil or next(self.Writs) ~= nil) then
-                self:Print("No matching writs or crates to scan.")
+                self:Print(L["No matching writs or crates to scan."])
                 return false
             end
             self.Providers.Invalidate()

@@ -24,7 +24,7 @@ test("empty install discovers and prices complete crates and writs using one bul
         if id==31 then return {lines={{leftText="Bring 200 Sample Herb to the quartermaster."}}} end
     end}
     local ok,err=pcall(function()
-        for _,name in ipairs({"Data","WritData","Discovery","Catalog","Inventory","Pricing","BulkScan","Providers",
+        for _,name in ipairs({"Localization","Locales","Data","WritData","DiscoveryLocales","Discovery","Catalog","Inventory","Pricing","BulkScan","Providers",
             "WritPricing","Shopping","Scanner","Navigation","NativeShopping","Tooltip","UI","BrowseUI","Minimap","Core"}) do
             local chunk=loadfile(PROJECT_ROOT.."/WaylaidLedger/"..name..".lua")
             if chunk then chunk("WaylaidLedger",a) end

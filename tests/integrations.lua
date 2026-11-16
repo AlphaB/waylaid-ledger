@@ -20,7 +20,7 @@ local function reset()
     addon.db.source, addon.db.tsmKey, addon.db.profile = "auto", "DBMinBuyout", "default"
     local market = addon:GetMarket()
     market.items, market.failures = {}, {}
-    addon.lastCrateID, addon.lastContractID, addon.UI.selectedCrateID, addon.UI.optionIndex = nil, nil, nil, nil
+    addon.lastCrateID, addon.UI.selectedCrateID, addon.UI.optionIndex = nil, nil, nil
     addon.scanner:SetOpen(true)
 end
 
@@ -128,7 +128,7 @@ test("provider cache is short-lived, caches misses and invalidates on DB updates
     Providers.Read("auctionator",2);Providers.Read("auctionator",2);equal(f.reads,4)
     GetTime=originalTime
 end)
-test("list Refresh invalidates provider cache and starts an own scan without clearing snapshots",function()
+test("list Refresh rereads provider prices, recalculates sorting and never scans or clears own snapshots",function()
     reset();local oldWrit=addon.db.writSource;addon.db.writSource="auto"
     local prices={[264050]=100,[4245]=400,[264037]=40,[8069]=3}
     fakeAuctionator(prices)
@@ -144,9 +144,9 @@ test("list Refresh invalidates provider cache and starts an own scan without cle
     equal(view.visibleEntries[1].itemID,264037);equal(view.visibleEntries[1].total,640)
     equal(view.visibleEntries[2].itemID,264050);equal(view.visibleEntries[2].total,1000)
     equal(view.scroll.retainScrollPosition,true)
-    assert(#addon.scanner.requests>=before);equal(addon.scanner.active,true);equal(#addon.scanner.queue,300)
+    equal(#addon.scanner.requests,before);equal(addon.scanner.active,false)
     equal(addon:GetMarket().items[2770],snapshot)
-    addon:StopScan();frame:Hide();addon.BrowseUI.views.writs=nil;addon.db.writSource=oldWrit
+    frame:Hide();addon.BrowseUI.views.writs=nil;addon.db.writSource=oldWrit
 end)
 test("replacement provider API and market context invalidate cached values",function()
     reset();fakeAuctionator({[1]=10});equal(Providers.Read("auctionator",1).unitPrice,10)
@@ -207,10 +207,10 @@ test("source settings persist and explicit unavailable source stays unknown",fun
     -- Simulate reload using the same production modules and persisted table.
     local originalCallback,originalFrame,originalReport,originalSlash=TooltipDataProcessor.callback,WaylaidLedgerFrame,WaylaidLedgerReportFrame,SlashCmdList.WAYLAIDLEDGER
     local reloaded={}
-    for _,name in ipairs({"Data","WritData","Catalog","Inventory","Pricing","Providers","WritPricing","Shopping","Scanner","Tooltip","UI","BrowseUI","Minimap","Core"}) do
+    for _,name in ipairs({"Localization","Locales","Data","WritData","Catalog","Inventory","Pricing","Providers","WritPricing","Shopping","Scanner","Navigation","NativeShopping","Tooltip","UI","BrowseUI","Minimap","Core"}) do
         assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/"..name..".lua"))("WaylaidLedger",reloaded)
     end
-    for _,name in ipairs({"Discovery","BulkScan"}) do
+    for _,name in ipairs({"DiscoveryLocales","Discovery","BulkScan"}) do
         assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/"..name..".lua"))("WaylaidLedger",reloaded)
     end
     -- Core registers ADDON_LOADED on the newly created unnamed frame. Locate it
