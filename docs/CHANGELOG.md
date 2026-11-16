@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.5
+
+- Show the crate icon beside Waylaid Ledger in the AddOns list.
+
 ## 0.9.4
 
 - Add native controller focus and Back handling to the options page, including
