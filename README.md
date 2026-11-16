@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The lowest known filling cost is highlighted in green for all price sources,
 including cached prices. Auctionator and TSM are optional price providers. Own scans support both crate and writ costs.
 
-Version **0.8.3** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.8.4** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -56,6 +56,11 @@ Equipment searches include item variants. The game's normal confirmation handles
 purchases. Built-in Forever controller navigation supports the lists, controls
 and basket; see [integration notes](docs/INTEGRATIONS.md#current-behavior-070).
 Localized rendering and controller behavior still need a live-client check.
+
+Selecting Waylaid or either category tab moves controller focus to Search.
+Up returns to the category tabs; left/right moves between Search, Refresh/Stop
+and Settings. Up/down on the outer Waylaid tab enters the selected page. From a
+list row, left returns to Search and right goes to Settings.
 
 With a controller, Down from Search, Refresh/Stop or Settings selects the first
 visible list row without moving the list. Up/down then selects adjacent entries;

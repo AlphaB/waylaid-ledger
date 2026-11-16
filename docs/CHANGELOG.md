@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.4
+
+- Hand controller focus to Search when opening Waylaid or switching category tabs.
+- Explicitly link the outer auction tab, category tabs, page controls and list rows in all four directions.
+- Prevent tab-entry navigation from falling through to geometric scroll-frame centering.
+- Release tab overrides when Waylaid is hidden, preserving native auction navigation.
+- Extend the native-source test through actual tab clicks and page controls before traversing rows.
+- 213 default Lua 5.1 tests; 219 with native navigation/auction UI and Auctionator contracts. In-game verification remains outstanding.
+
 ## 0.8.3
 
 - Add timestamped, opt-in chat diagnostics with explicit `/wll debug on` and `/wll debug off` commands.
