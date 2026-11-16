@@ -11,5 +11,7 @@ Auctionator and TradeSkillMaster are optional integrations. Their full source
 packages are external test inputs and are not redistributed. Blizzard texture
 paths reference assets supplied by the game; no game artwork is bundled.
 
-Item requirements and localized names are learned from in-game APIs and saved
-locally. No external delivery database, web pages, or importer is distributed.
+The fallback contains factual item IDs, names and delivery quantities from the
+0.7.0 catalog, originally checked against Wowhead Forever on 2026-11-15. See
+[CATALOG.md](CATALOG.md) for provenance. In-game descriptions can update it.
+No downloaded web pages, importer or game artwork is distributed.

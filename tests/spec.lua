@@ -17,7 +17,7 @@ end
 for _, name in ipairs({ "Libs/LibStub", "Libs/LibAHTab", "Data", "WritData", "Catalog", "Inventory", "Pricing", "Providers", "WritPricing", "Shopping", "Scanner" }) do loadModule(name) end
 loadModule("Discovery")
 loadModule("BulkScan")
-assert(next(addon.Crates) == nil and next(addon.Writs) == nil, "Production catalog must start empty")
+assert(#addon.Catalog.AllCrates() == 30 and #addon.Catalog.AllContracts("writs") == 150, "Bundled fallback must restore both lists")
 assert(loadfile(PROJECT_ROOT .. "/tests/fixtures.lua"))(addon)
 local P = addon.Pricing
 local function commodity(offers, at) return {kind="commodity", offers=offers, scannedAt=at or 100} end

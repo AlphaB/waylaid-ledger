@@ -4,7 +4,7 @@ local _, addon = ...
 -- supplies minimum-unit-price estimates, not verified stock or stack outlay.
 addon.BulkScan = {}
 local BulkScan = addon.BulkScan
-local COOLDOWN, TIMEOUT, BATCH = 15 * 60, 30, 250
+local TIMEOUT, BATCH = 30, 250
 local BUDGET_MS = 2
 
 function BulkScan.Supported(api)
@@ -15,12 +15,10 @@ end
 function BulkScan.Install(scanner)
     if not BulkScan.Supported(scanner.api) then return end
     local frame = CreateFrame("Frame")
-    local identity = (UnitGUID and UnitGUID("player")) or (UnitName and UnitName("player")) or "player"
-    local realm = addon.MarketBaseKey and addon:MarketBaseKey() or (GetRealmName and GetRealmName()) or "realm"
-    local key = realm .. ":" .. identity
-    addon.db.replication = addon.db.replication or {}
-    local cooldowns = addon.db.replication
-    local engine = { scanner = scanner, frame = frame, cooldownKey = key }
+    -- Older versions persisted a guessed replication lockout. Let the client's
+    -- readiness signal and the response timeout govern new requests instead.
+    addon.db.replication = nil
+    local engine = { scanner = scanner, frame = frame }
     BulkScan.engine = engine
     local start, stop, tick = scanner.Start, scanner.Stop, scanner.Tick
     local function redraw()
@@ -101,7 +99,6 @@ function BulkScan.Install(scanner)
     local function observe(own)
         engine.job = { own = own, market = addon:GetMarket(), startedAt = scanner.runtime.now(),
             at = scanner.runtime.wallTime(), prices = {}, seen = {}, index = 0 }
-        if not own then cooldowns[key] = scanner.runtime.wallTime() end
         frame:SetScript("OnUpdate", process)
     end
     function scanner:Start(itemIDs, detailed)
@@ -112,11 +109,6 @@ function BulkScan.Install(scanner)
         end
         if not self.open then return false, "Open the auction house first." end
         if self.active or engine.job then return false, "An auction scan is already running." end
-        local last = cooldowns[key]
-        if last and self.runtime.wallTime() - last < COOLDOWN then
-            self.message = "Full-scan cooldown: using saved prices. /wll scan deep refreshes known delivery items."
-            return false, self.message
-        end
         -- A bulk refresh must not launch a redundant per-item provider scan.
         addon.refreshJob, addon.pendingProviderScan, addon.providerDue = nil, nil, nil
         self.queue, self.pending, self.index = {}, nil, 1
@@ -138,10 +130,8 @@ function BulkScan.Install(scanner)
         if not job or not job.own then return tick(self) end
         if job.waiting and self.api.IsThrottledMessageSystemReady() then
             job.waiting = nil
-            cooldowns[key] = self.runtime.wallTime()
             local ok, reason = self:Send("ReplicateItems")
             if not ok then
-                cooldowns[key] = nil
                 finish("Full scan could not start: " .. tostring(reason))
             end
         end
@@ -201,8 +191,7 @@ function BulkScan.Install(scanner)
     local canAutoScan, autoScan, startScan = addon.CanAutoScan, addon.AutoScan, addon.StartScan
     if canAutoScan then
         function addon:CanAutoScan(reason)
-            local last = cooldowns[key]
-            if engine.job or (last and scanner.runtime.wallTime() - last < COOLDOWN) then return false end
+            if engine.job then return false end
             return canAutoScan(self, reason)
         end
     end

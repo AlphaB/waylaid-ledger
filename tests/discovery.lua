@@ -47,6 +47,58 @@ test("item hyperlinks resolve IDs without a preexisting item-name catalog",funct
         equal(a.Discovery.Read(31),true);equal(a.Writs[31].requirements[1].itemID,11)
     end)
 end)
+test("crate Use descriptions accept named colors, inline lists and escaped newlines",function()
+    fixture(function(a)
+        a.Discovery.Observe(11,"Herb");a.Discovery.Observe(12,"Ore")
+        for _,line in ipairs({
+            "Use: Fill the crate with any bundle from the following list:|cnIQ1: - 20 Herb - 10 Ore|r",
+            "Use: Fill the crate with any bundle from the following list:|n|cnIQ1:- 20 Herb|n- 10 Ore|r",
+        }) do
+            local requirements=a.Discovery.Parse({{leftText=line}},"crates",21)
+            assert(requirements);equal(#requirements,2)
+            equal(requirements[1].quantity,20);equal(requirements[2].itemID,12)
+        end
+        equal(a.Discovery.Parse({{leftText="Use: Fill the crate with any bundle from the following list: - 20 Herb - 10 Missing"}},"crates",21),nil)
+    end)
+end)
+
+test("generic writ text preserves fallback quantities and complete objectives replace them",function()
+    fixture(function(a,names,tips)
+        a.Discovery.Observe(11,"Herb");a.Discovery.Observe(31,"Craftsman's Writ: Test")
+        local definition=a.Writs[31]
+        definition.requirements={{itemID=11,quantity=200}}
+        definition.fallback,definition.unresolved=true,nil
+        tips[31]={lines={{leftText="A pending crafting order. Acquire the requested items and deliver them to the customer for a reward."}}}
+        equal(a.Discovery.Read(31),false)
+        equal(definition.requirements[1].quantity,200);equal(definition.unresolved,nil)
+        equal(a.Discovery.pending[31],nil)
+        tips[31]={lines={{leftText="Bring 100 Herb to the customer."}}}
+        equal(a.Discovery.Read(31),true);equal(definition.requirements[1].quantity,100)
+        equal(definition.fallback,nil)
+        tips[31]={lines={{leftText="Loading..."}}}
+        equal(a.Discovery.Read(31),false);equal(definition.requirements[1].quantity,100)
+        tips[31]={lines={{leftText="Bring 50 Missing Herb to the customer."}}}
+        equal(a.Discovery.Read(31),false);equal(#definition.requirements,0)
+    end)
+end)
+
+test("upgrade restores unresolved bundled rows while retaining learned and additional contracts",function()
+    fixture(function(a)
+        assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/Data.lua"))("WaylaidLedger",a)
+        assert(loadfile(PROJECT_ROOT.."/WaylaidLedger/WritData.lua"))("WaylaidLedger",a)
+        local learned={name="Waylaid Crate: Apprentice Herbs",options={{itemID=2447,quantity=9},{itemID=765,quantity=8}}}
+        a.db.discovery.locales.enUS={build=16001,names={},crates={
+            [248682]=learned,[248683]={name="Waylaid Crate: Apprentice Ore",unresolved=true,options={}},
+            [21]={name="Waylaid Crate: Extra",unresolved=true,options={}},
+        },writs={[264037]={name="Craftsman's Writ: Crafted Solid Shot",unresolved=true,requirements={}}}}
+        a.Discovery.Install()
+        equal(a.Crates[248682],learned);equal(a.Crates[248682].options[1].quantity,9)
+        equal(a.Crates[248683].unresolved,nil);equal(a.Crates[248683].options[1].quantity,20)
+        equal(a.Writs[264037].unresolved,nil);equal(a.Writs[264037].requirements[1].quantity,200)
+        assert(a.Crates[21]);equal(a.Discovery.names["Crafted Solid Shot"],8069)
+        equal(a.db.discovery.locales.enUS.crates,a.Crates)
+    end)
+end)
 test("unresolved or ambiguous goods never produce partial delivery definitions",function()
     fixture(function(a,names,tips)
         a.Discovery.Observe(11,"Herb");a.Discovery.Observe(12,"Ore")
