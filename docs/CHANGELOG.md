@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.1
+
+- Stop processing Auctionator’s full snapshot alongside its autoscan; pause discovery until completion/failure.
+- Remove scans triggered by tab switches, missing list prices, and unresolved descriptions. Explicit Refresh and opt-in AH-open scans remain available.
+- Cancel pending automatic own scans when another addon starts a full scan.
+- Show Auctionator’s reported percentage and disable Refresh while its scan runs. Show description-resolution progress during own scans.
+- Break tooltip/discovery redraw feedback when delivery requirements have not changed; avoid repeated item-load requests for missing tooltip data.
+- Cover 60,000 interleaved item-load events, tab switching, scan failures, compatibility fallback, and the released Auctionator event-bus contract.
+- 206 default Lua regression tests; 208 with Auctionator’s released source. Live-client verification remains required.
+
 ## 0.8.0
 
 - Ignore unrelated item-load events and wait for 250 ms of quiet before retrying delivery descriptions.

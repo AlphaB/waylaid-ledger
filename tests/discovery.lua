@@ -65,6 +65,69 @@ local function fixture(action, locale)
     assert(ok, err)
 end
 
+test("tooltip refresh feedback settles when the delivery definition is unchanged", function()
+    fixture(function(a, names, tips)
+        names[31] = "Craftsman's Writ: Test"
+        a.Discovery.Observe(11, "Herb")
+        a.Discovery.Observe(31)
+        tips[31] = { dataInstanceID = 1031, lines = { { leftText = "Deliver 3 Herb" } } }
+        local updates, refreshes = 0, 0
+        a.UI = {
+            Update = function()
+                updates = updates + 1
+            end,
+        }
+        a.Tooltip = {
+            Refresh = function()
+                refreshes = refreshes + 1
+                local frame = a.Discovery.frame
+                frame.scripts.OnEvent(frame, "TOOLTIP_DATA_UPDATE", 1031)
+            end,
+        }
+        a.Discovery.Retry()
+        a.drain()
+        equal(updates, 1)
+        equal(refreshes, 1)
+        for _ = 1, 100 do
+            a.Discovery.frame.scripts.OnEvent(a.Discovery.frame, "TOOLTIP_DATA_UPDATE", 1031)
+            a.drain()
+        end
+        equal(updates, 1)
+        equal(refreshes, 1)
+        tips[31].lines = { { leftText = "Deliver 7 Herb" } }
+        a.Discovery.frame.scripts.OnEvent(a.Discovery.frame, "TOOLTIP_DATA_UPDATE", 1031)
+        a.drain()
+        equal(updates, 2)
+        equal(refreshes, 2)
+        equal(a.Writs[31].requirements[1].quantity, 7)
+        tips[31].lines = { { leftText = "Deliver 7 Missing Herb" } }
+        a.Discovery.frame.scripts.OnEvent(a.Discovery.frame, "TOOLTIP_DATA_UPDATE", 1031)
+        a.drain()
+        equal(updates, 3)
+        equal(refreshes, 3)
+        equal(a.Writs[31].unresolved, true)
+    end)
+end)
+
+test("missing tooltip data does not repeatedly request the same loaded item", function()
+    fixture(function(a, names)
+        names[31] = "Craftsman's Writ: Test"
+        a.Discovery.Observe(31)
+        local loads = 0
+        C_Item.RequestLoadItemDataByID = function()
+            loads = loads + 1
+        end
+        a.Discovery.Retry()
+        a.drain()
+        for _ = 1, 100 do
+            a.Discovery.frame.scripts.OnEvent(a.Discovery.frame, "ITEM_DATA_LOAD_RESULT", 31, true)
+            a.drain()
+        end
+        equal(loads, 1)
+        equal(a.Discovery.frame.scripts.OnUpdate, nil)
+    end)
+end)
+
 test("item loads spread over a scan do not continually reparse unresolved contracts", function()
     fixture(function(a, names)
         local reads = 0

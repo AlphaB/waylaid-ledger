@@ -1,12 +1,25 @@
 # Auction addon integrations
 
-## Current behavior (0.7.0)
+## Current behavior (0.8.1)
 
-Auctionator and TSM remain optional public-API adapters. Auto reuses fresh own
-snapshots, then provider estimates, and schedules missing/stale items through the
-shared scanner while a ranked list is visible. Scope includes learned purchases and
-delivery goods; synthetic fixtures cover 126 crate items or 300 writ items. Own is supported independently
-for both categories. Forced Auctionator/TSM modes retain their explicit policy.
+Auctionator and TSM supply optional cached price estimates. Auto reuses fresh
+own snapshots, then provider estimates. Tab switches, missing prices, and unresolved
+descriptions do not schedule queries. Own scans require Refresh/a scan command,
+or the separate opt-in AH-open preference. An external full scan cancels pending
+automatic work for that AH visit. Forced provider modes retain their source policy.
+
+Auctionator autoscan is observed without reading or retaining its raw snapshot.
+The public DB callback carries no progress, so a capability-checked adapter uses
+`Auctionator.EventBus:Register` with `FullScan.Events.ScanStart`, `ScanProgress`,
+`ScanComplete`, and `ScanFailed`. Only the numeric progress value is retained;
+the completion event's auction-data payload is ignored. Discovery and provider
+redraws remain paused until completion/failure. Refresh is disabled meanwhile.
+
+This optional event-bus adapter is version-sensitive, unlike the public price API.
+Tests execute Auctionator 347's unmodified event bus, event constants and DB callback.
+Without these events, an observed external `ReplicateItems` call shows a waiting
+status and the public DB callback ends the wait. AH closure or 120 seconds without
+progress also releases the wait; neither path restarts automatic scanning.
 
 Row shopping prefers Auctionator advanced shopping; when unavailable, an ID-based
 basket opens `AuctionHouseFrame:SelectBrowseResult` and `QueryItem` with the
@@ -46,7 +59,7 @@ redistributed files. API contracts were read from the actual release packages.
 
 ## Auctionator
 
-Uses only `Auctionator.API.v1`:
+Price and shopping operations use `Auctionator.API.v1`:
 
 - `GetAuctionPriceByItemID("WaylaidLedger", itemID)`: a cached minimum unit price
   in copper, or nil when unavailable.
@@ -260,7 +273,7 @@ and `SetupMenu` radio descriptions. Primary client sources:
 [Classic/MenuTemplates.xml](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_Menu/Classic/MenuTemplates.xml).
 
 List status reads the replication job's waiting state and actual auction count,
-including passive shared snapshots received from Auctionator. It does not use
+including passive shared snapshots in v0.7.2–v0.8.0 (removed in v0.8.1). It does not use
 the empty per-item scanner queue. Batches only update status text and the Stop
 button; completed scans rebuild prices and list ordering. Stop cancels our
 snapshot observer without cancelling the other addon's scan.

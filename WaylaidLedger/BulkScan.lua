@@ -176,6 +176,9 @@ function BulkScan.Install(scanner)
         updateStatus()
     end
     function scanner:Start(itemIDs, detailed)
+        if addon.Providers and addon.Providers.scan then
+            return false, L["Another addon is scanning."]
+        end
         if detailed then
             if engine.job then
                 return false, L["Wait for the full scan to finish or stop it first."]
@@ -260,7 +263,7 @@ function BulkScan.Install(scanner)
     end
     local function manualSnapshot(self, category)
         -- A rejected second request must not change an active scan's ownership.
-        if scanner.open and not scanner.active and not engine.job then
+        if scanner.open and not scanner.active and not engine.job and not (self.Providers and self.Providers.scan) then
             prepareManual(self, category)
         end
         local ok, reason = scanner:Start({})
@@ -334,7 +337,12 @@ function BulkScan.Install(scanner)
     if startScan then
         function addon:StartScan(scope)
             if scope == "deep" then
-                if scanner.open and not scanner.active and not engine.job then
+                if
+                    scanner.open
+                    and not scanner.active
+                    and not engine.job
+                    and not (self.Providers and self.Providers.scan)
+                then
                     prepareManual(self, "all")
                 end
                 local ids, unique = {}, {}
@@ -359,12 +367,4 @@ function BulkScan.Install(scanner)
             return startScan(self, scope)
         end
     end
-    -- Passive observation reuses Auctionator's replication response without
-    -- reading its private database or starting a competing full scan.
-    hooksecurefunc(scanner.api, "ReplicateItems", function()
-        if not scanner.issuing then
-            cancel()
-            observe(false)
-        end
-    end)
 end

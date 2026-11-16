@@ -329,14 +329,14 @@ test("own writ and purchase prices use real depth, shortages, failures and marke
     end)
 end)
 
-test("opening the Writs list queues fallback scanning independently of crate source and tracking", function()
+test("opening the Writs list leaves queries to an explicit scan", function()
     fixture(function(f, market)
         f.browser("writs")
         addon.db.source = "tsm"
         addon:RequestBrowseScan()
-        equal(addon.autoReason, "browse")
-        f.now = f.now + 1
-        host.scripts.OnUpdate()
+        equal(addon.autoReason, nil)
+        equal(addon.scanner.active, false)
+        addon:StartBrowseScan("writs")
         equal(addon.scanner.active, true)
         equal(#addon.scanner.queue, 300)
         local id = addon.scanner.pending.itemID
@@ -348,7 +348,7 @@ test("opening the Writs list queues fallback scanning independently of crate sou
         equal(addon.autoDue, nil)
         addon.autoPaused = false
         addon:RequestBrowseScan()
-        assert(addon.autoDue)
+        equal(addon.autoDue, nil)
         host.scripts.OnEvent(host, "AUCTION_HOUSE_CLOSED")
         equal(addon.autoDue, nil)
         equal(addon.scanner.active, false)
@@ -371,9 +371,7 @@ test(
                 return { quantity = 1000, unitPrice = 3 }
             end
             f.browser("writs")
-            addon:RequestBrowseScan()
-            f.now = f.now + 1
-            host.scripts.OnUpdate()
+            addon:StartBrowseScan("writs")
             local count, waits = 0, 0
             while addon.scanner.active do
                 local pending = addon.scanner.pending
@@ -589,9 +587,8 @@ test("changing a crate price preference cannot stop or pause an independent writ
     fixture(function(f)
         f.browser("writs")
         addon.db.writSource = "own"
-        addon:RequestBrowseScan()
-        f.now = f.now + 1
-        host.scripts.OnUpdate()
+        addon:StartBrowseScan("writs")
+        addon.scanAutomatic = true
         equal(addon.scanner.active, true)
         equal(addon.scanContext.category, "writs")
         addon:SetSource("tsm")

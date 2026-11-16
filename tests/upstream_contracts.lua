@@ -4,6 +4,60 @@ local addon, test, equal = ...
 -- ZIPs supplied to run.py. Internal services and WoW UI are stubbed; the public
 -- functions, argument validation and handoff behavior are the upstream code.
 if UPSTREAM_AUCTIONATOR then
+    test("released Auctionator event bus reports scan progress without importing its snapshot", function()
+        local saved = Auctionator
+        local a = {}
+        local ok, err = pcall(function()
+            Auctionator = {
+                API = { v1 = {}, InternalVerifyID = function() end },
+                FullScan = {},
+                IncrementalScan = { Events = { PricesProcessed = "prices" } },
+                Debug = { Message = function() end },
+                Utilities = {
+                    Slice = function(values, first, last)
+                        local copy = {}
+                        for index = first, last do
+                            copy[#copy + 1] = values[index]
+                        end
+                        return copy
+                    end,
+                },
+            }
+            local env = setmetatable({
+                Auctionator = Auctionator,
+                CreateAndInitFromMixin = function(mixin)
+                    local instance = setmetatable({}, { __index = mixin })
+                    instance:Init()
+                    return instance
+                end,
+            }, { __index = _G })
+            for _, path in ipairs({
+                "Source/Utilities/EventBusMixin.lua",
+                "Source_ModernAH/FullScan/Events.lua",
+                "Source_ModernAH/API/v1/RegisterForDBUpdate.lua",
+            }) do
+                setfenv(assert(loadstring(UPSTREAM_AUCTIONATOR[path], path)), env)()
+            end
+            assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/Localization.lua"))("WaylaidLedger", a)
+            assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/Providers.lua"))("WaylaidLedger", a)
+            a.Providers.Install()
+            local bus, events, source = Auctionator.EventBus, Auctionator.FullScan.Events, {}
+            bus:RegisterSource(source, "test")
+            bus:Fire(source, events.ScanStart)
+            assert(a.Providers.scan)
+            bus:Fire(source, events.ScanProgress, 0.42)
+            equal(a.Providers.scan.percent, 42)
+            bus:Fire(source, "prices")
+            assert(a.Providers.scan)
+            bus:Fire(source, events.ScanComplete, { { replicateInfo = {} } })
+            equal(a.Providers.scan, nil)
+            bus:Fire(source, events.ScanStart)
+            bus:Fire(source, events.ScanFailed)
+            equal(a.Providers.scan, nil)
+        end)
+        Auctionator = saved
+        assert(ok, err)
+    end)
     test("adapter calls actual Auctionator release price, age, callback and shopping APIs", function()
         local callback, terms, listItems, searched, shoppingClicks
         shoppingClicks = 0

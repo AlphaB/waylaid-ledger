@@ -9,15 +9,18 @@ for the fallback's provenance.
 
 ## First use and refresh
 
-At an auctioneer, run `/wll scan all` or click **Full AH scan** in scan controls.
-On the ranked-list UI, **Refresh** uses the same full-scan path. The automatic
-list scan can also discover additional items. Auctionator and TSM remain optional:
+At an auctioneer, run `/wll scan all` or click **Refresh** in either ranked list.
+Both use one full snapshot on Forever and can discover additional contracts.
+Tab switches never schedule queries. Auctionator and TSM remain optional:
 their public price APIs supply prices once an item's ID is known.
 
-The addon observes full-scan requests made by other addons and consumes the
-shared `REPLICATE_ITEM_LIST_UPDATE` response. It never invokes Auctionator/TSM
-internals or starts their scanners. An already completed scan from before this
-addon loaded has no verifiable timestamp and is not presented as a fresh scan.
+External full scans are observed only for their lifecycle and status. Waylaid
+does not consume another addon's replication rows. Auctionator's optional scan
+events provide its percentage; discovery stays idle through database processing
+and resumes once on completion/failure. The price database callback invalidates
+cached provider quotes. See [INTEGRATIONS.md](INTEGRATIONS.md) for the guarded
+adapter and fallback behavior. New contract discovery from the entire market
+requires an explicit Waylaid scan.
 
 The addon imposes no fixed full-scan cooldown and discards old saved lockout
 timestamps. Once the current scan finishes or is stopped, Refresh may request
@@ -110,7 +113,10 @@ Localized-name collisions remain ambiguous after cleanup.
 
 Item/tooltip retries and Auctionator update redraws wait for 250 ms of quiet.
 Auctionator price updates invalidate the price cache immediately but do not
-retry delivery parsing. Consumed discovery queue entries are periodically
+retry delivery parsing. Ending an external full scan retries pending descriptions
+once. Unchanged descriptions do not redraw lists or rebuild tooltips, preventing
+the tooltip → discovery → redraw feedback loop. Missing tooltip data requests
+an item load only once until actual tooltip data arrives. Consumed discovery queue entries are periodically
 compacted during long event streams.
 
 Run `python3 tests/scan_performance.py --verify` for a synthetic three-scan
