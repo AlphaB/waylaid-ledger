@@ -51,7 +51,7 @@ local function fixture(action)
     assert(ok, err)
 end
 
-test("writ browse totals include one writ and the full delivery, sorted by combined cost", function()
+test("writ browse totals include one writ and the full delivery, sorted by cost per reputation", function()
     fixture(function(f)
         f.price(264050, 100)
         f.price(4245, 400)
@@ -66,6 +66,134 @@ test("writ browse totals include one writ and the full delivery, sorted by combi
         equal(entries[2].total, 640)
         equal(entries[3].total, nil)
     end)
+end)
+test("writ ranks compare the complete basket per reputation instead of its total", function()
+    fixture(function(f)
+        local saved = addon.Writs
+        addon.Writs = {
+            [264050] = { name = "Journeyman", requirements = { { itemID = 4245, quantity = 1 } } },
+            [264077] = { name = "Expert", requirements = { { itemID = 4245, quantity = 1 } } },
+            [264153] = { name = "Artisan", requirements = { { itemID = 4245, quantity = 1 } } },
+        }
+        local ok, err = pcall(function()
+            f.price(4245, 400)
+            f.price(264050, 100)
+            f.price(264077, 300)
+            f.price(264153, 500)
+            local rows = Shopping.Entries("writs")
+            equal(rows[1].itemID, 264153)
+            equal(rows[1].total, 900)
+            equal(rows[1].reward, 200)
+            equal(rows[1].unitCost, 4.5)
+            equal(rows[2].itemID, 264077)
+            equal(rows[2].reward, 125)
+            equal(rows[2].unitCost, 5.6)
+            equal(rows[3].itemID, 264050)
+            equal(rows[3].total, 500)
+            equal(rows[3].reward, 75)
+            f.prices.auctionator[264153] = nil
+            rows = Shopping.Entries("writs")
+            equal(rows[1].itemID, 264077)
+            equal(rows[3].unitCost, nil)
+        end)
+        addon.Writs = saved
+        assert(ok, err)
+    end)
+end)
+
+test("crate rewards rank Artisan at 30 Favor and leave unknown future rewards unranked", function()
+    fixture(function(f)
+        local saved = addon.Crates
+        addon.Crates = {}
+        for _, id in ipairs({ 248683, 248702, 248690, 248695, 999991 }) do
+            addon.Crates[id] = {
+                name = "Crate " .. id,
+                options = {
+                    { itemID = 2770, quantity = 20 },
+                    {
+                        itemID = 2771,
+                        quantity = 20,
+                    },
+                },
+            }
+        end
+        local ok, err = pcall(function()
+            f.price(2770, 1)
+            f.price(248683, 10)
+            f.price(248702, 30)
+            f.price(248690, 60)
+            f.price(248695, 1)
+            f.price(999991, 1)
+            local rows = Shopping.Entries("crates")
+            equal(rows[1].itemID, 248695)
+            equal(rows[1].total, 21)
+            equal(rows[1].reward, 30)
+            equal(rows[1].unitCost, 21 / 30)
+            equal(rows[2].itemID, 248702)
+            equal(rows[2].total, 50)
+            equal(rows[2].reward, 10)
+            equal(rows[2].unitCost, 5)
+            equal(rows[3].itemID, 248690)
+            equal(rows[3].reward, 15)
+            equal(rows[4].itemID, 248683)
+            equal(rows[4].total, 30)
+            equal(rows[4].unitCost, 6)
+            equal(rows[5].itemID, 999991)
+            equal(rows[5].total, 21)
+            equal(rows[5].reward, nil)
+            equal(rows[5].unitCost, nil)
+            local host = CreateFrame("Frame", nil, UIParent)
+            host:SetSize(700, 550)
+            local view = addon.BrowseUI.Create(host, "crates")
+            addon.BrowseUI.Refresh(view)
+            equal(#view.headers, 5)
+            equal(view.headers[5].text, addon.L["Cost / Favor"])
+            equal(view.scroll.rows[1].reward.text, string.format(addon.L["%d Favor"], 30))
+            equal(view.scroll.rows[1].unitCost.text, addon.Money(1))
+            equal(view.scroll.rows[5].reward.text, addon.L["Reward unknown"])
+            equal(view.scroll.rows[5].unitCost.text, "—")
+            host:Hide()
+            addon.BrowseUI.views.crates = nil
+        end)
+        addon.Crates = saved
+        assert(ok, err)
+    end)
+end)
+
+test("reward metadata covers audited tiers without guessing new IDs or localization", function()
+    for _, range in ipairs({ { 264011, 264055, 75 }, { 264056, 264115, 125 }, { 264116, 264160, 200 } }) do
+        for id = range[1], range[2] do
+            equal(addon.Rewards.Amount("writs", id), range[3])
+        end
+    end
+    equal(addon.Rewards.Amount("writs", 264010), nil)
+    equal(addon.Rewards.Amount("writs", 264161), nil)
+    equal(addon.Rewards.Amount("crates", 248690), 15)
+    equal(addon.Rewards.Amount("crates", 248691), 15)
+    for _, id in ipairs({ 248695, 248696, 248697, 248698, 248699, 248711, 248712, 248713 }) do
+        equal(addon.Rewards.Amount("crates", id), 30)
+    end
+    equal(addon.Rewards.Amount("crates", 264050), nil)
+    equal(addon.Rewards.Amount("invalid", 264050), nil)
+    equal(addon.Rewards.UnitCost(10, 0), nil)
+    equal(addon.Rewards.UnitCost(nil, 75), nil)
+    equal(addon.Rewards.UnitCost(0, 75), 0)
+end)
+
+test("efficiency sorting preserves sub-copper differences and stable ties", function()
+    local rows = {
+        { unitCost = 101 / 75, total = 101, name = "A", itemID = 1 },
+        { unitCost = 160 / 125, total = 160, name = "Z", itemID = 2 },
+        { unitCost = 101 / 75, total = 101, name = "A", itemID = 3 },
+        { total = 1, name = "Unknown reward", itemID = 4 },
+        { reward = 75, name = "Unknown price", itemID = 5 },
+    }
+    table.sort(rows, Shopping.Less)
+    equal(rows[1].itemID, 2)
+    equal(rows[2].itemID, 1)
+    equal(rows[3].itemID, 3)
+    equal(rows[4].itemID, 4)
+    equal(rows[5].itemID, 5)
 end)
 test("crate browse selects the cheapest full option across usable scans and estimates", function()
     fixture(function(f, market)
@@ -254,6 +382,9 @@ test("browse rows render ranked totals, filter delivery names, and route clicks 
         host:SetSize(1000, 550)
         local view = addon.BrowseUI.Create(host, "writs")
         addon.BrowseUI.Refresh(view)
+        equal(view.headers[5].text, addon.L["Cost / reputation"])
+        equal(view.scroll.rows[1].unitCost.text, addon.Money(7))
+        equal(view.scroll.rows[1].reward.text, string.format(addon.L["%d rep"], 75))
         equal(#view.visibleEntries, 150)
         equal(#view.scroll.rows, 10)
         equal(view.scroll.rows[1].entry.itemID, 264050)

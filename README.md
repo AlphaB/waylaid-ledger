@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The lowest known filling cost is highlighted in green for all price sources,
 including cached prices. Auctionator and TSM are optional price providers. Own scans support both crate and writ costs.
 
-Version **0.8.6** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.9.0** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -180,9 +180,19 @@ from the auction house.
 Inside the Waylaid auction tab, **Craftsman's Writs** lists known identified writs,
 and **Waylaid Crates** lists
 known identified crates. Columns show the purchase price of one writ/crate, the
-full delivery cost, and their sum. Rows with known totals sort from cheapest to
-most expensive; unknown totals follow alphabetically. Missing data is never counted as zero. Prices have no estimate prefixes or
+full delivery cost, their sum, and **cost per reputation** (writs) or **cost per
+Merchant's Favor** (crates), with the base reward below that cost. Rows sort by
+the lowest cost per point, including the purchase and full delivery. Unknown
+rewards/prices follow ranked rows, ordered by known total, then name and item ID.
+Missing data is never counted as zero. Prices have no estimate prefixes or
 age markers; detailed provenance remains available on hover.
+
+Writs award **75 / 125 / 200 reputation** for Journeyman / Expert / Artisan.
+Crate Favor depends on tier and contents: for Apprentice through Expert,
+processed Fabrics/Ingots/Parts pay more than Herbs/Ore/Textiles/Curiosities.
+Earthly and Flowering are herb variants in both Expert and Artisan tiers.
+All eight Artisan crates use **30 Favor each**, as selected by the user, and
+participate in cost-per-Favor ranking. See [reward research and sources](docs/REWARDS.md).
 
 Each crate row chooses its cheapest usable filling option across scans and
 provider estimates. Older cached prices remain eligible for this comparison. This is the **lowest known** cost; unpriced alternatives might be cheaper.

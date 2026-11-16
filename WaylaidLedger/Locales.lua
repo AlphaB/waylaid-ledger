@@ -1799,3 +1799,84 @@ addon.Locales.esMX["Full scans share a cooldown. Try again in %d seconds, or use
     addon.Locales.esES["Full scans share a cooldown. Try again in %d seconds, or use /wll scan deep."]
 addon.Locales.esMX["No auction snapshot response. A recent full scan may be throttled; use provider prices or /wll scan deep."] =
     addon.Locales.esES["No auction snapshot response. A recent full scan may be throttled; use provider prices or /wll scan deep."]
+
+-- Reward efficiency columns use the same client-selected locale as prices.
+local rewardKeys = {
+    "Cost / Favor",
+    "Cost / reputation",
+    "Reward unknown",
+    "%d rep",
+    "%d Favor",
+    "Base rewards; bonuses and gold rewards are excluded.",
+    "Reward unverified; excluded from cost-per-reward ranking.",
+}
+local rewardLabels = {
+    deDE = {
+        "Kosten / Gunst",
+        "Kosten / Ruf",
+        "Belohnung unbekannt",
+        "%d Ruf",
+        "%d Gunst",
+        "Grundbelohnungen; Boni und Goldbelohnungen sind ausgeschlossen.",
+        "Belohnung unbestätigt; nicht nach Kosten pro Belohnung eingestuft.",
+    },
+    frFR = {
+        "Coût / faveur",
+        "Coût / réputation",
+        "Récompense inconnue",
+        "%d réput.",
+        "%d faveur",
+        "Récompenses de base ; bonus et récompenses en or exclus.",
+        "Récompense non vérifiée ; exclue du classement par coût unitaire.",
+    },
+    esES = {
+        "Coste / favor",
+        "Coste / reputación",
+        "Recompensa desconocida",
+        "%d rep.",
+        "%d favor",
+        "Recompensas base; se excluyen las bonificaciones y el oro recibido.",
+        "Recompensa sin verificar; excluida de la clasificación por coste unitario.",
+    },
+    ptBR = {
+        "Custo / favor",
+        "Custo / reputação",
+        "Recompensa desconhecida",
+        "%d rep.",
+        "%d favor",
+        "Recompensas básicas; bônus e recompensas em ouro não estão incluídos.",
+        "Recompensa não verificada; excluída da classificação por custo unitário.",
+    },
+    ruRU = {
+        "Цена / благосклонность",
+        "Цена / репутация",
+        "Награда неизвестна",
+        "%d реп.",
+        "%d благоскл.",
+        "Базовые награды; бонусы и денежные награды не учитываются.",
+        "Награда не подтверждена; не участвует в сортировке по цене за единицу.",
+    },
+    koKR = {
+        "호의당 비용",
+        "평판당 비용",
+        "보상 알 수 없음",
+        "평판 %d",
+        "호의 %d",
+        "기본 보상 기준이며 보너스와 골드 보상은 제외됩니다.",
+        "보상이 확인되지 않아 보상당 비용 순위에서 제외됩니다.",
+    },
+    zhTW = {
+        "每點青睞成本",
+        "每點聲望成本",
+        "獎勵未知",
+        "%d 聲望",
+        "%d 青睞",
+        "以基本獎勵計算；不計額外加成和金錢獎勵。",
+        "獎勵尚未確認；不列入每單位獎勵成本排名。",
+    },
+}
+for locale, labels in pairs(rewardLabels) do
+    for index, key in ipairs(rewardKeys) do
+        addon.Locales[locale][key] = labels[index]
+    end
+end

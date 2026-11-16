@@ -88,6 +88,7 @@ test("bundled install discovers additional crates and writs using one bulk scan"
             "Locales",
             "Data",
             "WritData",
+            "Rewards",
             "DiscoveryLocales",
             "Discovery",
             "Catalog",
