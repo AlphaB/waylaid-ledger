@@ -14,18 +14,15 @@ local RESPONSE_TIMEOUT = 15
 local JOB_TIMEOUT = 90
 
 function Scanner.New(api, runtime, callbacks)
-    return setmetatable(
-        {
-            api = api,
-            runtime = runtime,
-            callbacks = callbacks,
-            active = false,
-            open = false,
-            nextSend = 0,
-            requests = {},
-        },
-        Scanner
-    )
+    return setmetatable({
+        api = api,
+        runtime = runtime,
+        callbacks = callbacks,
+        active = false,
+        open = false,
+        nextSend = 0,
+        requests = {},
+    }, Scanner)
 end
 
 function Scanner:Notify()

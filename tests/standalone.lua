@@ -98,9 +98,13 @@ local function fixture(action)
         addon.scanner:ExternalQuery()
     end
     function f.snapshot(id, quantity, price, age)
-        market.items[id] = { kind = "commodity", scannedAt = time() - (age or 0), offers = {
-            { quantity = quantity, unitPrice = price },
-        } }
+        market.items[id] = {
+            kind = "commodity",
+            scannedAt = time() - (age or 0),
+            offers = {
+                { quantity = quantity, unitPrice = price },
+            },
+        }
     end
     function f.browser(kind)
         addon.UI.auctionHost = CreateFrame("Frame", nil, AuctionHouseFrame)
@@ -355,7 +359,7 @@ end)
 test(
     "full standalone writ scan populates ranked baskets through production events and shares the rolling budget",
     function()
-        fixture(function(f, market)
+        fixture(function(f)
             local api = addon.scanner.api
             api.HasFullCommoditySearchResults = function()
                 return true
@@ -443,7 +447,7 @@ test(
             equal(addon.NativeShopping.OpenItem({ itemID = 2770, quantity = 20 }), false)
             equal(addon.scanner.active, true)
             f.ready = true
-            for index = 1, 100 do
+            for _ = 1, 100 do
                 addon.scanner:RecordRequest()
             end
             equal(addon.NativeShopping.OpenItem({ itemID = 2770, quantity = 20 }), false)
@@ -485,7 +489,6 @@ test("native controller can move through virtual rows and retains item identity 
             equal(f.current.entry.listIndex, index)
         end
         local itemID = f.current.entry.itemID
-        local entry = f.current.entry
         f.snapshot(itemID, 1, 1)
         for _, requirement in ipairs(addon.Writs[itemID].requirements) do
             f.snapshot(requirement.itemID, 1000, 1)
@@ -495,7 +498,7 @@ test("native controller can move through virtual rows and retains item identity 
         equal(f.current.entry.listIndex, 1)
         local clicked
         local shop = addon.ShopEntry
-        addon.ShopEntry = function(_, kind, id)
+        addon.ShopEntry = function(_, _, id)
             clicked = id
         end
         f.current.scripts.OnClick(f.current)

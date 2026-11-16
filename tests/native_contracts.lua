@@ -82,25 +82,22 @@ local function fixture()
             end,
         }
     end
-    local list = setmetatable(
-        {
-            quantitySelected = 1,
-            isInitialized = true,
-            ScrollBox = {
-                HasView = function()
-                    return false
-                end,
-                GetDataIndexEnd = function()
-                    return 0
-                end,
-            },
-            SetHighlightCallback = noop,
-            SetDataProvider = noop,
-            DirtyScrollFrame = noop,
-            Reset = noop,
+    local list = setmetatable({
+        quantitySelected = 1,
+        isInitialized = true,
+        ScrollBox = {
+            HasView = function()
+                return false
+            end,
+            GetDataIndexEnd = function()
+                return 0
+            end,
         },
-        { __index = env.AuctionHouseCommoditiesBuyListMixin }
-    )
+        SetHighlightCallback = noop,
+        SetDataProvider = noop,
+        DirtyScrollFrame = noop,
+        Reset = noop,
+    }, { __index = env.AuctionHouseCommoditiesBuyListMixin })
     local display = setmetatable({
         QuantityInput = {
             value = 1,
@@ -144,10 +141,10 @@ local function fixture()
     buy.GetAuctionHouseFrame = function()
         return ah
     end
-    function ah:RegisterCallback(event, callback, owner)
+    function ah:RegisterCallback(_, callback, owner)
         callbacks[owner] = callback
     end
-    function ah:UnregisterCallback(event, owner)
+    function ah:UnregisterCallback(_, owner)
         callbacks[owner] = nil
     end
     function ah:TriggerEvent(event, quantity)

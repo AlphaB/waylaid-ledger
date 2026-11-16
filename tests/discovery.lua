@@ -57,7 +57,7 @@ local function fixture(action, locale)
 end
 
 test("requirements start empty and are learned from live descriptions and exact AH names", function()
-    fixture(function(a, names, tips)
+    fixture(function(a, _, tips)
         equal(next(a.Crates), nil)
         equal(next(a.Writs), nil)
         a.Discovery.Observe(11, "Sample Herb")
@@ -117,7 +117,7 @@ local locales = {
 for _, sample in ipairs(locales) do
     local locale, crate, writ, material, clause = unpack(sample)
     test(locale .. " discovers localized contracts and parses complete bundles", function()
-        fixture(function(a, names, tips)
+        fixture(function(a, _, tips)
             a.Discovery.Observe(11, material)
             a.Discovery.Observe(12, "Other Material")
             a.Discovery.Observe(21, crate .. ": Test")
@@ -234,7 +234,7 @@ test("quantity markers do not consume an item's leading X", function()
     end)
 end)
 test("item hyperlinks resolve IDs without a preexisting item-name catalog", function()
-    fixture(function(a, names, tips)
+    fixture(function(a, _, tips)
         a.Discovery.Observe(31, "Craftsman's Writ: Test")
         tips[31] = { lines = { { leftText = "Deliver 3 |cffffffff|Hitem:11:0|h[Sample Herb]|h|r." } } }
         a.Discovery.Observe(12, "Sample Herb")
@@ -268,7 +268,7 @@ test("crate Use descriptions accept named colors, inline lists and escaped newli
 end)
 
 test("generic writ text preserves fallback quantities and complete objectives replace them", function()
-    fixture(function(a, names, tips)
+    fixture(function(a, _, tips)
         a.Discovery.Observe(11, "Herb")
         a.Discovery.Observe(31, "Craftsman's Writ: Test")
         local definition = a.Writs[31]
@@ -314,7 +314,9 @@ test("upgrade restores unresolved bundled rows while retaining learned and addit
                 [248683] = { name = "Waylaid Crate: Apprentice Ore", unresolved = true, options = {} },
                 [21] = { name = "Waylaid Crate: Extra", unresolved = true, options = {} },
             },
-            writs = { [264037] = { name = "Craftsman's Writ: Crafted Solid Shot", unresolved = true, requirements = {} } },
+            writs = {
+                [264037] = { name = "Craftsman's Writ: Crafted Solid Shot", unresolved = true, requirements = {} },
+            },
         }
         a.Discovery.Install()
         equal(a.Crates[248682], learned)
@@ -329,7 +331,7 @@ test("upgrade restores unresolved bundled rows while retaining learned and addit
     end)
 end)
 test("unresolved or ambiguous goods never produce partial delivery definitions", function()
-    fixture(function(a, names, tips)
+    fixture(function(a, _, tips)
         a.Discovery.Observe(11, "Herb")
         a.Discovery.Observe(12, "Ore")
         a.Discovery.Observe(21, "Waylaid Crate: Test")
@@ -346,7 +348,7 @@ test("unresolved or ambiguous goods never produce partial delivery definitions",
     end)
 end)
 test("late item data retries requirements without keeping stale changed quantities", function()
-    fixture(function(a, names, tips)
+    fixture(function(a, _, tips)
         a.Discovery.Observe(11, "Herb")
         a.Discovery.Observe(31, "Craftsman's Writ: Test")
         equal(a.Discovery.Read(31), false)
@@ -373,7 +375,7 @@ test("rewards and use text are not treated as delivery requirements", function()
 end)
 
 test("full-scan event bursts coalesce into bounded discovery work and one redraw", function()
-    fixture(function(a, names, tips)
+    fixture(function(a, names, _)
         debugprofilestop = nil
         local reads, updates, refreshes = 0, 0, 0
         a.UI = {
@@ -423,7 +425,7 @@ test("full-scan event bursts coalesce into bounded discovery work and one redraw
 end)
 
 test("tooltip updates retry only their candidate and ignore obsolete instances and reentry", function()
-    fixture(function(a, names, tips)
+    fixture(function(a, _, tips)
         a.Discovery.Observe(11, "Herb")
         for id = 31, 32 do
             a.Discovery.Observe(id, "Craftsman's Writ: Test " .. id)
@@ -441,7 +443,7 @@ test("tooltip updates retry only their candidate and ignore obsolete instances a
         equal(reads[31], 1)
         equal(reads[32], 1)
         tips[31] = { dataInstanceID = 2031, lines = { { leftText = "Deliver 3 Herb" } } }
-        for event = 1, 100 do
+        for _ = 1, 100 do
             frame.scripts.OnEvent(frame, "TOOLTIP_DATA_UPDATE", 1031)
         end
         equal(reads[31], 1)
@@ -480,7 +482,7 @@ test("late delivery names coalesce retries and candidate item loads stay targete
         equal(reads[32], 1)
         names[11] = "Herb"
         local frame = a.Discovery.frame
-        for event = 1, 100 do
+        for _ = 1, 100 do
             frame.scripts.OnEvent(frame, "ITEM_DATA_LOAD_RESULT", 11, true)
         end
         equal(reads[31], 1)
@@ -497,7 +499,7 @@ test("late delivery names coalesce retries and candidate item loads stay targete
 end)
 
 test("slow discovery reads yield at the time budget and wait for the full name index", function()
-    fixture(function(a, names, tips)
+    fixture(function(a, _, _)
         local reads, elapsed = 0, 0
         debugprofilestop = function()
             return elapsed
@@ -512,7 +514,7 @@ test("slow discovery reads yield at the time budget and wait for the full name i
         end
         a.BulkScan = { engine = { job = {} } }
         a.Discovery.Retry()
-        for frame = 1, 10 do
+        for _ = 1, 10 do
             a.Discovery.frame.scripts.OnUpdate()
         end
         equal(reads, 0)

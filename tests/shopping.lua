@@ -51,14 +51,6 @@ local function fixture(action)
     assert(ok, err)
 end
 
-local function find(entries, id)
-    for index, entry in ipairs(entries) do
-        if entry.itemID == id then
-            return entry, index
-        end
-    end
-end
-
 test("writ browse totals include one writ and the full delivery, sorted by combined cost", function()
     fixture(function(f)
         f.price(264050, 100)
@@ -314,7 +306,7 @@ test("hidden browse panels do not read provider prices on unrelated tooltip upda
 end)
 
 test("row shopping requires a tab-switching API while legacy list creation stays available", function()
-    fixture(function(f)
+    fixture(function(_f)
         Auctionator.API.v1 = {
             ConvertToSearchString = function()
                 return "term"

@@ -100,7 +100,7 @@ test("expanded catalogs produce 300 writ, 126 crate and 424 deduplicated complet
     equal(#ids, 3)
 end)
 test("own writ estimates use full depth and include the actual outlay for a writ stack", function()
-    fixture(function(f, market)
+    fixture(function(_, market)
         addon.db.writSource = "own"
         Auctionator = nil
         market.items[8069] = {
@@ -219,7 +219,7 @@ test("TSM exports exactly the filtered scope and never attempts to start TSM", f
     end)
 end)
 test("manual scope commands support contracts in writs, crates and the combined catalog", function()
-    fixture(function(f)
+    fixture(function()
         addon:Command("scan writs")
         equal(#addon.scanner.queue, 300)
         addon:StopScan()
@@ -273,8 +273,14 @@ test("equipment scans use the zero-level variant query and retain valid gear lis
     equal(queries, 1)
     equal(#f.calls, 0)
     f.full = true
-    f.rows =
-        { { itemKey = { itemID = 10025, itemLevel = 50, itemSuffix = 0 }, auctionID = 1, quantity = 1, buyoutAmount = 250 } }
+    f.rows = {
+        {
+            itemKey = { itemID = 10025, itemLevel = 50, itemSuffix = 0 },
+            auctionID = 1,
+            quantity = 1,
+            buyoutAmount = 250,
+        },
+    }
     f.scanner:Results("item", f.api.MakeItemKey(10025))
     equal(addon.Pricing.Quote(f.saved[10025], 1).cost, 250)
 end)

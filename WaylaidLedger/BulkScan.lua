@@ -207,7 +207,7 @@ function BulkScan.Install(scanner)
     end
     frame:RegisterEvent("REPLICATE_ITEM_LIST_UPDATE")
     frame:RegisterEvent("AUCTION_HOUSE_CLOSED")
-    frame:SetScript("OnEvent", function(_, event, itemID, success)
+    frame:SetScript("OnEvent", function(_, event, _, _)
         if event == "REPLICATE_ITEM_LIST_UPDATE" then
             local job = engine.job
             if not job or job.received or job.waiting then

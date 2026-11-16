@@ -110,8 +110,8 @@ test("a partially priced writ bundle never gets a fabricated full total", functi
         equal(rows[1].cost, 10)
         equal(total, nil)
         prices.tsm[999998] = price("tsm", 20)
-        rows, total = addon.WritPricing.Rows(999999)
-        equal(total, 50)
+        local _, completeTotal = addon.WritPricing.Rows(999999)
+        equal(completeTotal, 50)
         addon.Writs[999999] = nil
     end)
 end)

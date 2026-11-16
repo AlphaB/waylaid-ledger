@@ -12,14 +12,23 @@ addon.Crates = {
             { itemID = 2450, quantity = 20 },
         },
     },
-    [248683] = { name = "Waylaid Crate: Test Ore", options = { { itemID = 2770, quantity = 20 }, {
-        itemID = 2771,
-        quantity = 20,
-    } } },
-    [248684] = { name = "Waylaid Crate: Test Textiles", options = { { itemID = 2589, quantity = 7 }, {
-        itemID = 2318,
-        quantity = 9,
-    } } },
+    [248683] = {
+        name = "Waylaid Crate: Test Ore",
+        options = {
+            { itemID = 2770, quantity = 20 },
+            {
+                itemID = 2771,
+                quantity = 20,
+            },
+        },
+    },
+    [248684] = {
+        name = "Waylaid Crate: Test Textiles",
+        options = { { itemID = 2589, quantity = 7 }, {
+            itemID = 2318,
+            quantity = 9,
+        } },
+    },
     [248685] = {
         name = "Waylaid Crate: Test Curiosities",
         options = { { itemID = 800001, quantity = 3 }, { itemID = 800002, quantity = 4 } },

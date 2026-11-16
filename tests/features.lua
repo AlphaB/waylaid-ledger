@@ -1,4 +1,4 @@
-local addon, test, equal, host = ...
+local addon, test, equal = ...
 local Inventory = addon.Inventory
 
 local function inventoryFixture(fn)
@@ -235,7 +235,7 @@ test("rolling request budget persists across restarts and waits for expiry", fun
 end)
 test("externally observed auction queries consume the shared budget", function()
     local f = TEST_SCANNER_FIXTURE()
-    for i = 1, 100 do
+    for _ = 1, 100 do
         f.scanner:ExternalQuery()
     end
     f.scanner:Start({ 1 })

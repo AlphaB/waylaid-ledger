@@ -25,15 +25,12 @@ end
 function addon:MarketBaseKey()
     -- Realm/faction isolation is deliberately conservative, even where multiple
     -- realms share an AH. Profiles let neutral/different houses be kept separate.
-    return table.concat(
-        {
-            tostring(GetCurrentRegion and GetCurrentRegion() or 0),
-            GetNormalizedRealmName() or GetRealmName() or "unknown",
-            UnitFactionGroup("player") or "unknown",
-            tostring(WOW_PROJECT_ID or 0),
-        },
-        ":"
-    )
+    return table.concat({
+        tostring(GetCurrentRegion and GetCurrentRegion() or 0),
+        GetNormalizedRealmName() or GetRealmName() or "unknown",
+        UnitFactionGroup("player") or "unknown",
+        tostring(WOW_PROJECT_ID or 0),
+    }, ":")
 end
 
 function addon:MarketKey()
@@ -489,9 +486,9 @@ function addon:StartAuctionatorScan(items, quantities)
         return false
     end
     self:StopScan(L["Handing the limited item search to Auctionator."])
-    local ok, reason = self.Providers.Search(terms, "Waylaid Ledger - scoped refresh", true)
+    local ok, searchReason = self.Providers.Search(terms, "Waylaid Ledger - scoped refresh", true)
     if not ok then
-        self:Print(reason)
+        self:Print(searchReason)
         return false
     end
     self:Print(string.format(L["Started a limited search in Auctionator Shopping (%d items)."], #items))

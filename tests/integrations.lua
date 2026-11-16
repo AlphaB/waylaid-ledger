@@ -33,7 +33,7 @@ local function fakeAuctionator(prices)
         state.reads = state.reads + 1
         return prices[id]
     end
-    api.GetAuctionAgeByItemID = function(caller, id)
+    api.GetAuctionAgeByItemID = function(caller)
         equal(caller, "WaylaidLedger")
         return state.days or 0
     end
@@ -57,7 +57,11 @@ end
 test("auto resolver prefers fresh depth scans and preserves observed shortages", function()
     local queries = 0
     local rows, known = resolve(
-        { [1] = fresh({ { quantity = 20, unitPrice = 10 } }), [2] = fresh({}), [3] = fresh({ { quantity = 5, unitPrice = 20 } }) },
+        {
+            [1] = fresh({ { quantity = 20, unitPrice = 10 } }),
+            [2] = fresh({}),
+            [3] = fresh({ { quantity = 5, unitPrice = 20 } }),
+        },
         "auto",
         function()
             queries = queries + 1
@@ -109,7 +113,7 @@ test("cached estimates remain eligible; all tied lowest costs highlight amber", 
     equal(rows[3].bestEstimate, true)
 end)
 test("resolved options highlight the single lowest known cost across sources", function()
-    local rows, known = resolve({ [1] = fresh({ { quantity = 20, unitPrice = 10 } }) }, "auto", function(source, id)
+    local rows, known = resolve({ [1] = fresh({ { quantity = 20, unitPrice = 10 } }) }, "auto", function(source)
         return estimate(source, 1, 0)
     end)
     equal(known, false)

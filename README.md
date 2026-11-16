@@ -381,9 +381,17 @@ Requirements for the developer tests: Python 3.10+ and `lupa==2.8`.
 
 ```sh
 python3 -m pip install -r requirements-dev.txt
+luacheck WaylaidLedger tests
+stylua --check WaylaidLedger tests
+python3 -m ruff check .
+python3 -m ruff format --check .
 python3 tests/run.py
 python3 tools/package.py
 ```
+
+CI pins Luacheck 1.2.0, StyLua 2.6.0, and Ruff 0.17.5. Exclude vendored libraries
+from Lua checks; format changed code with `stylua WaylaidLedger tests` and
+`python3 -m ruff format .`.
 
 The test suite uses a real Lua **5.1** interpreter through Lupa. It covers price
 depth, indivisible auctions, randomized exhaustive cross-checks, stale/unknown

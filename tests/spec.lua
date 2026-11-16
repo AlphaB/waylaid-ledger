@@ -79,10 +79,14 @@ test("unknown, empty and insufficient stock remain distinct", function()
 end)
 test("item auctions use minimum actual outlay, not unit price", function()
     local result = P.Quote(
-        item({ { quantity = 20, buyoutAmount = 1000 }, { quantity = 6, buyoutAmount = 400 }, {
-            quantity = 4,
-            buyoutAmount = 300,
-        } }),
+        item({
+            { quantity = 20, buyoutAmount = 1000 },
+            { quantity = 6, buyoutAmount = 400 },
+            {
+                quantity = 4,
+                buyoutAmount = 300,
+            },
+        }),
         10
     )
     equal(result.cost, 700)
@@ -100,7 +104,7 @@ test("item quote counts excess units and prefers fewer on a cost tie", function(
 end)
 test("dynamic programming matches exhaustive subsets", function()
     math.randomseed(121)
-    for iteration = 1, 200 do
+    for _ = 1, 200 do
         local offers = {}
         for i = 1, 8 do
             offers[i] = { quantity = math.random(1, 20), buyoutAmount = math.random(1, 100) }
@@ -177,7 +181,7 @@ local function scannerFixture()
     api.IsThrottledMessageSystemReady = function()
         return state.ready
     end
-    api.SendSearchQuery = function(key, sorts, separate)
+    api.SendSearchQuery = function(key, _, separate)
         equal(separate, true)
         state.calls[#state.calls + 1] = { method = "search", id = key.itemID, at = state.now }
     end
@@ -545,7 +549,7 @@ function methods:GenerateMenu()
         end,
     })
 end
-function CreateFrame(kind, name, parent, template)
+function CreateFrame(_, name, parent, template)
     local f = setmetatable(
         { scripts = {}, events = {}, shown = true, lines = {}, parent = parent, template = template },
         { __index = methods }
@@ -605,13 +609,13 @@ function CreateScrollBoxListLinearView()
         SetElementExtent = function(self, extent)
             self.extent = extent
         end,
-        SetElementInitializer = function(self, kind, callback)
+        SetElementInitializer = function(self, _, callback)
             self.initializer = callback
         end,
     }
 end
 ScrollUtil = {
-    InitScrollBoxListWithScrollBar = function(scroll, bar, view)
+    InitScrollBoxListWithScrollBar = function(scroll, _, view)
         scroll.rows = {}
         scroll.view = view
         scroll.offset = 0
@@ -644,7 +648,7 @@ ScrollUtil = {
             self.offset = math.min(self.offset or 0, math.max(0, #entries - 10))
             self:RenderRows()
         end
-        scroll.ScrollToElementDataIndex = function(self, index, align, offset, noInterpolation)
+        scroll.ScrollToElementDataIndex = function(self, index, _, _, noInterpolation)
             assert(noInterpolation, "controller focus requires synchronously rebound rows")
             local first = (self.offset or 0) + 1
             if index < first then
