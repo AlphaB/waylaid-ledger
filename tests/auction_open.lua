@@ -4,7 +4,7 @@ local function fixture(action)
     local old = {source=addon.db.source,profile=addon.db.profile,tracking=addon.db.tracking,
         scanOnOpen=addon.db.scanOnOpen,clock=GetTime,wall=time,requests=addon.scanner.requests,
         lastExternalAt=addon.lastExternalAt,scannerNow=addon.scanner.runtime.now}
-    addon:StopScan();addon.UI.frame:Hide()
+    addon:StopScan()
     addon.db.source,addon.db.profile="own","default"
     addon.db.scanOnOpen=true
     addon.db.tracking={enabled=false,autoScan=false,bank=false,alts=false}
@@ -33,7 +33,7 @@ test("auction-open scanning starts all 96 crate materials with no visible panel 
         f.now=12.1;host.scripts.OnUpdate()
         equal(addon.scanner.active,true);equal(#addon.scanner.queue,96)
         equal(addon.scanOnOpen,true);equal(addon.scanAutomatic,true)
-        addon.UI.frame:Show();addon.UI.frame:Hide();equal(addon.scanner.active,true)
+        addon.UI.ToggleSettings();HideUIPanel(SettingsPanel);equal(addon.scanner.active,true)
         addon:StopScan();equal(addon.scanner.active,false);equal(host.scripts.OnUpdate,nil)
         addon:RequestAutoScan(true);equal(addon.autoDue,nil)
     end)

@@ -4,7 +4,7 @@ local function fixture(action)
     local old={scanner=addon.scanner,clock=GetTime,wall=time,source=addon.db.source,writ=addon.db.writSource,
         profile=addon.db.profile,follow=addon.db.refreshAuctionator,auctionator=Auctionator,
         views=addon.BrowseUI.views,external=addon.lastExternalAt}
-    addon:StopScan();addon.UI.frame:Hide()
+    addon:StopScan()
     addon.db.source,addon.db.writSource,addon.db.profile="auto","auto","default"
     addon.db.refreshAuctionator=true;addon.BrowseUI.views={};addon.lastExternalAt=nil
     local market=addon:GetMarket();old.items,old.failures=market.items,market.failures

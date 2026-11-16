@@ -11,178 +11,18 @@ local function button(parent, text, x, y, width, action)
     return control
 end
 
-local SOURCE_ORDER = { "auto", "auctionator", "tsm", "own" }
-local SOURCE_LABELS = { auto = "Auto", auctionator = "Auctionator", tsm = "TSM", own = "Own scans" }
-
-function UI.Create()
-    local frame = CreateFrame("Frame", "WaylaidLedgerFrame", UIParent, "BasicFrameTemplateWithInset")
-    frame:SetSize(570, 510)
-    frame:SetPoint("CENTER")
-    frame:SetClampedToScreen(true)
-    frame:SetMovable(true)
-    frame:EnableMouse(true)
-    frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", frame.StartMoving)
-    frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
-    frame:SetFrameStrata("DIALOG")
-    frame.TitleText:SetText("Waylaid Ledger")
-    tinsert(UISpecialFrames, "WaylaidLedgerFrame")
-    UI.frame = frame
-    UI.panel = CreateFrame("Frame", nil, frame)
-    UI.panel:SetPoint("TOPLEFT", 5, -25)
-    UI.panel:SetSize(550, 475)
-    local panel = UI.panel
-
-    local intro = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    intro:SetPoint("TOPLEFT", 15, -14)
-    intro:SetWidth(510)
-    intro:SetJustifyH("LEFT")
-    intro:SetText("Crate prices and shopping. Green: lowest known filling cost. Click an option to choose a different bundle.")
-
-    UI.source = button(panel, "", 15, -80, 245, function()
-        for index, source in ipairs(SOURCE_ORDER) do
-            if source == addon.db.source then
-                addon:SetSource(SOURCE_ORDER[index % #SOURCE_ORDER + 1])
-                return
-            end
-        end
-    end)
-    UI.tsmKey = button(panel, "", 275, -80, 245, function()
-        addon:SetTSMKey(addon.db.tsmKey == "DBMinBuyout" and "DBMarket" or "DBMinBuyout")
-    end)
-    UI.bags = button(panel, "Scan bags", 15, -114, 160, function() addon:StartScan("bags") end)
-    UI.hovered = button(panel, "Scan hovered", 187, -114, 160, function() addon:StartScan("hovered") end)
-    UI.all = button(panel, "Full AH scan", 359, -114, 160, function() addon:StartScan("all") end)
-    UI.stop = button(panel, "Stop scan", 15, -147, 160, function() addon:StopScan() end)
-    button(panel, "Copy diagnostics", 187, -147, 160, function() UI.ShowReport(addon:Report()) end)
-
-    button(panel, "Settings", 359, -147, 160, function() UI.ToggleSettings() end)
-
-    UI.crate = button(panel, "Hover a crate", 15, -180, 505, function()
-        local ids = addon.Inventory.CrateIDs()
-        if #ids == 0 then return end
-        local selected = 0
-        for index, id in ipairs(ids) do if id == addon.lastCrateID then selected = index end end
-        addon.lastCrateID = ids[selected % #ids + 1]
-        UI.Update()
-    end)
-    UI.crate:SetScript("OnEnter", function(self)
-        if addon.lastCrateID and GameTooltip then
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetItemByID(addon.lastCrateID)
-            GameTooltip:Show()
-        end
-    end)
-    UI.crate:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
-    UI.option = button(panel, "Hover a crate to choose a bundle", 15, -212, 505, function()
-        local crate = addon.lastCrateID and addon.Crates[addon.lastCrateID]
-        if crate and not crate.unresolved and #crate.options > 0 then
-            UI.optionIndex = UI.optionIndex % #crate.options + 1
-            UI.Update()
-        end
-    end)
-    UI.search = button(panel, "Search all alternatives", 15, -247, 245, function() addon:Shop(true) end)
-    UI.shop = button(panel, "Shop selected option", 275, -247, 245, function() addon:Shop(false) end)
-
-    UI.status = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    UI.status:SetPoint("TOPLEFT", 15, -289)
-    UI.status:SetWidth(510)
-    UI.status:SetJustifyH("LEFT")
-    UI.tracked = button(panel, "Scan tracked crates", 15, -349, 245, function() addon:StartScan("tracked") end)
-    button(panel, "Inventory snapshots", 275, -349, 245, function() UI.ShowReport(addon.Inventory.Report()) end)
-    UI.inventory = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    UI.inventory:SetPoint("TOPLEFT", 15, -387)
-    UI.inventory:SetWidth(510)
-    UI.inventory:SetJustifyH("LEFT")
-    local footer = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    footer:SetPoint("TOPLEFT", 15, -431)
-    footer:SetWidth(510)
-    footer:SetJustifyH("LEFT")
-    footer:SetText("Auto refresh scans only missing/stale tracked requirements while this panel is open. Stop pauses it for this auction visit.")
-    panel:SetScript("OnShow", function()
-        if addon.initialized then UI.Update(); addon:RequestAutoScan() end
-    end)
-    frame:SetScript("OnHide", function()
-        if addon.initialized and not UI.IsScanPanelVisible() then
-            if addon.autoReason ~= "open" then addon.autoDue, addon.autoReason = nil, nil end
-            if addon.scanAutomatic and not addon.scanOnOpen and addon.scanner.active then addon:StopScan("Automatic refresh paused after closing the panel.") end
-            addon:UpdateScheduler()
-        end
-    end)
-    frame:Hide()
-end
+local SOURCE_ORDER = { "auto", "own", "auctionator", "tsm" }
+local SOURCE_LABELS = { auto = "Auto", own = "Own scans", auctionator = "Auctionator", tsm = "TSM", off = "Off" }
 
 function UI.Update(refreshBrowse)
-    if not UI.frame then
-        return
-    end
     if refreshBrowse ~= false and addon.BrowseUI then addon.BrowseUI.UpdateVisible() end
-    local scanner = addon.scanner
-    UI.source:SetText("Prices: " .. SOURCE_LABELS[addon.db.source] .. " (change)")
-    UI.tsmKey:SetText(addon.db.tsmKey == "DBMarket" and "TSM: Market value (change)" or "TSM: Min buyout (change)")
-    UI.tsmKey:SetEnabled(addon.Providers.Available("tsm"))
-    if scanner.active and scanner.bulkMode then
-        UI.status:SetText(scanner.message or "Reading the auction-house snapshot...")
-    elseif scanner.active then
-        local itemID = scanner.pending and scanner.pending.itemID or scanner.queue[scanner.index]
-        UI.status:SetText(string.format("Scanning %d/%d: %s\n%d updated, %d failed. Hover again for updated prices.",
-            scanner.index, #scanner.queue, addon.Catalog.ItemName(itemID), scanner.completed, scanner.failed))
-    else
-        UI.status:SetText((scanner.message or (scanner.open and "Auction house open. Ready to scan." or "Open an auction house to scan."))
-            .. "\nProfile: " .. addon.db.profile .. "; Auctionator: "
-            .. (addon.Providers.Available("auctionator") and "ready" or "unavailable") .. "; TSM: "
-            .. (addon.Providers.Available("tsm") and "ready" or "unavailable"))
-    end
-    if not addon.lastCrateID then
-        addon.lastCrateID = addon.Inventory.CrateIDs()[1]
-    end
-    local crateID = addon.lastCrateID
-    local crate = crateID and addon.Crates[crateID]
-    if crate and not crate.unresolved and #crate.options > 0 then
-        local rows = addon:GetRows(crateID)
-        if UI.selectedCrateID ~= crateID then
-            UI.selectedCrateID, UI.optionIndex = crateID, 1
-            local _, bestIndex = addon.Pricing.LowestKnown(rows)
-            UI.optionIndex = bestIndex or 1
-        end
-        local selected = crate.options[UI.optionIndex]
-        local quote = rows[UI.optionIndex]
-        UI.crate:SetText(addon.Catalog.ItemName(crateID) .. " (cycle tracked crates)")
-        local price = quote.cost and (" - " .. addon.Money(quote.cost)) or ""
-        if quote.stale or quote.error then
-            price = price .. (quote.error and " (scan failed)" or " (stale)")
-        end
-        UI.option:SetText(string.format("Option %d/%d: %dx %s%s", UI.optionIndex, #crate.options,
-            selected.quantity, addon.Catalog.ItemName(selected.itemID), price))
-    else
-        UI.crate:SetText("Hover an identified crate to choose a bundle.")
-    end
-    local canShop = scanner.open and crate ~= nil and addon.Providers.ShoppingAvailable()
-    UI.search:SetEnabled(canShop)
-    UI.shop:SetEnabled(canShop)
-    UI.option:SetEnabled(crate ~= nil and not crate.unresolved and #crate.options > 0)
-    UI.bags:SetEnabled(scanner.open and not scanner.active)
-    UI.hovered:SetEnabled(scanner.open and not scanner.active and (addon.lastContractID ~= nil or crate ~= nil))
-    UI.all:SetEnabled(scanner.open and not scanner.active)
-    UI.stop:SetEnabled(scanner.active)
-    UI.tracked:SetEnabled(scanner.open and not scanner.active)
-    local totals = addon.Inventory.Totals()
-    local crateCount = 0
-    for _, count in pairs(totals.crates) do crateCount = crateCount + count end
-    UI.inventory:SetText(string.format("Remembered: %d crates, %d characters, %d visited banks.\nBags update on login; bank contents update when visited.",
-        crateCount, totals.characters, totals.banks))
     UI.UpdateSettings()
 end
 
 local TAB_ID = "WaylaidLedger"
 
-function UI.IsPanelVisible()
-    return (UI.frame and UI.frame:IsShown()) or (AuctionHouseFrame and AuctionHouseFrame:IsShown()
-        and UI.auctionHost and UI.auctionHost:IsShown()) or false
-end
-
 function UI.IsScanPanelVisible()
-    return (UI.frame and UI.frame:IsShown()) or (AuctionHouseFrame and AuctionHouseFrame:IsShown()
+    return (AuctionHouseFrame and AuctionHouseFrame:IsShown()
         and UI.auctionHost and UI.auctionHost:IsShown() and UI.auctionHosts.crates:IsShown()) or false
 end
 
@@ -203,7 +43,6 @@ function UI.SelectBrowserTab(kind)
         if category == kind then PanelTemplates_SelectTab(UI.browserTabs[category])
         else PanelTemplates_DeselectTab(UI.browserTabs[category]) end
     end
-    UI.frame:Hide()
     addon.BrowseUI.Refresh(addon.BrowseUI.views[kind])
     if kind == "crates" then addon:RequestAutoScan() else pausePanelScan() end
 end
@@ -243,13 +82,6 @@ end
 
 function UI.AuctionClosed()
     if UI.auctionHost then UI.auctionHost:Hide() end
-    UI.frame:Hide()
-end
-
-function UI.OpenControls()
-    UI.Update()
-    UI.frame:Show()
-    addon:RequestAutoScan()
 end
 
 function UI.Toggle()
@@ -263,16 +95,50 @@ function UI.Toggle()
             return
         end
     end
-    UI.frame:SetShown(not UI.frame:IsShown())
-    if UI.frame:IsShown() then addon:RequestAutoScan() end
+    UI.ToggleSettings()
+end
+
+local function label(parent, value, x, y, width, font)
+    local text = parent:CreateFontString(nil, "OVERLAY", font or "GameFontHighlightSmall")
+    text:SetPoint("TOPLEFT", x, y)
+    text:SetWidth(width)
+    text:SetJustifyH("LEFT")
+    text:SetText(value)
+    return text
+end
+
+local function hint(control, title, description)
+    control:HookScript("OnEnter", function(self)
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(title, 1, 0.82, 0)
+        GameTooltip:AddLine(description, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    control:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+end
+
+local function choice(parent, title, y, values, labels, get, set, description)
+    label(parent, title, 18, y - 6, 115)
+    local control = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
+    control:SetSize(155, 25)
+    control:SetPoint("TOPLEFT", 135, y)
+    control:SetupMenu(function(_, root)
+        for _, value in ipairs(values) do
+            root:CreateRadio(labels[value], function() return get() == value end, function() set(value) end)
+        end
+    end)
+    hint(control, title, description)
+    return control
 end
 
 function UI.UpdateSettings()
     if not UI.settingsChecks then return end
-    UI.refreshModeButton:SetText(addon.db.refreshAuctionator and "Refresh: Own + Auctionator" or "Refresh: Own scan")
-    UI.writSourceButton:SetText("Writ prices: " .. addon.db.writSource)
-    UI.crateSourceButton:SetText("Crate prices: " .. SOURCE_LABELS[addon.db.source])
-    UI.settingsTSM:SetText("TSM price: " .. addon.db.tsmKey)
+    UI.crateSourceButton:GenerateMenu()
+    UI.writSourceButton:GenerateMenu()
+    UI.settingsTSM:GenerateMenu()
+    UI.settingsTSM:SetEnabled(addon.db.source == "auto" or addon.db.source == "tsm"
+        or addon.db.writSource == "auto" or addon.db.writSource == "tsm")
     for feature, control in pairs(UI.settingsChecks) do
         local enabled
         if feature == "minimap" then enabled = not addon.db.minimap.hide
@@ -280,6 +146,13 @@ function UI.UpdateSettings()
         elseif feature == "details" then enabled = addon.db.tooltipDetails
         else enabled = addon.db.tracking[({tracking="enabled",banks="bank",alts="alts",autoscan="autoScan"})[feature]] end
         control:SetChecked(enabled and true or false)
+        local available = (feature ~= "banks" and feature ~= "alts" and feature ~= "autoscan") or addon.db.tracking.enabled
+        if feature == "autoscan" or feature == "scanopen" then
+            available = available and (addon.db.source == "auto" or addon.db.source == "own")
+        end
+        control:SetEnabled(available)
+        local tint = available and 1 or 0.5
+        control.label:SetTextColor(tint, tint, tint)
     end
 end
 
@@ -289,54 +162,49 @@ function UI.RegisterSettings()
     local frame = CreateFrame("Frame", nil, UIParent)
     frame:SetSize(620, 500)
     frame:Hide()
-    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    title:SetPoint("TOPLEFT", 18, -16)
-    title:SetText("Waylaid Ledger")
+    label(frame, "Waylaid Ledger", 18, -16, 570, "GameFontNormalLarge")
     UI.settings, UI.settingsChecks = frame, {}
-    for index, option in ipairs({
-        {"minimap", "Show minimap button"}, {"tracking", "Remember crate and material inventory"},
-        {"banks", "Include visited character and shared banks"}, {"alts", "Include remembered characters on this realm/faction"},
-        {"autoscan", "Auto refresh tracked prices in the Crates list"},
-        {"scanopen", "Auto-scan crate prices on auction open (Auto/Own)"}, {"details", "Always show detailed price tooltips"},
+    label(frame, "Prices", 18, -54, 270, "GameFontNormal")
+    UI.crateSourceButton = choice(frame, "Crate prices", -78, SOURCE_ORDER, SOURCE_LABELS,
+        function() return addon.db.source end, function(value) addon:SetSource(value) end,
+        "Auto uses own scans, then Auctionator and TSM estimates. A specific source uses only that source.")
+    UI.writSourceButton = choice(frame, "Writ prices", -112, {"auto", "own", "auctionator", "tsm", "off"}, SOURCE_LABELS,
+        function() return addon.db.writSource end, function(value) addon:SetWritSource(value) end,
+        "Choose prices for writ purchases and deliveries. Off hides writ prices.")
+    UI.settingsTSM = choice(frame, "TSM price", -146, {"DBMinBuyout", "DBMarket"},
+        {DBMinBuyout="Minimum buyout", DBMarket="Market value"},
+        function() return addon.db.tsmKey end, function(value) addon:SetTSMKey(value) end,
+        "Used by both lists when TSM supplies prices. Market value is a historical estimate.")
+    label(frame, "Display", 18, -202, 270, "GameFontNormal")
+    label(frame, "Automatic scans", 18, -306, 270, "GameFontNormal")
+    label(frame, "Inventory", 320, -54, 270, "GameFontNormal")
+    for _, option in ipairs({
+        {"minimap", "Show minimap button", 18, -226, "Left-click opens the auction list at the AH, or settings elsewhere. Right-click always opens settings."},
+        {"details", "Always show tooltip details", 18, -260, "Show price sources and ages. With this off, hold Shift for details."},
+        {"autoscan", "Refresh tracked crate prices", 18, -330, "Refresh missing or stale tracked crate materials while the Crates tab is visible at the AH. Requires inventory tracking and Auto or Own scans."},
+        {"scanopen", "Scan on auction-house open", 18, -370, "Refresh missing or stale crate materials after opening the AH, even without the Crates tab visible. Uses Auto or Own scans."},
+        {"tracking", "Remember inventory", 320, -78, "Remember crate, writ and delivery-item counts for bag and tracked scans. Prices do not subtract owned inventory."},
+        {"banks", "Include visited banks", 320, -112, "Include last-seen character and shared-bank contents in tracked scans."},
+        {"alts", "Include remembered characters", 320, -146, "Include last-seen inventory from other characters on this realm and faction."},
     }) do
         local feature = option[1]
         local control = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
-        control:SetPoint("TOPLEFT", 15, -48 - (index - 1) * 30)
-        local label = control:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        label:SetPoint("LEFT", control, "RIGHT", 3, 0)
-        label:SetText(option[2])
+        control:SetPoint("TOPLEFT", option[3] - 3, option[4])
+        control:SetMotionScriptsWhileDisabled(true)
+        control.label = label(control, option[2], 32, -8, 232)
         control:SetScript("OnClick", function(self) addon:SetFeature(feature, self:GetChecked() and true or false) end)
+        hint(control, option[2], option[5])
         UI.settingsChecks[feature] = control
     end
-    UI.crateSourceButton = button(frame, "Crate prices", 18, -272, 220, function()
-        for index, source in ipairs(SOURCE_ORDER) do
-            if source == addon.db.source then addon:SetSource(SOURCE_ORDER[index % #SOURCE_ORDER + 1]); break end
-        end
-        UI.UpdateSettings()
-    end)
-    UI.writSourceButton = button(frame, "Writ prices", 250, -272, 220, function()
-        local sources = { auto = "own", own = "auctionator", auctionator = "tsm", tsm = "off", off = "auto" }
-        addon:SetWritSource(sources[addon.db.writSource])
-    end)
-    UI.settingsTSM = button(frame, "TSM price", 18, -306, 220, function()
-        addon:SetTSMKey(addon.db.tsmKey == "DBMarket" and "DBMinBuyout" or "DBMarket")
-        UI.UpdateSettings()
-    end)
-    button(frame, "Scan controls", 250, -306, 220, function() HideUIPanel(SettingsPanel); UI.OpenControls() end)
-    button(frame, "Copy diagnostics", 18, -340, 220, function() UI.ShowReport(addon:Report()) end)
-    button(frame, "Clear remembered inventory", 250, -340, 220, function()
+    label(frame, "Visit each character and bank to update its last-seen inventory.", 320, -190, 270, "GameFontDisableSmall")
+    label(frame, "Tools", 320, -262, 270, "GameFontNormal")
+    button(frame, "Inventory snapshots", 320, -290, 270, function() UI.ShowReport(addon.Inventory.Report()) end)
+    button(frame, "Copy diagnostics", 320, -324, 270, function() UI.ShowReport(addon:Report()) end)
+    button(frame, "Clear remembered inventory", 320, -358, 270, function()
         addon.db.inventory = { characters = {}, sharedBanks = {} }
         addon.Inventory.CaptureBags(); addon.Inventory.CaptureBank(); UI.Update()
     end)
-    UI.refreshModeButton = button(frame, "Refresh mode", 18, -374, 220, function()
-        addon:SetFeature("auctionatorfollowup", not addon.db.refreshAuctionator)
-    end)
-    button(frame, "TSM group export", 250, -374, 220, function() addon:ExportTSM() end)
-    local note = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    note:SetPoint("TOPLEFT", 18, -420)
-    note:SetPoint("TOPRIGHT", -18, -420)
-    note:SetJustifyH("LEFT")
-    note:SetText("Offline inventory is a last-seen snapshot. Log into each character and visit their bank once to update it.")
+    label(frame, "Refresh and Stop are in the auction list. Advanced tools: /wll help", 18, -438, 570, "GameFontDisableSmall")
     frame:SetScript("OnShow", UI.UpdateSettings)
     UI.settingsCategory = Settings.RegisterCanvasLayoutCategory(frame, "Waylaid Ledger")
     Settings.RegisterAddOnCategory(UI.settingsCategory)

@@ -25,9 +25,13 @@ function BulkScan.Install(scanner)
         scanner:Notify()
         if addon.Tooltip then addon.Tooltip.Refresh() end
     end
+    local function updateStatus()
+        if addon.BrowseUI then addon.BrowseUI.UpdateScanStatus() end
+    end
     local function cancel()
         engine.job = nil
         frame:SetScript("OnUpdate", nil)
+        updateStatus()
     end
     local function finish(message)
         local job = engine.job
@@ -77,6 +81,7 @@ function BulkScan.Install(scanner)
         job.progressAt = now
         if job.index < job.count then
             if job.own then scanner.message = string.format("Reading full scan: %d / %d auctions", job.index, job.count) end
+            updateStatus()
             return
         end
         -- Resolve names only after indexing the entire market, so row order does
@@ -100,6 +105,7 @@ function BulkScan.Install(scanner)
         engine.job = { own = own, market = addon:GetMarket(), startedAt = scanner.runtime.now(),
             at = scanner.runtime.wallTime(), prices = {}, seen = {}, index = 0 }
         frame:SetScript("OnUpdate", process)
+        updateStatus()
     end
     function scanner:Start(itemIDs, detailed)
         if detailed then
@@ -154,6 +160,7 @@ function BulkScan.Install(scanner)
             end
             job.received, job.count, job.at = true, count, scanner.runtime.wallTime()
             job.progressAt = scanner.runtime.now()
+            updateStatus()
         elseif event == "AUCTION_HOUSE_CLOSED" then
             if engine.job and engine.job.own then scanner:Stop("Auction house closed; completed prices were kept.")
             else cancel() end

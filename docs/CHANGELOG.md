@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.2
+
+- Remove the legacy standalone scan/shopping popup; use auction lists and official settings.
+- Minimap left-click opens the auction list at the AH and settings elsewhere; right-click opens settings.
+- Group settings by purpose, with matching native price-source dropdowns and explanatory tooltips.
+- Dim dependent controls without discarding saved preferences.
+- Remove inactive Auctionator follow-up and advanced TSM export buttons from the settings page.
+- Show full/shared snapshot waiting states and auction-count progress instead of `1/0` from an empty item queue.
+- Keep Stop available for shared snapshot processing; refresh status without rebuilding list rows.
+- Correct Refresh's tooltip to describe the full-house snapshot; retain advanced slash commands.
+- 151 Lua 5.1 regression tests.
+
 ## 0.7.1
 
 - Restore the complete 30-crate / 150-writ fallback catalog after discovery migration.

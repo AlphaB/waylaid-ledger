@@ -1,5 +1,5 @@
 local addonName, addon = ...
-addon.version = "0.7.1"
+addon.version = "0.7.2"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -221,7 +221,10 @@ function addon:Shop(allOptions, optionIndex)
         self:Print("Auctionator's shopping API is unavailable. Install/enable a compatible Auctionator release.")
         return false
     end
-    optionIndex = optionIndex or self.UI.optionIndex or 1
+    if not optionIndex then
+        local _, best = self.Pricing.LowestKnown(self:GetRows(self.lastCrateID))
+        optionIndex = best or 1
+    end
     if not allOptions and (optionIndex ~= math.floor(optionIndex) or not crate.options[optionIndex]) then
         self:Print("Choose an option between 1 and " .. #crate.options .. ".")
         return false
@@ -472,9 +475,7 @@ function addon:Command(text)
         else
             self:Shop(false, tonumber(rest))
         end
-    elseif command == "controls" then
-        self.UI.OpenControls()
-    elseif command == "settings" then
+    elseif command == "settings" or command == "controls" then
         self.UI.ToggleSettings()
     elseif command == "inventory" then
         self.UI.ShowReport(self.Inventory.Report())
@@ -518,7 +519,7 @@ function addon:Command(text)
             self:Print("Use a profile name of 1-40 letters, digits, underscores or hyphens.")
         end
     else
-        self:Print("/wll - window | scan bags/hovered/crates/writs/all | source auto/auctionator/tsm/own | tsmkey DBMinBuyout/DBMarket")
+        self:Print("/wll - auction list/settings | scan bags/hovered/crates/writs/all | source auto/auctionator/tsm/own | tsmkey DBMinBuyout/DBMarket")
         self:Print("search | shop [option number] | stop | report | debug | inspect [item ID] | market <name> | clear")
         self:Print("writsource auto/own/auctionator/tsm/off | refresh [crates/writs/all] | auctionscan [scope] | tsmexport [scope] | settings | controls | inventory | minimap/tracking/banks/alts/autoscan/scanopen/details on/off | scan tracked")
     end
@@ -587,7 +588,6 @@ local function initialize()
             addon:UpdateScheduler()
         end,
     })
-    addon.UI.Create()
     addon.UI.RegisterSettings()
     addon.MinimapButton.Create()
     addon.Inventory.CaptureBags()
@@ -628,7 +628,7 @@ local function initialize()
     SlashCmdList.WAYLAIDLEDGER = function(text) addon:Command(text) end
     addon:Log("Loaded on interface " .. tostring(select(4, GetBuildInfo())))
     addon.initialized = true
-    addon:Print("Loaded. /wll opens scans, price sources, and Auctionator shopping.")
+    addon:Print("Loaded. /wll opens the auction list at the AH, or settings elsewhere.")
 end
 
 frame:RegisterEvent("ADDON_LOADED")

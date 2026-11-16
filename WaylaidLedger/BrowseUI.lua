@@ -99,6 +99,37 @@ function Browse.Layout(view)
     view.scroll:ForEachFrame(function(row) layoutRow(row, width) end)
 end
 
+function Browse.ScanStatus()
+    local scanner = addon.scanner
+    local job = addon.BulkScan.engine and addon.BulkScan.engine.job
+    if job then
+        if job.received and job.count > 0 then
+            return string.format("Auctions %d/%d", job.index, job.count), true
+        end
+        if job.received then return "Finishing full scan", true end
+        return job.own and "Full scan: waiting" or "Shared scan: waiting", true
+    end
+    if scanner.active then
+        local count = #(scanner.queue or {})
+        if count > 0 and not scanner.bulkMode then
+            return string.format("Items %d/%d", math.min(scanner.index or 1, count), count), true
+        end
+        return "Full scan: waiting", true
+    end
+end
+
+function Browse.UpdateStatus(view)
+    local status, busy = Browse.ScanStatus()
+    view.summary:SetText(status or string.format("%d priced / %d items", view.priced or 0, #(view.visibleEntries or {})))
+    view.refreshButton:SetText(busy and "Stop" or "Refresh")
+end
+
+function Browse.UpdateScanStatus()
+    for _, view in pairs(Browse.views) do
+        if view.host:IsVisible() then Browse.UpdateStatus(view) end
+    end
+end
+
 function Browse.Render(view)
     local query = (view.query or ""):lower()
     local visible, priced = {}, 0
@@ -112,10 +143,8 @@ function Browse.Render(view)
     end
     view.visibleEntries = visible
     view.scroll:SetDataProvider(CreateDataProvider(visible), true)
-    if addon.scanner.active then
-        view.summary:SetText(string.format("Scanning %d/%d", addon.scanner.index, #addon.scanner.queue))
-    else view.summary:SetText(string.format("%d priced / %d items", priced, #visible)) end
-    view.refreshButton:SetText(addon.scanner.active and "Stop" or "Refresh")
+    view.priced = priced
+    Browse.UpdateStatus(view)
     view.empty:SetShown(#visible == 0)
     Browse.Layout(view)
 end
@@ -155,15 +184,21 @@ function Browse.Create(host, kind)
     local refresh = CreateFrame("Button", nil, host, "UIPanelButtonTemplate")
     refresh:SetSize(75, 22); refresh:SetPoint("TOPRIGHT", -100, -8); refresh:SetText("Refresh")
     refresh:SetScript("OnClick", function()
-        if addon.scanner.active then addon:StopScan() else addon:RefreshList(view) end
+        local _, busy = Browse.ScanStatus()
+        if busy then addon:StopScan() else addon:RefreshList(view) end
     end)
     refresh:SetScript("OnEnter", function(self)
         if not GameTooltip then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:AddLine("Refresh list", 1, 0.82, 0)
-        GameTooltip:AddLine("Scan the filtered list, its purchase items and all delivery goods.", 1, 1, 1, true)
-        GameTooltip:AddLine(addon.db.refreshAuctionator and "Then open a limited Auctionator Shopping search when available."
-            or "Own scanner only. Auctionator follow-up is configurable in Settings.", 0.7, 0.7, 0.7, true)
+        local _, busy = Browse.ScanStatus()
+        GameTooltip:AddLine(busy and "Stop scan" or "Refresh prices", 1, 0.82, 0)
+        if busy then
+            GameTooltip:AddLine("Stop Waylaid's scan or snapshot processing; keep saved prices. Other addons' scans continue.", 1, 1, 1, true)
+        elseif addon.BulkScan.Supported(addon.scanner.api) then
+            GameTooltip:AddLine("Request one full auction-house snapshot to update both lists. The search filter only changes the displayed rows.", 1, 1, 1, true)
+        else
+            GameTooltip:AddLine("Scan purchases and delivery goods for the filtered list.", 1, 1, 1, true)
+        end
         GameTooltip:Show()
     end)
     refresh:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)

@@ -20,7 +20,7 @@ local function reset()
     addon.db.source, addon.db.tsmKey, addon.db.profile = "auto", "DBMinBuyout", "default"
     local market = addon:GetMarket()
     market.items, market.failures = {}, {}
-    addon.lastCrateID, addon.lastContractID, addon.UI.selectedCrateID, addon.UI.optionIndex = nil, nil, nil, nil
+    addon.lastCrateID, addon.lastContractID = nil, nil
     addon.scanner:SetOpen(true)
 end
 
@@ -278,15 +278,11 @@ test("estimated tooltip winners use green and plain prices",function()
     equal(tooltip.lines[3][3],0.25);equal(tooltip.lines[3][4],1)
     for _,line in ipairs(tooltip.lines) do assert(not line[1]:match("^Cheapest:")) end
 end)
-test("UI selects the lowest known cost, cycles choices and exposes source controls",function()
-    reset();fakeAuctionator({[2770]=1,[2771]=1})
-    addon:GetMarket().items[2771]=fresh({{quantity=20,unitPrice=10}})
-    addon.lastCrateID=248683;addon.UI.Update();equal(addon.UI.optionIndex,1)
-    addon.UI.option.scripts.OnClick();equal(addon.UI.optionIndex,2)
-    addon.UI.source.scripts.OnClick();equal(addon.db.source,"auctionator")
-    addon.UI.source.scripts.OnClick();equal(addon.db.source,"tsm")
-    addon.UI.source.scripts.OnClick();equal(addon.db.source,"own")
-    addon.UI.source.scripts.OnClick();equal(addon.db.source,"auto")
+test("legacy shop command defaults to the current lowest known option",function()
+    reset();local calls=fakeAuctionator({[2770]=10,[2771]=1})
+    addon.lastCrateID=248683;addon.scanner:SetOpen(true)
+    equal(addon:Shop(false),true)
+    assert(calls.searches[1][1].searchString:find("Tin",1,true))
 end)
 test("diagnostics include provider policy, per-row provenance, and API errors",function()
     reset();fakeAuctionator({[2770]=5});addon.lastCrateID=248683

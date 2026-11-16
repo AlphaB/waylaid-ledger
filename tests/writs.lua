@@ -104,6 +104,6 @@ test("writ source setting persists, rejects invalid sources and is visible in se
     local oldSource=addon.db.writSource
     addon:Command("writsource tsm");equal(addon.db.writSource,"tsm")
     addon:Command("writsource invalid");equal(addon.db.writSource,"tsm")
-    addon.UI.ToggleSettings();equal(addon.UI.writSourceButton.text,"Writ prices: tsm")
+    addon.UI.ToggleSettings();equal(addon.UI.writSourceButton.text,"TSM")
     addon.UI.settings:Hide();addon:SetWritSource(oldSource)
 end)

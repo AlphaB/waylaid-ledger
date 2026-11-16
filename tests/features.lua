@@ -4,7 +4,7 @@ local Inventory = addon.Inventory
 local function inventoryFixture(fn)
     local old = {guid=UnitGUID,name=UnitName,container=C_Container,bank=C_Bank,enums=Enum.BankType,
         inventory=addon.db.inventory,tracking=addon.db.tracking,source=addon.db.source,now=GetTime,
-        profile=addon.db.profile}
+        profile=addon.db.profile,visible=addon.UI.IsScanPanelVisible}
     local f = {guid="Player-Main",name="Main",bags={},capacities={},charTabs={6},sharedTabs={15}}
     UnitGUID=function() return f.guid end;UnitName=function() return f.name end
     GetTime=function() return 10 end
@@ -18,12 +18,13 @@ local function inventoryFixture(fn)
     addon.db.inventory={characters={},sharedBanks={}}
     addon.db.tracking={enabled=true,bank=true,alts=true,autoScan=true}
     addon.db.profile="default";Inventory.bankOpen=false
+    addon.UI.IsScanPanelVisible=function() return true end
     local ok,err=pcall(fn,f)
     addon.scanner:Stop();addon.autoDue=nil;addon.autoPaused=false;addon.scanAutomatic=false
-    addon.UI.frame:Hide();Inventory.bankOpen=false
+    Inventory.bankOpen=false
     UnitGUID,UnitName,C_Container,C_Bank,Enum.BankType=old.guid,old.name,old.container,old.bank,old.enums
     addon.db.inventory,addon.db.tracking,addon.db.source,addon.db.profile=old.inventory,old.tracking,old.source,old.profile
-    GetTime=old.now;addon:UpdateScheduler()
+    GetTime=old.now;addon.UI.IsScanPanelVisible=old.visible;addon:UpdateScheduler()
     assert(ok,err)
 end
 
@@ -73,7 +74,7 @@ end)
 test("automatic refresh scans only missing or failed tracked materials",function()
     inventoryFixture(function(f)
         f.bags[0]={{id=248683,count=1}};Inventory.CaptureBags()
-        addon.db.source="own";addon.UI.frame:Show();addon.scanner:SetOpen(true)
+        addon.db.source="own";addon.scanner:SetOpen(true)
         addon.autoPaused=false;addon.lastExternalAt=nil
         local market=addon:GetMarket();local oldItems,oldFailures=market.items,market.failures
         market.items={[2770]={kind="commodity",offers={},scannedAt=time()},[2771]={kind="commodity",offers={},scannedAt=time()}}
@@ -87,7 +88,7 @@ test("automatic refresh scans only missing or failed tracked materials",function
 end)
 test("auto refresh is opt-out and never queries away from AH or in forced provider mode",function()
     inventoryFixture(function(f)
-        f.bags[0]={{id=248683,count=1}};Inventory.CaptureBags();addon.UI.frame:Show()
+        f.bags[0]={{id=248683,count=1}};Inventory.CaptureBags()
         addon.scanner:SetOpen(false);addon:RequestAutoScan();equal(addon.autoDue,nil)
         addon.scanner:SetOpen(true);addon.db.source="auctionator";addon:RequestAutoScan();equal(addon.autoDue,nil)
         addon.db.source="own";addon.autoPaused=false;addon:RequestAutoScan();assert(addon.autoDue)
@@ -146,9 +147,8 @@ test("one outer auction tab contains native internal category tabs without chang
         equal(#AuctionHouseFrame.Tabs,3);equal(#lib.internalState.Tabs,1)
         equal(addon.UI.browserTabs.writs.text,"Craftsman's Writs")
         equal(lib:DoesIDExist("WaylaidLedger"),true);equal(lib:DoesIDExist("WaylaidLedgerWrits"),false)
-        equal(addon.UI.panel:GetParent(),addon.UI.frame)
         addon.UI.Toggle();equal(addon.UI.auctionHosts.crates:GetParent(),addon.UI.auctionHost)
-        equal(addon.UI.auctionHost:IsShown(),true);equal(addon.UI.frame:IsShown(),false)
+        equal(addon.UI.auctionHost:IsShown(),true);equal(addon.UI.frame,nil)
         local writHost=addon.UI.auctionHosts.writs
         addon.UI.browserTabs.writs.scripts.OnClick()
         equal(writHost:IsShown(),true);equal(addon.UI.auctionHost:IsShown(),true)
@@ -160,7 +160,7 @@ test("one outer auction tab contains native internal category tabs without chang
         addon.UI.SelectBrowserTab("crates");addon.UI.SelectBrowserTab("writs")
         equal(writView.search:GetText(),"Crafted Solid Shot");equal(#writView.visibleEntries,1)
         equal(#lib.internalState.Tabs,1)
-        addon.UI.OpenControls();addon.scanAutomatic=true
+        addon.UI.SelectBrowserTab("crates");addon.scanAutomatic=true
         addon.scanMarket=addon:GetMarket();addon.scanner:Start({2770});assert(addon.scanner.active)
         addon.UI.SelectBrowserTab("writs")
         equal(addon.scanner.active,false);equal(addon.autoDue,nil)
@@ -172,7 +172,7 @@ test("one outer auction tab contains native internal category tabs without chang
         lib:SetSelected("OtherAddonTest");equal(addon.UI.auctionHost:IsShown(),false);equal(other:IsShown(),true)
         addon.UI.Toggle();equal(addon.UI.auctionHost:IsShown(),true);equal(other:IsShown(),false)
         addon.UI.Toggle();equal(addon.UI.auctionHost:IsShown(),false)
-        addon.UI.AuctionClosed();equal(addon.UI.panel:GetParent(),addon.UI.frame)
+        addon.UI.AuctionClosed();equal(addon.UI.auctionHost:IsShown(),false)
     end)
     lib.internalState=oldState
     AuctionHouseFrame,AuctionHouseFrameDisplayMode=oldAH,oldMode
@@ -192,6 +192,9 @@ test("minimap visibility, settings click, dragging and saved angle work",functio
     button.scripts.OnDragStart(button);button.scripts.OnUpdate()
     equal(addon.db.minimap.angle,0);equal(button.point[4],78);equal(button.point[5],0)
     button.scripts.OnDragStop(button);equal(button.scripts.OnUpdate,nil)
+    addon.scanner:SetOpen(false)
+    button.scripts.OnClick(button,"LeftButton");assert(addon.UI.settings:IsShown());equal(addon.UI.frame,nil)
+    addon.UI.settings:Hide()
     button.scripts.OnClick(button,"RightButton");assert(addon.UI.settings:IsShown())
     addon.UI.settings:Hide();button:Hide();addon.MinimapButton.frame=nil
     Minimap,GetCursorPosition=oldMap,oldCursor

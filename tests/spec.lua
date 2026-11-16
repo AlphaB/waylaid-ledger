@@ -249,6 +249,19 @@ function methods:SetColorTexture(...) self.color={...} end
 function methods:SetChecked(value) self.checked=value end
 function methods:GetChecked() return self.checked end
 setmetatable(methods,{__index=function() return function() end end})
+function methods:HookScript(key, callback)
+    local previous=self.scripts[key]
+    self.scripts[key]=function(...) if previous then previous(...) end;callback(...) end
+end
+function methods:SetupMenu(generator) self.menuGenerator=generator;self:GenerateMenu() end
+function methods:GenerateMenu()
+    self.choices={}
+    local control=self
+    self.menuGenerator(self,{CreateRadio=function(_,title,selected,choose)
+        control.choices[#control.choices+1]={title=title,selected=selected,choose=choose}
+        if selected() then control.text=title end
+    end})
+end
 function CreateFrame(kind,name,parent,template)
     local f=setmetatable({scripts={},events={},shown=true,lines={},parent=parent,template=template}, {__index=methods})
     f.TitleText=f:CreateFontString()
@@ -383,6 +396,7 @@ assert(loadfile(PROJECT_ROOT .. "/tests/shopping.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/auction_open.lua"))(addon, test, equal, host)
 assert(loadfile(PROJECT_ROOT .. "/tests/tooltip_age.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/settings.lua"))(addon, test, equal)
+assert(loadfile(PROJECT_ROOT .. "/tests/scan_status.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/expanded_scan.lua"))(addon, test, equal, host)
 assert(loadfile(PROJECT_ROOT .. "/tests/upstream_contracts.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/discovery.lua"))(test, equal)
