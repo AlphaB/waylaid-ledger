@@ -81,3 +81,89 @@ test("external scan watchdog is logged as unconfirmed completion with elapsed ti
         assert(message:find("lastProgress=unknown%", 1, true))
     end)
 end)
+
+test("Shopping lifecycle suspends work independently of full-scan adapter availability", function()
+    fixture(function(f)
+        local saved = Auctionator
+        local listeners, dbUpdate, retries, updates = {}, nil, 0, 0
+        local a = {
+            L = addon.L,
+            Discovery = {
+                Retry = function()
+                    retries = retries + 1
+                end,
+            },
+            UI = {
+                Update = function()
+                    updates = updates + 1
+                end,
+            },
+        }
+        local suspended
+        a.Discovery.SetSuspended = function(value)
+            suspended = value
+        end
+        Auctionator = {
+            API = {
+                v1 = {
+                    RegisterForDBUpdate = function(_, callback)
+                        dbUpdate = callback
+                    end,
+                },
+            },
+            Shopping = {
+                Tab = {
+                    Events = {
+                        SearchStart = "start",
+                        SearchIncrementalUpdate = "progress",
+                        SearchEnd = "end",
+                    },
+                },
+            },
+            EventBus = {
+                Register = function(_, receiver, events)
+                    for _, event in ipairs(events) do
+                        listeners[event] = receiver
+                    end
+                end,
+            },
+        }
+        local ok, err = pcall(function()
+            assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/Providers.lua"))("WaylaidLedger", a)
+            a.Providers.Install()
+            listeners.start:ReceiveEvent("start")
+            equal(suspended, true)
+            local cache = a.Providers.cache
+            for index = 1, 200 do
+                f.now = index
+                dbUpdate()
+                listeners.progress:ReceiveEvent("progress", { index })
+                a.Providers.frame.scripts.OnUpdate()
+            end
+            equal(a.Providers.cache, cache)
+            equal(updates, 0)
+            equal(retries, 0)
+            assert(a.Providers.scan)
+            -- Full completion must not resume a concurrent Shopping search.
+            a.Providers.BeginExternalScan("replicate")
+            dbUpdate()
+            assert(a.Providers.scan.owners.shopping)
+            equal(suspended, true)
+            listeners["end"]:ReceiveEvent("end", {}) -- also used for cancelled searches
+            equal(suspended, false)
+            equal(a.Providers.scan, nil)
+            equal(retries, 1)
+            f.now = f.now + 0.3
+            a.Providers.frame.scripts.OnUpdate()
+            equal(updates, 1)
+            equal(a.Providers.frame.scripts.OnUpdate, nil)
+            listeners.start:ReceiveEvent("start")
+            f.now = f.now + 121
+            a.Providers.frame.scripts.OnUpdate()
+            equal(a.Providers.scan, nil)
+            equal(suspended, false)
+        end)
+        Auctionator = saved
+        assert(ok, err)
+    end)
+end)

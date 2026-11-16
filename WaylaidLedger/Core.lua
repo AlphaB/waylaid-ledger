@@ -1,6 +1,6 @@
 local addonName, addon = ...
 local L = addon.L
-addon.version = "0.9.2"
+addon.version = "0.9.3"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -681,6 +681,10 @@ function addon:Report()
         "Auctionator scan: " .. tostring(self.Providers.scan ~= nil) .. "; progress events: " .. tostring(
             self.Providers.boundScanBus ~= nil
         ) .. "; percent: " .. tostring(self.Providers.scan and self.Providers.scan.percent),
+        "Auctionator Shopping events: "
+            .. tostring(self.Providers.boundShoppingBus ~= nil)
+            .. "; search active: "
+            .. tostring(self.Providers.scan ~= nil and self.Providers.scan.owners.shopping == true),
         "Scan scope: " .. tostring(self.scanContext and self.scanContext.category) .. "; reason: " .. tostring(
             self.scanContext and self.scanContext.reason
         ),

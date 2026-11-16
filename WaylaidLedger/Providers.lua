@@ -131,11 +131,14 @@ function Providers.ScheduleRefresh()
     wake()
 end
 
-function Providers.BeginExternalScan(origin)
+function Providers.BeginExternalScan(origin, kind)
+    kind = kind or "full"
     if Providers.scan then
+        Providers.scan.owners[kind] = true
+        Providers.scan.updatedAt = GetTime()
         return
     end
-    Providers.scan = { updatedAt = GetTime(), startedAt = GetTime(), ignoredEvents = 0 }
+    Providers.scan = { updatedAt = GetTime(), startedAt = GetTime(), ignoredEvents = 0, owners = { [kind] = true } }
     if addon.traceState then
         addon.traceState["auctionator.progress"] = nil
     end
@@ -165,11 +168,26 @@ function Providers.BeginExternalScan(origin)
     wake()
 end
 
-function Providers.EndExternalScan(reason)
+function Providers.EndExternalScan(reason, kind)
     if not Providers.scan then
         return
     end
     local scan = Providers.scan
+    if kind then
+        if not scan.owners[kind] then
+            return
+        end
+        scan.owners[kind] = nil
+        if next(scan.owners) then
+            if kind == "full" then
+                scan.percent = nil
+            end
+            if addon.BrowseUI then
+                addon.BrowseUI.UpdateScanStatus()
+            end
+            return
+        end
+    end
     trace(
         "auctionator.end",
         0,
@@ -220,7 +238,49 @@ processUpdates = function()
     end
 end
 
+local function installShoppingEvents()
+    local bus = type(Auctionator) == "table" and Auctionator.EventBus
+    local shopping = type(Auctionator) == "table" and Auctionator.Shopping
+    local tab = type(shopping) == "table" and shopping.Tab
+    local events = type(tab) == "table" and tab.Events
+    if
+        type(bus) ~= "table"
+        or type(bus.Register) ~= "function"
+        or type(events) ~= "table"
+        or Providers.boundShoppingBus == bus
+    then
+        return
+    end
+    for _, key in ipairs({ "SearchStart", "SearchIncrementalUpdate", "SearchEnd" }) do
+        if type(events[key]) ~= "string" then
+            return
+        end
+    end
+    local listener = {
+        ReceiveEvent = function(_, event)
+            -- Incremental/end events carry potentially large result tables.
+            -- Observe only the lifecycle; never copy or retain their payloads.
+            if event == events.SearchStart then
+                Providers.BeginExternalScan("Auctionator SearchStart", "shopping")
+            elseif event == events.SearchIncrementalUpdate and Providers.scan then
+                Providers.scan.updatedAt = GetTime()
+            elseif event == events.SearchEnd then
+                Providers.EndExternalScan("SearchEnd", "shopping")
+            end
+        end,
+    }
+    local ok, errorMessage =
+        pcall(bus.Register, bus, listener, { events.SearchStart, events.SearchIncrementalUpdate, events.SearchEnd })
+    if ok then
+        Providers.boundShoppingBus = bus
+        trace("provider.adapter", 0, "Auctionator Shopping lifecycle events registered")
+    else
+        Providers.errors.auctionator = "Shopping events: " .. tostring(errorMessage)
+    end
+end
+
 function Providers.Install()
+    installShoppingEvents()
     local api = auctionatorAPI()
     if api and Providers.boundAPI ~= api and type(api.RegisterForDBUpdate) == "function" then
         local ok, errorMessage = pcall(api.RegisterForDBUpdate, CALLER, function()
@@ -232,10 +292,12 @@ function Providers.Install()
             )
             if not Providers.scan then
                 Providers.Invalidate()
+            else
+                Providers.scan.updatedAt = GetTime()
             end
             -- Older Auctionator builds expose only the public DB callback.
             if not Providers.boundScanBus then
-                Providers.EndExternalScan("database callback (no scan-event adapter)")
+                Providers.EndExternalScan("database callback (no scan-event adapter)", "full")
             end
             Providers.ScheduleRefresh()
         end)
@@ -270,7 +332,7 @@ function Providers.Install()
         ReceiveEvent = function(_, event, progress)
             if event == events.ScanStart then
                 Providers.BeginExternalScan("Auctionator ScanStart")
-            elseif event == events.ScanProgress and Providers.scan then
+            elseif event == events.ScanProgress and Providers.scan and Providers.scan.owners.full then
                 Providers.scan.updatedAt = GetTime()
                 if type(progress) == "number" and progress == progress then
                     local percent = math.floor(math.max(0, math.min(1, progress)) * 100)
@@ -290,7 +352,7 @@ function Providers.Install()
                     end
                 end
             elseif event == events.ScanComplete or event == events.ScanFailed then
-                Providers.EndExternalScan(event == events.ScanComplete and "ScanComplete" or "ScanFailed")
+                Providers.EndExternalScan(event == events.ScanComplete and "ScanComplete" or "ScanFailed", "full")
             end
         end,
     }

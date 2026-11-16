@@ -591,3 +591,58 @@ test("item hover does not rebuild the native list and recycle the button under t
         addon.BrowseUI.views.crates = nil
     end)
 end)
+
+test("price refresh keeps row objects until sorting or filtering actually changes the list", function()
+    fixture(function(f)
+        f.price(264050, 100)
+        f.price(4245, 400)
+        f.price(264037, 40)
+        f.price(8069, 3)
+        local host = CreateFrame("Frame", nil, UIParent)
+        host:SetSize(1000, 550)
+        local view = addon.BrowseUI.Create(host, "writs")
+        addon.BrowseUI.Refresh(view)
+        local row, entry, provider = view.scroll.rows[1], view.visibleEntries[1], view.scroll.provider
+        local calls, original = 0, view.scroll.SetDataProvider
+        view.scroll.SetDataProvider = function(self, ...)
+            calls = calls + 1
+            return original(self, ...)
+        end
+        for _ = 1, 30 do
+            addon.BrowseUI.Refresh(view)
+        end
+        equal(calls, 0)
+        equal(view.scroll.provider, provider)
+        equal(row.entry, entry)
+        f.price(4245, 410)
+        addon.BrowseUI.Refresh(view)
+        equal(calls, 0)
+        equal(entry.total, 510)
+        equal(row.total.text, addon.Money(510))
+        equal(view.visibleEntries[1], entry)
+        -- Fresh quote details must also be available after scrolling offscreen.
+        view.sortKey = "name"
+        addon.BrowseUI.Render(view)
+        local last = view.visibleEntries[#view.visibleEntries]
+        f.price(last.itemID, 123)
+        local before = calls
+        addon.BrowseUI.Refresh(view)
+        equal(calls, before)
+        equal(last.purchase, 123)
+        view.scroll:ScrollToElementDataIndex(#view.visibleEntries, ScrollBoxConstants.AlignNearest, 0, true)
+        equal(view.scroll:FindFrame(last).purchase.text, addon.Money(123))
+        -- Return to price sorting, then make the second basket cheaper.
+        view.sortKey = "unitCost"
+        addon.BrowseUI.Render(view)
+        f.price(4245, 900)
+        addon.BrowseUI.Refresh(view)
+        equal(view.visibleEntries[1].itemID, 264037)
+        assert(calls > before)
+        view.query = "does not exist"
+        addon.BrowseUI.Render(view)
+        equal(#view.visibleEntries, 0)
+        equal(view.empty:IsShown(), true)
+        host:Hide()
+        addon.BrowseUI.views.writs = nil
+    end)
+end)
