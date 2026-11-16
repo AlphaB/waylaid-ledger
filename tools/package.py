@@ -1,13 +1,20 @@
 """Build a clean install ZIP with exactly one addon folder."""
 
+import argparse
 import pathlib
 import re
+import subprocess
+import sys
 import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
-def package():
+def package(navigation_ui=None):
+    command = [sys.executable, str(ROOT / "tests/run.py")]
+    if navigation_ui:
+        command.extend(["--navigation-ui", str(navigation_ui), "--forever-navigation", str(navigation_ui)])
+    subprocess.run(command, cwd=ROOT, check=True)
     addon = ROOT / "WaylaidLedger"
     toc = (addon / "WaylaidLedger.toc").read_text()
     assert toc == (addon / "WaylaidLedger_Camelot.toc").read_text()
@@ -33,4 +40,7 @@ def package():
 
 
 if __name__ == "__main__":
-    package()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--navigation-ui", type=pathlib.Path)
+    args = parser.parse_args()
+    package(args.navigation_ui)

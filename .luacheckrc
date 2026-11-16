@@ -9,7 +9,7 @@ exclude_files = { "WaylaidLedger/Libs/**" }
 -- in production so accidental global assignments still fail lint.
 local wowGlobals = {
     "AuctionHouseFrame", "AuctionHouseFrameDisplayMode", "AuctionHouseFrameMixin", "AuctionHouseSearchContext", "Auctionator",
-    "C_AuctionHouse", "C_Bank", "C_Container", "C_Item", "C_TooltipInfo",
+    "C_Timer", "C_AuctionHouse", "C_Bank", "C_Container", "C_Item", "C_TooltipInfo",
     "ChatFontNormal", "CreateDataProvider", "CreateFrame", "CreateScrollBoxListLinearView",
     "DEFAULT_CHAT_FRAME", "Enum", "GameTooltip", "GetBuildInfo", "GetCurrentRegion",
     "GetCursorPosition", "GetItemInfoInstant", "GetLocale", "GetMoneyString",
@@ -44,5 +44,5 @@ for _, name in ipairs({
 end
 files["tests/**/*.lua"] = {
     globals = testGlobals,
-    read_globals = { "LOCALIZATION_KEYS", "PROJECT_ROOT", "VERIFY_BOUNDS", "SHOPPING_SCAN", "UPSTREAM_AUCTIONATOR", "UPSTREAM_FOREVER_UI", "UPSTREAM_FOREVER_NAVIGATION", "UPSTREAM_TSM", "UPSTREAM_TSM_GROUP_IMPORT" },
+    read_globals = { "LOCALIZATION_KEYS", "PROJECT_ROOT", "VERIFY_BOUNDS", "SHOPPING_SCAN", "UPSTREAM_AUCTIONATOR", "UPSTREAM_FOREVER_UI", "UPSTREAM_FOREVER_NAVIGATION", "UPSTREAM_NAVIGATION", "UPSTREAM_TSM", "UPSTREAM_TSM_GROUP_IMPORT" },
 }

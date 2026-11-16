@@ -150,7 +150,11 @@ function Native.Show(requirements, alternatives)
         Native.note:SetWidth(310)
         Native.note:SetJustifyH("LEFT")
         Native.note:SetWordWrap(true)
-        addon.Navigation.RegisterWindow(frame)
+        addon.Navigation.RegisterWindow(frame, {
+            target = function()
+                return Native.buttons[1]
+            end,
+        })
     end
     Native.requirements = requirements
     Native.note:SetText(
@@ -186,6 +190,7 @@ function Native.Show(requirements, alternatives)
     end
     Native.frame:SetHeight(firstRow + 14 + #requirements * 36)
     Native.frame:Show()
+    addon.Navigation.Focus(Native.frame)
     addon.Navigation.Refresh(Native.frame, nil, Native.buttons[1])
     return true
 end

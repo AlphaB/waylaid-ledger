@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.4
+
+- Add native controller focus and Back handling to the options page, including
+  opening it directly from the official AddOns category list.
+- Repair the native category activation step that can select a hidden setting.
+- Register report scrolling and restore focus when reopening visible dialogs.
+- Restore windows deterministically after combat or controller activation,
+  while preserving focus on other native windows.
+- Require controller regressions before packaging and pinned/latest Forever
+  source contracts before CI artifacts; document the live release checklist.
+
 ## 0.9.3
 
 - Extend Auctionator scan suspension to Shopping searches, including completion and cancellation; per-item database updates no longer reprice tooltips or rebuild lists during those searches.

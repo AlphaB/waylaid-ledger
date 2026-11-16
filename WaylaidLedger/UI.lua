@@ -396,6 +396,13 @@ function UI.RegisterSettings()
         "GameFontDisableSmall"
     )
     frame:SetScript("OnShow", UI.UpdateSettings)
+    -- Native SettingsPanel enters its standard list, not custom canvases.
+    -- Own a separate native scope and close the parent panel on Back.
+    frame.SmartNavigationCloseHandler = function()
+        HideUIPanel(SettingsPanel)
+        return true
+    end
+    addon.Navigation.RegisterWindow(frame, { target = UI.crateSourceButton, deferFocus = true })
     UI.settingsCategory = Settings.RegisterCanvasLayoutCategory(frame, "Waylaid Ledger")
     Settings.RegisterAddOnCategory(UI.settingsCategory)
     UI.UpdateSettings()
@@ -405,6 +412,8 @@ end
 function UI.ToggleSettings()
     if UI.RegisterSettings() then
         Settings.OpenToCategory(UI.settingsCategory:GetID())
+        addon.Navigation.Focus(UI.settings)
+        addon.Navigation.RefreshWindow(UI.settings)
     else
         addon:Print(L["WoW's AddOns settings are unavailable on this client."])
     end
@@ -433,11 +442,13 @@ function UI.ShowReport(text, title)
         scroll:SetScrollChild(edit)
         UI.report, UI.reportEdit = frame, edit
         frame:Hide()
-        addon.Navigation.RegisterWindow(frame)
+        addon.Navigation.RegisterWindow(frame, { scroll = scroll, target = edit })
     end
     UI.report.TitleText:SetText(title or L["Waylaid Ledger - select and copy with Ctrl+C / Cmd+C"])
     UI.reportEdit:SetText(text)
     UI.report:Show()
+    addon.Navigation.Focus(UI.report)
+    addon.Navigation.RefreshWindow(UI.report)
     UI.reportEdit:SetFocus()
     UI.reportEdit:HighlightText()
 end
