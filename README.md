@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The lowest known filling cost is highlighted in green for all price sources,
 including cached prices. Auctionator and TSM are optional price providers. Own scans support both crate and writ costs.
 
-Version **0.9.0** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.9.1** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -186,6 +186,17 @@ the lowest cost per point, including the purchase and full delivery. Unknown
 rewards/prices follow ranked rows, ordered by known total, then name and item ID.
 Missing data is never counted as zero. Prices have no estimate prefixes or
 age markers; detailed provenance remains available on hover.
+
+Click any column header to sort by item name, purchase price, delivery cost,
+total cost, or cost per reputation/Favor. Click it again to reverse the order;
+the active header shows an arrow. Missing numeric values stay at the bottom in
+both directions. Each table keeps its selection through filtering, Refresh and
+tab changes during the session. Reloading starts both tables at lowest cost per
+reputation/Favor again.
+
+Controller users can move down from Search, Refresh or Settings to the headers,
+move left/right to choose a column, and activate it to sort. Move down to enter
+the list; moving up from its first row returns to the active sort header.
 
 Writs award **75 / 125 / 200 reputation** for Journeyman / Expert / Artisan.
 Crate Favor depends on tier and contents: for Apprentice through Expert,

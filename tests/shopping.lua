@@ -1,6 +1,36 @@
 local addon, test, equal = ...
 local Shopping = addon.Shopping
 
+test("every sort column supports both directions with unknown numeric values last", function()
+    local rows = {
+        { itemID = 1, name = "Bravo", purchase = 300, delivery = 100, total = 400, unitCost = 4 },
+        { itemID = 2, name = "Alpha", purchase = 100, delivery = 500, total = 600, unitCost = 3 },
+        { itemID = 3, name = "Charlie", purchase = 200, delivery = 200, total = 400, unitCost = 2 },
+        { itemID = 4, name = "Unknown" },
+    }
+    local expected = {
+        name = { { 2, 1, 3, 4 }, { 4, 3, 1, 2 } },
+        purchase = { { 2, 3, 1, 4 }, { 1, 3, 2, 4 } },
+        delivery = { { 1, 3, 2, 4 }, { 2, 3, 1, 4 } },
+        total = { { 3, 1, 2, 4 }, { 2, 3, 1, 4 } },
+        unitCost = { { 3, 2, 1, 4 }, { 1, 2, 3, 4 } },
+    }
+    for key, directions in pairs(expected) do
+        for index, ids in ipairs(directions) do
+            table.sort(rows, function(a, b)
+                return Shopping.Compare(a, b, key, index == 2)
+            end)
+            for n, id in ipairs(ids) do
+                equal(rows[n].itemID, id, key)
+            end
+            for _, row in ipairs(rows) do
+                equal(Shopping.Compare(row, row, key, index == 2), false)
+            end
+        end
+    end
+    equal(Shopping.Compare(rows[1], rows[4], "invalid", false), Shopping.Less(rows[1], rows[4]))
+end)
+
 local function fixture(action)
     local old = {
         read = addon.Providers.Read,
@@ -147,7 +177,7 @@ test("crate rewards rank Artisan at 30 Favor and leave unknown future rewards un
             local view = addon.BrowseUI.Create(host, "crates")
             addon.BrowseUI.Refresh(view)
             equal(#view.headers, 5)
-            equal(view.headers[5].text, addon.L["Cost / Favor"])
+            equal(view.headers[5].text, addon.L["Cost / Favor"] .. " ↑")
             equal(view.scroll.rows[1].reward.text, string.format(addon.L["%d Favor"], 30))
             equal(view.scroll.rows[1].unitCost.text, addon.Money(1))
             equal(view.scroll.rows[5].reward.text, addon.L["Reward unknown"])
@@ -382,7 +412,7 @@ test("browse rows render ranked totals, filter delivery names, and route clicks 
         host:SetSize(1000, 550)
         local view = addon.BrowseUI.Create(host, "writs")
         addon.BrowseUI.Refresh(view)
-        equal(view.headers[5].text, addon.L["Cost / reputation"])
+        equal(view.headers[5].text, addon.L["Cost / reputation"] .. " ↑")
         equal(view.scroll.rows[1].unitCost.text, addon.Money(7))
         equal(view.scroll.rows[1].reward.text, string.format(addon.L["%d rep"], 75))
         equal(#view.visibleEntries, 150)
@@ -425,6 +455,71 @@ test("browse rows render ranked totals, filter delivery names, and route clicks 
         addon.BrowseUI.views.writs = nil
     end)
 end)
+test(
+    "clickable headers sort both tables without repricing and preserve selection through filtering and refresh",
+    function()
+        fixture(function(f)
+            f.price(264050, 100)
+            f.price(4245, 400)
+            f.price(264037, 40)
+            f.price(8069, 3)
+            local host = CreateFrame("Frame", nil, UIParent)
+            host:SetSize(900, 550)
+            local view = addon.BrowseUI.Create(host, "writs")
+            addon.BrowseUI.Refresh(view)
+            equal(view.sortKey, "unitCost")
+            equal(view.sortDescending, false)
+            local reads, requests = f.reads, #addon.scanner.requests
+            for index, key in ipairs({ "name", "purchase", "delivery", "total", "unitCost" }) do
+                local header = view.headers[index]
+                view.scroll.offset = 10
+                header.scripts.OnClick(header)
+                equal(view.sortKey, key)
+                equal(view.sortDescending, false)
+                equal(view.scroll.offset, 0)
+                equal(header.text, header.sortTitle .. " ↑")
+                for n = 2, #view.visibleEntries do
+                    equal(Shopping.Compare(view.visibleEntries[n], view.visibleEntries[n - 1], key, false), false)
+                end
+                header.scripts.OnClick(header)
+                equal(view.sortDescending, true)
+                equal(header.text, header.sortTitle .. " ↓")
+                for n = 2, #view.visibleEntries do
+                    equal(Shopping.Compare(view.visibleEntries[n], view.visibleEntries[n - 1], key, true), false)
+                end
+            end
+            equal(f.reads, reads)
+            equal(#addon.scanner.requests, requests)
+            view.headers[2].scripts.OnClick(view.headers[2])
+            equal(view.sortKey, "purchase")
+            equal(view.sortDescending, false)
+            view.search:SetText("Crafted Solid Shot")
+            view.search.scripts.OnTextChanged(view.search)
+            equal(#view.visibleEntries, 1)
+            equal(view.visibleEntries[1].itemID, 264037)
+            view.headers[2].scripts.OnClick(view.headers[2])
+            addon.BrowseUI.Refresh(view)
+            equal(view.sortKey, "purchase")
+            equal(view.sortDescending, true)
+            equal(#view.visibleEntries, 1)
+            view.search:SetText("")
+            view.search.scripts.OnTextChanged(view.search)
+            equal(view.visibleEntries[1].itemID, 264050)
+            equal(view.visibleEntries[2].itemID, 264037)
+            equal(view.visibleEntries[3].purchase, nil)
+            local other = addon.BrowseUI.Create(host, "crates")
+            addon.BrowseUI.Refresh(other)
+            equal(other.sortKey, "unitCost")
+            equal(other.sortDescending, false)
+            equal(view.sortKey, "purchase")
+            equal(view.sortDescending, true)
+            host:Hide()
+            addon.BrowseUI.views.writs = nil
+            addon.BrowseUI.views.crates = nil
+        end)
+    end
+)
+
 test("hidden browse panels do not read provider prices on unrelated tooltip updates", function()
     fixture(function(f)
         local host = CreateFrame("Frame", nil, UIParent)

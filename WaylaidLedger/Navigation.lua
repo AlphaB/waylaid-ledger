@@ -106,8 +106,8 @@ function Nav.BindView(view)
         end)
         return target or true
     end
-    for _, control in ipairs({ view.search, view.refreshButton, view.settingsButton }) do
-        SmartNavigation_AddJumpNavigationOverride(control, SMART_NAV_INPUT_DIRECTION.DOWN, enter)
+    for _, header in ipairs(view.headers) do
+        SmartNavigation_AddJumpNavigationOverride(header, SMART_NAV_INPUT_DIRECTION.DOWN, enter)
     end
     local function link(source, direction, target)
         if not source then
@@ -121,6 +121,19 @@ function Nav.BindView(view)
         end)
     end
     local directions = SMART_NAV_INPUT_DIRECTION
+    -- Actionable headers sit between the page controls and the virtual list.
+    link(view.search, directions.DOWN, view.headers[1])
+    link(view.refreshButton, directions.DOWN, view.headers[4])
+    link(view.settingsButton, directions.DOWN, view.headers[5])
+    for index, header in ipairs(view.headers) do
+        link(header, directions.LEFT, view.headers[index - 1])
+        link(header, directions.RIGHT, view.headers[index + 1])
+        link(
+            header,
+            directions.UP,
+            index == 1 and view.search or (index == 5 and view.settingsButton or view.refreshButton)
+        )
+    end
     local tabs = addon.UI.browserTabs or {}
     local category = tabs[view.kind]
     local auctionTab = addon.UI.auctionTab
@@ -227,7 +240,15 @@ function Nav.BindRow(view, row)
             local index = row.entry.listIndex + delta
             local entry = view.visibleEntries[index]
             if not entry then
-                return delta < 0 and view.search or true
+                if delta < 0 then
+                    for _, header in ipairs(view.headers) do
+                        if header.sortKey == view.sortKey then
+                            return header
+                        end
+                    end
+                    return view.search
+                end
+                return true
             end
             -- ScrollBox rows are virtual. Scroll first, then resolve the newly
             -- bound frame; using the old pool index can activate another item.

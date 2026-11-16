@@ -6,6 +6,12 @@ crates use Merchant's Favor. The cheapest known filling option still supplies
 each crate's delivery cost. Ratios retain fractional copper when sorting; the
 display rounds up to the next copper so a positive cost never looks free.
 
+Since 0.9.1 this is the default sort; clickable headers also offer item name,
+purchase, delivery and total cost, with ascending/descending directions. Each
+table keeps its session selection across Refresh and filtering. Missing numeric
+values stay last in either direction. Equal selected values fall back to the
+default efficiency order described below.
+
 Known ratios appear first. Unranked entries follow, ordered by known total,
 then name and item ID; missing totals follow known totals. Equal ratios use those
 same tie breakers. Missing rewards or price components never become zero.
