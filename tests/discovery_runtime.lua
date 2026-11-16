@@ -4,6 +4,7 @@ test("empty install discovers and prices complete crates and writs using one bul
     local saved={C_AuctionHouse=C_AuctionHouse,C_Item=C_Item,C_TooltipInfo=C_TooltipInfo,C_Container=C_Container,
         WaylaidLedgerDB=WaylaidLedgerDB,Auctionator=Auctionator,TSM_API=TSM_API,
         WaylaidLedgerFrame=WaylaidLedgerFrame,WaylaidLedgerReportFrame=WaylaidLedgerReportFrame,
+        LibStub=LibStub,AuctionHouseFrame=AuctionHouseFrame,AuctionHouseFrameDisplayMode=AuctionHouseFrameDisplayMode,
         callback=TooltipDataProcessor.callback,slash=SlashCmdList.WAYLAIDLEDGER}
     local a={}
     local f=TEST_SCANNER_FIXTURE()
@@ -31,6 +32,10 @@ test("empty install discovers and prices complete crates and writs using one bul
         end
         local host=TEST_FRAMES[#TEST_FRAMES]
         host.scripts.OnEvent(host,"ADDON_LOADED","WaylaidLedger")
+        LibStub={GetLibrary=function() return {CreateTab=function(_,_,panel) panel:Hide() end} end}
+        AuctionHouseFrame=CreateFrame("Frame",nil,UIParent)
+        AuctionHouseFrame.Tabs={CreateFrame("Button",nil,AuctionHouseFrame)}
+        AuctionHouseFrameDisplayMode={Buy="buy"}
         equal(next(a.Crates),nil);equal(next(a.Writs),nil)
         host.scripts.OnEvent(host,"AUCTION_HOUSE_SHOW")
         a.UI.frame:Show()
@@ -64,15 +69,40 @@ test("empty install discovers and prices complete crates and writs using one bul
         a:StopScan()
         a.db.source="auto";a.db.replication[a.BulkScan.engine.cooldownKey]=nil
         a:GetMarket().bulkAt=nil
-        a.autoReason,a.autoPaused,a.lastExternalAt="panel",false,nil
+        a.UI.auctionHost:Show()
+        a.UI.SelectBrowserTab("writs")
+        a.autoReason,a.autoPaused,a.lastExternalAt="browse",false,nil
         local beforeAuto=requests;a:AutoScan()
         equal(requests,beforeAuto+1);equal(a.scanner.bulkMode,true)
+        equal(a.scanBrowser,true)
+        equal(a:RefreshList(a.BrowseUI.views.writs),false)
+        equal(a.scanBrowser,true);equal(a.scanAutomatic,true);equal(a.scanContext.reason,"browse")
+        frame.scripts.OnEvent(frame,"REPLICATE_ITEM_LIST_UPDATE")
+        while frame.scripts.OnUpdate do frame.scripts.OnUpdate() end
+        while a.Discovery.frame.scripts.OnUpdate do a.Discovery.frame.scripts.OnUpdate() end
+        equal(a.scanner.active,false)
+        -- Expire the server cooldown after completing an automatic browse scan.
+        local wall=a.scanner.runtime.wallTime()
+        a.scanner.runtime.wallTime=function() return wall+901 end
+        equal(a:RefreshList(a.BrowseUI.views.writs),true)
+        equal(a.scanAutomatic,false);equal(a.scanBrowser,false);equal(a.scanOnOpen,false)
+        equal(a.scanContext.reason,"manual")
+        a.UI.auctionHost:Hide()
+        equal(a.scanner.active,true,"leaving the list must preserve the explicit refresh")
+        a:StopScan()
+        a.scanner.runtime.wallTime=function() return wall+1802 end
+        a.scanBrowser,a.scanOnOpen=true,true
+        a.NativeShopping.pendingQuantity={itemID=11,quantity=200}
+        equal(a:BeginScan({},"manual","writs"),true)
+        equal(a.scanBrowser,false);equal(a.scanOnOpen,false);equal(a.NativeShopping.pendingQuantity,nil)
+        equal(a.scanContext.reason,"manual");equal(a.scanContext.category,"writs")
         host.scripts.OnEvent(host,"AUCTION_HOUSE_CLOSED")
     end)
     for key,value in pairs(saved) do
         if key~="callback" and key~="slash" then _G[key]=value end
     end
     C_TooltipInfo=saved.C_TooltipInfo;Auctionator=saved.Auctionator;TSM_API=saved.TSM_API
+    AuctionHouseFrame,AuctionHouseFrameDisplayMode=saved.AuctionHouseFrame,saved.AuctionHouseFrameDisplayMode
     TooltipDataProcessor.callback=saved.callback;SlashCmdList.WAYLAIDLEDGER=saved.slash
     assert(ok,err)
 end)

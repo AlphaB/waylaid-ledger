@@ -171,16 +171,27 @@ function BulkScan.Install(scanner)
         end
     end)
     local beginScan, refreshList = addon.BeginScan, addon.RefreshList
+    local function prepareManual(self, category)
+        self.scanMarket, self.scanAutomatic = self:GetMarket(), false
+        self.scanOnOpen, self.scanBrowser = false, false
+        self.scanContext = { reason = "manual", category = category or "all" }
+        self.refreshJob, self.pendingProviderScan, self.providerDue = nil, nil, nil
+        self.autoPaused, self.autoDue, self.autoReason = false, nil, nil
+        if self.NativeShopping then self.NativeShopping.pendingQuantity = nil end
+    end
+    local function manualSnapshot(self, category)
+        -- A rejected second request must not change an active scan's ownership.
+        if scanner.open and not scanner.active and not engine.job then prepareManual(self, category) end
+        local ok, reason = scanner:Start({})
+        if not ok then self:Print(reason) end
+        self.UI.Update()
+        return ok
+    end
     if beginScan then
         function addon:BeginScan(items, job, category)
             if #items > 0 then return beginScan(self, items, job, category) end
             -- First use has no derived item scope yet; replication discovers it.
-            self.scanMarket, self.scanAutomatic = self:GetMarket(), false
-            self.autoPaused, self.autoDue, self.autoReason = false, nil, nil
-            local ok, reason = scanner:Start({})
-            if not ok then self:Print(reason) end
-            self.UI.Update()
-            return ok
+            return manualSnapshot(self, category or (type(job) == "table" and job.kind))
         end
     end
     if refreshList then
@@ -191,12 +202,7 @@ function BulkScan.Install(scanner)
                 return false
             end
             self.Providers.Invalidate()
-            self.scanMarket, self.scanAutomatic = self:GetMarket(), false
-            self.autoPaused, self.autoDue, self.autoReason = false, nil, nil
-            local ok, reason = scanner:Start({})
-            if not ok then self:Print(reason) end
-            self.UI.Update()
-            return ok
+            return manualSnapshot(self, view and view.kind or self.db.browserTab)
         end
     end
     local canAutoScan, autoScan, startScan = addon.CanAutoScan, addon.AutoScan, addon.StartScan
@@ -233,11 +239,7 @@ function BulkScan.Install(scanner)
     if startScan then
         function addon:StartScan(scope)
             if scope == "deep" then
-                self.scanMarket, self.scanAutomatic = self:GetMarket(), false
-                self.scanOnOpen, self.scanBrowser = false, false
-                self.scanContext = { reason = "manual", category = "all" }
-                if self.NativeShopping then self.NativeShopping.pendingQuantity = nil end
-                self.autoPaused, self.autoDue, self.autoReason = false, nil, nil
+                if scanner.open and not scanner.active and not engine.job then prepareManual(self, "all") end
                 local ids, unique = {}, {}
                 for _, definitions in ipairs({ self.Crates, self.Writs }) do
                     for id, definition in pairs(definitions) do
