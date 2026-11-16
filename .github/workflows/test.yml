@@ -55,6 +55,8 @@ jobs:
       - run: python tests/scan_performance.py --verify
       - run: python tests/scan_performance.py --scenario auctionator --verify
       - run: python tests/scan_performance.py --scenario auctionator-shopping --verify
+      - run: python tests/scan_performance.py --scenario auctionator-completion --verify
+      - run: python tests/scan_performance.py --scenario browse --verify
       - run: python tools/package.py
       - uses: actions/upload-artifact@v7
         with:

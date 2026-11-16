@@ -291,7 +291,10 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         a:Command("debug on")
         a.db.scanOnOpen = true
         host.scripts.OnEvent(host, "AUCTION_HOUSE_SHOW")
-        assert(a.autoDue)
+        equal(a.autoDue, nil, "Auto must use the available provider instead of scheduling a second full scan")
+        a.db.source = "own"
+        host.scripts.OnEvent(host, "AUCTION_HOUSE_SHOW")
+        assert(a.autoDue, "explicit Own mode must still schedule its opt-in scan")
         listener:ReceiveEvent(events.ScanStart)
         C_AuctionHouse.ReplicateItems()
         local externalRequests = requests

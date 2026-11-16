@@ -18,9 +18,12 @@ local EVENTS = {
     "BAG_UPDATE_DELAYED",
     "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED",
     "AUCTION_HOUSE_BROWSE_RESULTS_ADDED",
+    "AUCTION_HOUSE_CLOSED",
 }
 local reading, tooltipItems, itemTooltips = {}, {}, {}
 local neededNames = {}
+local browseRequested, browseRows, browseIndex, browseAt, browseChanged
+local BROWSE_BATCH = 50
 local process
 
 local function wake()
@@ -399,7 +402,7 @@ function Discovery.Retry(defer)
 end
 
 function Discovery.IsWorking()
-    return retryRequested or cursor <= #queue
+    return retryRequested or cursor <= #queue or browseRequested or browseRows ~= nil
 end
 
 -- Only contracts and their delivery goods belong in the saved price database.
@@ -471,6 +474,42 @@ process = function()
     -- Plain-name requirements need the complete market name index first.
     local job = addon.BulkScan and addon.BulkScan.engine and addon.BulkScan.engine.job
     if job and not job.resolving then
+        return
+    end
+    if browseRequested or browseRows then
+        if browseAt and GetTime() < browseAt then
+            return
+        end
+        if browseRequested then
+            browseRequested = nil
+            browseRows = C_AuctionHouse and C_AuctionHouse.GetBrowseResults and C_AuctionHouse.GetBrowseResults() or {}
+            browseIndex = 1
+        end
+        local started = debugprofilestop and debugprofilestop()
+        local limit = math.min(#browseRows, browseIndex + BROWSE_BATCH - 1)
+        while browseIndex <= limit do
+            local row = browseRows[browseIndex]
+            browseIndex = browseIndex + 1
+            local id = row.itemKey and row.itemKey.itemID
+            -- Repeated browse snapshots are not new item/tooltip data. Preserve
+            -- explicit full-scan and item-load revalidation in Observe itself.
+            if id and not (Discovery.store and Discovery.store.names[id]) then
+                browseChanged = Discovery.Observe(id) or browseChanged
+            end
+            if started and debugprofilestop() - started >= BUDGET_MS then
+                break
+            end
+        end
+        if browseIndex <= #browseRows then
+            return
+        end
+        browseRows, browseIndex, browseAt = nil, nil, nil
+        if browseChanged then
+            retryRequested = true
+        end
+        browseChanged = nil
+        -- Description work gets its own frame budget, not the remainder of a
+        -- large browse update. No raw browse snapshot survives this pass.
         return
     end
     if retryAt and GetTime() < retryAt then
@@ -579,6 +618,7 @@ function Discovery.SetSuspended(suspended)
     end
     if suspended then
         frame:SetScript("OnUpdate", nil)
+        browseRequested, browseRows, browseIndex, browseAt, browseChanged = nil, nil, nil, nil, nil
     elseif wasSuspended then
         -- Item/bag events missed during the scan are reconciled once at the end.
         Discovery.Bags()
@@ -634,6 +674,10 @@ function Discovery.Install()
     Discovery.suspended = nil
     Discovery.SetSuspended(addon.Providers and addon.Providers.scan ~= nil or false)
     frame:SetScript("OnEvent", function(_, event, itemID, success)
+        if event == "AUCTION_HOUSE_CLOSED" then
+            browseRequested, browseRows, browseIndex, browseAt, browseChanged = nil, nil, nil, nil, nil
+            return
+        end
         -- Auctionator may load every AH item and update tooltips repeatedly.
         -- Keep our discovery idle until its completion callback, even when its
         -- row loop finishes before its price database has been processed.
@@ -670,14 +714,12 @@ function Discovery.Install()
         elseif event == "BAG_UPDATE_DELAYED" then
             Discovery.Bags()
         elseif event == "AUCTION_HOUSE_BROWSE_RESULTS_UPDATED" or event == "AUCTION_HOUSE_BROWSE_RESULTS_ADDED" then
-            if C_AuctionHouse and C_AuctionHouse.GetBrowseResults then
-                for _, row in ipairs(C_AuctionHouse.GetBrowseResults() or {}) do
-                    if row.itemKey then
-                        Discovery.Observe(row.itemKey.itemID)
-                    end
-                end
-            end
-            Discovery.Retry()
+            -- Native browsing and Auctionator's background price collection do
+            -- not emit FullScan/Shopping start events. Coalesce their snapshots
+            -- independently instead of rescanning every row inside each event.
+            browseRequested, browseAt = true, GetTime() + QUIET_SECONDS
+            browseRows = nil
+            wake()
         end
     end)
 end

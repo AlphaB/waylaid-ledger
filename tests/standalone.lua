@@ -663,6 +663,34 @@ test("controller traverses both list boundaries and only scrolls when selection 
     end)
 end)
 
+test("provider refresh over stale own prices preserves controller row focus and quantities", function()
+    fixture(function(f)
+        f.snapshot(264037, 1, 50, addon.db.maxAge + 1)
+        f.snapshot(8069, 200, 5, addon.db.maxAge + 1)
+        local view = f.browser("writs")
+        view.sortKey = "name"
+        view.query = "Crafted Solid Shot"
+        addon.BrowseUI.Refresh(view)
+        f.navigation()
+        local row = view.scroll.rows[1]
+        f.select(row)
+        equal(row.entry.itemID, 264037)
+        equal(row.entry.stale, true)
+        addon.Providers.Read = function(source)
+            return { source = source, sourceLabel = source, unitPrice = 3 }
+        end
+        addon.BrowseUI.Refresh(view)
+        equal(f.current, row)
+        equal(row.entry.itemID, 264037)
+        equal(row.entry.total, 603)
+        equal(row.entry.stale, false)
+        equal(row.entry.requirements[1].quantity, 200)
+        equal(#f.queries, 0)
+        f.navigate("right")
+        equal(f.current, view.settingsButton)
+    end)
+end)
+
 test("controller focus changes clear old lists and resume safely after combat and late loading", function()
     fixture(function(f)
         local first = f.browser("writs")

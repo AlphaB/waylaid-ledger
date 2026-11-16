@@ -1,11 +1,13 @@
 # Auction addon integrations
 
-## Current behavior (0.9.3)
+## Current behavior (0.9.6)
 
 Auctionator and TSM supply optional cached price estimates. Auto reuses fresh
 own snapshots, then provider estimates. Tab switches, missing prices, and unresolved
 descriptions do not schedule queries. Own scans require Refresh in Own/no-provider mode, an explicit scan command,
-or the separate opt-in AH-open preference. Refresh in Auto with an available
+or the separate opt-in AH-open preference. In Auto on the default market, an available
+Auctionator/TSM provider suppresses the own opening scan even when that preference
+is enabled. Own mode and custom profiles retain the opt-in opening scan. Refresh in Auto with an available
 provider or an available explicit provider mode reloads public cached quotes and
 cancels pending automatic queries. It does not invoke replication or a provider
 scan, even if some quotes are missing. An external full scan cancels pending
@@ -21,7 +23,16 @@ reconciles bags and retries pending descriptions once. Tooltip cost calculation
 and automatic list rebuilding are deferred; visible tooltips resume at completion.
 Database callbacks during an active scan do not repeatedly discard provider
 caches. Refresh is disabled meanwhile. The price cache is capped at 2,048 entries;
-forced provider pricing never computes an unused own order-book quote.
+forced provider pricing never computes an unused own order-book quote. Auto also
+checks providers before pricing stale/failed detailed snapshots; it retains the
+old fallback when providers have no price and preserves fresh scan shortages.
+
+Ordinary browse updates do not require a FullScan/Shopping lifecycle event.
+Discovery debounces those events for 250 ms, reads the latest browse snapshot once,
+and processes up to 50 rows or 2 ms per frame. Known names are reused without
+native lookups or re-marking resolved contracts pending. Changed/new names still
+resolve descriptions after the name pass; item and tooltip changes retain their
+targeted retry paths. Closure or suspension drops any pending browse snapshot.
 
 Shopping searches use a separate lifecycle: `Shopping.Tab.Events.SearchStart`,
 `SearchIncrementalUpdate`, and `SearchEnd` (also emitted for cancellation).

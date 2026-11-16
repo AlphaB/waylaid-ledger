@@ -251,3 +251,46 @@ validated in an optional release-source contract test.
 Native controller support is required for every UI change and release. Follow
 [CONTROLLER.md](CONTROLLER.md) for registration, automated release gates and the
 live-client checklist. Preserve sortable-header and virtual-row navigation.
+
+
+## Auction-house freeze investigation (0.9.6)
+
+The live 0.9.4 report exposed paths excluded by the prior synthetic benchmark:
+Ledger requested its own 240,290-auction snapshot with scan-on-open enabled in
+Auto, and ordinary SendBrowseQuery traffic produced repeated discovery waves
+(up to 1,168 attempts) while external scan state was false. The old benchmark
+explicitly fired Auctionator ScanStart, used a tiny synthetic catalog, stubbed
+list refresh, and stopped before ScanComplete. It established suspension behavior
+but could not exclude opening, ordinary browsing or completion stalls.
+
+The revised regressions cover those paths without requiring Auctionator lifecycle
+events. Auto now applies the provider-cache policy on open; Own/custom-profile
+opt-in scans and explicit requests remain unchanged. Browse callbacks schedule
+work, coalesce to the latest snapshot and budget name processing. Revisiting
+a known browse item no longer invalidates its resolved description. Item-load and
+tooltip-instance updates still refresh changed requirements.
+
+Two before/after scenarios run the same harness against v0.9.4 and the new source:
+
+- Twenty 6,000-row browse snapshots: native reads inside event handlers fall from
+  120,020 to zero; total name lookups from 120,000 to 6,000; description reads from
+  3,000 to 150. New name processing is capped at 50 rows or 2 ms per frame.
+- Completion with the shipped 180-contract catalog and large stale detailed
+  histories: 246 discarded order-book quotes become zero. Local Lua CPU time fell
+  from about 1.9 seconds to about 0.002 seconds. This fixture intentionally uses
+  larger histories than the user's report to test scaling; it does not measure
+  their game frame time. Fresh own shortages and unavailable-provider fallbacks
+  retain the same results.
+
+Validation: Lua regressions and both performance scenarios are required in CI,
+alongside the existing scan/full-scan/Shopping benchmarks. Release validation also
+uses pinned and latest Forever controller sources and the released Auctionator
+347 public adapter sources. See the PR for exact results.
+
+Outstanding manual verification: repeat the AH-opening comparison with 0.9.6
+and the user's existing SavedVariables, keep Auto and scan-on-open enabled, and
+verify no own scan request is logged when a provider is available. Check browse
+updates, refreshed prices, manual Own scans, AH closure and reopening. Run every
+live-client/controller step in CONTROLLER.md, including focus during price
+refresh, virtual rows, empty lists, combat recovery and hardware Back/navigation.
+No live WoW, controller hardware or security/taint execution was available here.

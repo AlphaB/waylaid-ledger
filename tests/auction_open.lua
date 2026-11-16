@@ -102,6 +102,40 @@ test("auction-open scan is opt-in, respects provider mode, and never runs away f
         equal(addon.autoDue, nil)
     end)
 end)
+test("Auto opening reuses provider caches while Own and isolated profiles retain opt-in scanning", function()
+    local available = addon.Providers.Available
+    local ok, err = pcall(function()
+        fixture(function(f)
+            addon.db.source = "auto"
+            local provider
+            addon.Providers.Available = function(source)
+                return source == provider
+            end
+            for _, source in ipairs({ "auctionator", "tsm" }) do
+                provider = source
+                host.scripts.OnEvent(host, "AUCTION_HOUSE_SHOW")
+                equal(addon.autoDue, nil)
+                equal(addon.scanner.active, false)
+            end
+            addon.db.profile = "neutral"
+            equal(addon:CanAutoScan("open"), true)
+            addon.db.profile, addon.db.source = "default", "own"
+            equal(addon:CanAutoScan("open"), true)
+            addon.db.source, provider = "auto", nil
+            host.scripts.OnEvent(host, "AUCTION_HOUSE_SHOW")
+            assert(addon.autoDue)
+            -- A provider loaded during the quiet period must also cancel the query.
+            provider = "auctionator"
+            f.now = 13
+            host.scripts.OnUpdate()
+            equal(addon.scanner.active, false)
+            equal(addon.autoDue, nil)
+        end)
+    end)
+    addon.Providers.Available = available
+    assert(ok, err)
+end)
+
 test("pending opening scans wait for competing searches; active scans yield without restarting", function()
     fixture(function(f)
         host.scripts.OnEvent(host, "AUCTION_HOUSE_SHOW")

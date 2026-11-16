@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.6
+
+- Avoid a redundant opening full scan in Auto when Auctionator or TSM provides prices; explicit scans, Own mode and custom profiles remain available.
+- Coalesce ordinary browse updates and process item names within a frame budget, even without Auctionator scan lifecycle events.
+- Stop unchanged browse names from repeatedly scheduling description reads.
+- Select provider prices before calculating stale detailed auction costs that Auto would discard.
+- Add browse-event and scan-completion performance regressions; live-client and hardware controller verification remain outstanding in DEVELOPMENT.md.
+
 ## 0.9.5
 
 - Show the crate icon beside Waylaid Ledger in the AddOns list.
