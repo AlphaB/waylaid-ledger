@@ -46,6 +46,49 @@ function Catalog.BagCrates()
     return result
 end
 
+-- Every scan item is keyed by ID. Delivery options are alternatives for crates
+-- and cumulative objectives for writs; both need all their quotes to compare.
+function Catalog.AllContracts(kind)
+    local ids = {}
+    for _, definitions in ipairs({ addon.Crates, addon.Writs }) do
+        for id in pairs(definitions) do
+            if not kind or kind == "all" or (kind == "crates" and addon.Crates[id])
+                or (kind == "writs" and addon.Writs[id]) then ids[#ids + 1] = id end
+        end
+    end
+    table.sort(ids)
+    return ids
+end
+
+function Catalog.ScanItems(contractIDs)
+    local quantities, items = {}, {}
+    for _, id in ipairs(contractIDs) do
+        local contract = addon.Crates[id] or addon.Writs[id]
+        if contract then
+            quantities[id] = math.max(quantities[id] or 0, 1)
+            for _, required in ipairs(contract.options or contract.requirements) do
+                quantities[required.itemID] = math.max(quantities[required.itemID] or 0, required.quantity)
+            end
+        end
+    end
+    for id in pairs(quantities) do items[#items + 1] = id end
+    table.sort(items)
+    return items, quantities
+end
+
+function Catalog.BagContracts()
+    local found, ids = {}, {}
+    for bag = 0, NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS or 4 do
+        for slot = 1, C_Container.GetContainerNumSlots(bag) do
+            local id = C_Container.GetContainerItemID(bag, slot)
+            if addon.Crates[id] or addon.Writs[id] then found[id] = true end
+        end
+    end
+    for id in pairs(found) do ids[#ids + 1] = id end
+    table.sort(ids)
+    return ids
+end
+
 function Catalog.ItemName(itemID)
     return (C_Item and C_Item.GetItemNameByID(itemID))
         or addon.MaterialNames[itemID]

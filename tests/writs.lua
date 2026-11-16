@@ -72,7 +72,7 @@ test("writ provider fallback, stale age and forced-source behavior match crates"
         equal(rows[1].status,"unknown");equal(total,nil)
         addon.db.writSource="auto";addon.db.profile="neutral"
         rows,total=addon.WritPricing.Rows(264050)
-        equal(total,nil);equal(rows[1].source,"providers")
+        equal(total,nil);equal(rows[1].source,"own")
     end)
 end)
 test("a partially priced writ bundle never gets a fabricated full total", function()
@@ -104,7 +104,7 @@ end)
 test("writ source setting persists, rejects invalid sources and is visible in settings", function()
     local oldSource=addon.db.writSource
     addon:Command("writsource tsm");equal(addon.db.writSource,"tsm")
-    addon:Command("writsource own");equal(addon.db.writSource,"tsm")
+    addon:Command("writsource invalid");equal(addon.db.writSource,"tsm")
     addon.UI.ToggleSettings();equal(addon.UI.writSourceButton.text,"Writ prices: tsm")
     addon.UI.settings:Hide();addon:SetWritSource(oldSource)
 end)

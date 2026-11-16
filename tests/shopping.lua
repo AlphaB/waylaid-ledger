@@ -96,7 +96,7 @@ test("purchase quotes follow writ settings and custom-profile isolation without 
         addon.db.writSource="auto";addon.db.profile="neutral"
         entry=Shopping.Entry("writs",264050);equal(entry.total,nil)
         addon.db.profile="default";addon.db.source="own";f.price(248683,50)
-        entry=Shopping.Entry("crates",248683);equal(entry.purchase,50);equal(entry.delivery,nil)
+        entry=Shopping.Entry("crates",248683);equal(entry.purchase,nil);equal(entry.delivery,nil)
         local before=#addon.scanner.requests
         Shopping.Entries("writs");Shopping.Entries("crates")
         equal(#addon.scanner.requests,before);equal(#addon.Catalog.Materials(addon.Catalog.AllCrates()),96)

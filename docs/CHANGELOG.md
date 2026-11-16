@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0
+
+- Own scanning and quantity-aware prices for writ deliveries and writ/crate purchases.
+- Full scopes: writs 300 IDs, crates 126, combined 424 after deduplication.
+- Refresh reruns the own scan for the current filtered list; Stop and progress controls.
+- Optional Auctionator limited-search follow-up, enabled by default when supported.
+- Sequential handoff with frozen scope and cancellation on interruption.
+- Manual TSM group export; no unsupported internal scan calls.
+- Equipment uses gear-variant searches; missing metadata cannot create false sold-out data.
+- New Own writ source and expanded bag/tracked/hovered/manual scan scopes.
+- 122 default Lua 5.1 tests; 125 with upstream API/import-parser contracts.
+
 ## 0.6.1
 
 - Replace the classic scrollbar middle artwork with a dark rail to remove the green strip.

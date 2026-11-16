@@ -52,7 +52,7 @@ function UI.Create()
     end)
     UI.bags = button(panel, "Scan bags", 15, -114, 160, function() addon:StartScan("bags") end)
     UI.hovered = button(panel, "Scan hovered", 187, -114, 160, function() addon:StartScan("hovered") end)
-    UI.all = button(panel, "Scan all (96)", 359, -114, 160, function() addon:StartScan("all") end)
+    UI.all = button(panel, "Scan all (424)", 359, -114, 160, function() addon:StartScan("all") end)
     UI.stop = button(panel, "Stop scan", 15, -147, 160, function() addon:StopScan() end)
     button(panel, "Copy diagnostics", 187, -147, 160, function() UI.ShowReport(addon:Report()) end)
 
@@ -160,7 +160,7 @@ function UI.Update(refreshBrowse)
     UI.shop:SetEnabled(canShop)
     UI.option:SetEnabled(crate ~= nil)
     UI.bags:SetEnabled(scanner.open and not scanner.active)
-    UI.hovered:SetEnabled(scanner.open and not scanner.active and crate ~= nil)
+    UI.hovered:SetEnabled(scanner.open and not scanner.active and (addon.lastContractID ~= nil or crate ~= nil))
     UI.all:SetEnabled(scanner.open and not scanner.active)
     UI.stop:SetEnabled(scanner.active)
     UI.tracked:SetEnabled(scanner.open and not scanner.active)
@@ -267,6 +267,7 @@ end
 
 function UI.UpdateSettings()
     if not UI.settingsChecks then return end
+    UI.refreshModeButton:SetText(addon.db.refreshAuctionator and "Refresh: Own + Auctionator" or "Refresh: Own scan")
     UI.writSourceButton:SetText("Writ prices: " .. addon.db.writSource)
     UI.crateSourceButton:SetText("Crate prices: " .. SOURCE_LABELS[addon.db.source])
     UI.settingsTSM:SetText("TSM price: " .. addon.db.tsmKey)
@@ -284,7 +285,7 @@ function UI.RegisterSettings()
     if UI.settingsCategory then return true end
     if not Settings or not Settings.RegisterCanvasLayoutCategory or not Settings.RegisterAddOnCategory then return false end
     local frame = CreateFrame("Frame", nil, UIParent)
-    frame:SetSize(620, 470)
+    frame:SetSize(620, 500)
     frame:Hide()
     local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 18, -16)
@@ -312,7 +313,7 @@ function UI.RegisterSettings()
         UI.UpdateSettings()
     end)
     UI.writSourceButton = button(frame, "Writ prices", 250, -272, 220, function()
-        local sources = { auto = "auctionator", auctionator = "tsm", tsm = "off", off = "auto" }
+        local sources = { auto = "own", own = "auctionator", auctionator = "tsm", tsm = "off", off = "auto" }
         addon:SetWritSource(sources[addon.db.writSource])
     end)
     UI.settingsTSM = button(frame, "TSM price", 18, -306, 220, function()
@@ -325,9 +326,13 @@ function UI.RegisterSettings()
         addon.db.inventory = { characters = {}, sharedBanks = {} }
         addon.Inventory.CaptureBags(); addon.Inventory.CaptureBank(); UI.Update()
     end)
+    UI.refreshModeButton = button(frame, "Refresh mode", 18, -374, 220, function()
+        addon:SetFeature("auctionatorfollowup", not addon.db.refreshAuctionator)
+    end)
+    button(frame, "TSM group export", 250, -374, 220, function() addon:ExportTSM() end)
     local note = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    note:SetPoint("TOPLEFT", 18, -388)
-    note:SetPoint("TOPRIGHT", -18, -388)
+    note:SetPoint("TOPLEFT", 18, -420)
+    note:SetPoint("TOPRIGHT", -18, -420)
     note:SetJustifyH("LEFT")
     note:SetText("Offline inventory is a last-seen snapshot. Log into each character and visit their bank once to update it.")
     frame:SetScript("OnShow", UI.UpdateSettings)
@@ -342,7 +347,7 @@ function UI.ToggleSettings()
     else addon:Print("WoW's AddOns settings are unavailable on this client.") end
 end
 
-function UI.ShowReport(text)
+function UI.ShowReport(text, title)
     if not UI.report then
         local frame = CreateFrame("Frame", "WaylaidLedgerReportFrame", UIParent, "BasicFrameTemplateWithInset")
         frame:SetSize(640, 440)
@@ -363,6 +368,7 @@ function UI.ShowReport(text)
         scroll:SetScrollChild(edit)
         UI.report, UI.reportEdit = frame, edit
     end
+    UI.report.TitleText:SetText(title or "Waylaid Ledger - select and copy with Ctrl+C / Cmd+C")
     UI.reportEdit:SetText(text)
     UI.report:Show()
     UI.reportEdit:SetFocus()

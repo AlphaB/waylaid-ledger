@@ -3,9 +3,9 @@
 A standalone World of Warcraft: Forever addon that scans the auction house for
 Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The lowest known filling cost is highlighted in green for all price sources,
-including cached prices. Auctionator and TSM are optional price providers.
+including cached prices. Auctionator and TSM are optional price providers. Own scans support both crate and writ costs.
 
-Version **0.6.1** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.7.0** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -31,7 +31,9 @@ Version **0.6.1** · Forever **1.60.1 / interface 16001** · No addon dependenci
    compare its options. `/wll settings` changes price preferences.
    `/wll controls` opens the original scan and diagnostic controls.
 
-**Scan all** searches 96 materials. Requests run as soon as the server is ready,
+**Scan all** searches **424 unique item IDs**, including writs, crates, and delivery goods.
+**Scan writs** covers 300 IDs; **scan crates** covers 126. Filter a list before
+pressing Refresh to scan a smaller subset. Requests run as soon as the server is ready,
 with a 0.05s courtesy gap and at most 100 requests per rolling 60.1s window.
 Pagination, server latency, and other addons affect elapsed time. Fresh prices
 are reused by automatic refresh; manual scans deliberately refresh their scope. Prices
@@ -89,7 +91,7 @@ page's **Scan controls** button; there is no separate settings popup.
 Bag snapshots update on login and inventory changes. Character/shared bank
 snapshots update while the bank is open. Log into each alt and visit its bank
 once to seed the data. Offline characters show **last-seen** counts; WoW cannot
-read their changing inventories live. Only crate/material counts are stored.
+read their changing inventories live. Only known crate/writ and delivery-item counts are stored.
 Snapshots are restricted to the same region/realm/faction/project; shared-bank
 items are counted once. `/wll inventory` shows snapshot timestamps. Settings can
 clear remembered inventory without clearing prices.
@@ -136,26 +138,37 @@ A completed scan showing insufficient stock excludes that alternative. A crate
 with no priced filling option cannot launch a basket until prices are available.
 Writ objectives are cumulative and always use their full delivery quantities.
 
-Purchase quotes always come from Auctionator/TSM, adding **no own-scan queries**.
-Crate purchase quotes use Auto provider priority even if crate delivery is set to
-Own. Writ purchase and delivery both follow the separate writ source preference.
-The selected TSM key applies to both purchase and delivery provider estimates.
-Custom profiles disable external prices and therefore cannot show complete totals.
+Purchase quotes and delivery costs now use the same selected source policy,
+including quantity-aware own scans. Writs have their own Auto/Own/Auctionator/TSM/
+Off preference. Auto uses fresh own snapshots first, then optional providers.
+Custom market profiles can use complete own-scan totals; external estimates stay
+disabled there. Buying a whole item stack can cost more than one unit, and own
+quotes include that actual outlay.
 
 The list uses Blizzard's native auction-style ScrollBox and scrollbar, framed
 column headers, compact striped rows, and recycled visible item buttons.
-Search filters item names and required goods. **Refresh** rereads prices already
-saved by Auctionator/TSM and reuses our own saved scan snapshots, according to
-the selected source. It recalculates delivery choices and purchase + delivery
-totals, then sorts the active list again while retaining its filter and scroll
-position. It does **not** query the live AH, start a scan, or make Auctionator/TSM
-collect new data. Run an Auctionator scan first to obtain new provider prices,
-or use `/wll controls` for our crate-material scans. If saved data has not
-changed, Refresh can show the same amounts. Its hover tooltip explains this. Auctionator database updates and our scan updates
-refresh the visible list automatically. Hidden lists do not poll or read prices.
-Hover a row for the price breakdown and provenance. Totals are acquisition
-estimates, not profits: rewards, owned stock, AH fees and travel are not deducted.
-Cached provider prices do not prove that auctions are currently available.
+Search filters item names and required goods. **Refresh** starts a fresh own scan
+for the **current filtered list**: each writ/crate itself and every corresponding
+delivery item. Crates scan all alternatives so the cheapest can be chosen. IDs
+are deduplicated; shared goods are queried once. Even fresh items are rescanned
+on explicit Refresh. The button becomes **Stop**, with progress shown beside it.
+No matching rows means no queries. Old snapshots remain until replaced by a
+completed result; failures do not turn into invented zero prices.
+
+By default, if Auctionator's supported API is available, a completed Refresh then
+opens **Auctionator Shopping** and searches the **same frozen item scope** using
+exact localized names. This updates prices through Auctionator's normal shopping
+searches, not a full-house scan. In official settings, **Refresh: Own + Auctionator**
+can be switched to **Refresh: Own scan**. Queries are sequential, never parallel.
+Stop, AH closure, market changes or competing queries cancel pending handoffs.
+Use Auto or Own to display the own scan; forced providers retain their own data.
+
+TSM's released public API exposes prices/groups but no scan-start function. The
+**TSM group export** settings button or `/wll tsmexport [writs|crates|all]` copies
+an item-list import for the current filtered scope. Import it in TSM and manually
+run that group's Shopping scan. TSM controls import/group membership choices and
+its own pricing databases; a group scan does not guarantee a DBMarket update.
+We do not call internal TSM modules or alter TSM SavedVariables.
 
 Clicking a row opens Auctionator's **Shopping** tab with exact-name searches for
 **one writ/crate plus the required delivery goods**. A crate includes exactly
@@ -172,15 +185,15 @@ from Wowhead's Forever quest objectives. Most need one item; Crafted Solid Shot
 requires **200**. These are delivery costs, excluding the writ's own purchase
 price, crafting reagents, quest rewards, and owned inventory deductions.
 
-The writ catalog has **150 distinct delivery items**, of which **148** are absent
-from the 96-item crate scan. Adding them would expand a full scan to **244** items.
-Writs therefore use **Auctionator/TSM only** and add **zero** own-scan queries.
-No provider data means "No price". Estimates do not establish available stock.
+The writ catalog has **150 distinct delivery items**. Complete writ scans add
+150 writ tokens for **300 IDs**. Crates add 30 crate tokens to 96 goods for
+**126 IDs**. Two delivery items overlap, so the combined queue is **424**, not
+426. The shared 100-request rolling limit still applies; full scans can take
+several minutes. Filtering is the fastest way to refresh only relevant entries.
 
-The separate **Writ prices** settings button cycles **Auto / Auctionator / TSM /
+The separate **Writ prices** settings button cycles **Auto / Own / Auctionator / TSM /
 Off**. Auto prefers usable Auctionator data, then TSM, then known-old Auctionator
-data in gray. Writ settings are independent of the crate source; selecting Own
-for crates does not disable writ estimates. Custom market profiles disable
+data in gray. Writ settings are independent of the crate source. Custom market profiles disable
 external writ estimates just as they do for crates. Hold Shift for details.
 Unidentified sealed writ containers have no known requirements and are not priced.
 
@@ -233,9 +246,9 @@ See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) for the reviewed API contracts.
 | --- | --- |
 | `/wll` | At AH: last used list tab; elsewhere: scan window |
 | `/wll controls` | Open the standalone scan and diagnostic controls |
-| `/wll scan bags` | Scan materials for recognized crates in equipped bags |
+| `/wll scan bags` | Scan purchases and goods for recognized crates/writs in equipped bags |
 | `/wll scan hovered` | Scan the last recognized crate you hovered |
-| `/wll scan tracked` | Scan materials for remembered bag/bank/alt crates |
+| `/wll scan tracked` | Scan purchases and goods for remembered bag/bank/alt crates and writs |
 | `/wll settings` | Configure inventory, refresh, minimap, details, and writs |
 | `/wll inventory` | Show last-seen inventory snapshot timestamps |
 | `/wll minimap on` | Show button (`off` hides it) |
@@ -245,8 +258,14 @@ See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) for the reviewed API contracts.
 | `/wll scanopen on` | Auto-scan missing/stale crate prices on AH open (`off` disables it) |
 | `/wll autoscan on` | Refresh tracked prices in the AH panel (`off` disables it) |
 | `/wll details on` | Always show tooltip details (`off` uses Shift) |
-| `/wll writsource auto` | Writ estimates: auto, auctionator, tsm, or off |
-| `/wll scan all` | Scan all 96 catalogued materials |
+| `/wll writsource auto` | Writ prices: auto, own, auctionator, tsm, or off |
+| `/wll scan all` | Scan all 424 unique catalogued items |
+| `/wll scan writs` | Scan 300 writ purchase/delivery IDs |
+| `/wll scan crates` | Scan 126 crate purchase/delivery IDs |
+| `/wll refresh writs` | Scan the filtered writ list, optionally followed by Auctionator |
+| `/wll auctionscan writs` | Start only the scoped Auctionator Shopping search |
+| `/wll tsmexport writs` | Copy a scoped TSM group import; scan it manually in TSM |
+| `/wll auctionatorfollowup off` | Disable the Auctionator follow-up (`on` enables it) |
 | `/wll source auto` | Fresh own scans, then Auctionator, then TSM estimates |
 | `/wll source auctionator` | Use only Auctionator estimates |
 | `/wll source tsm` | Use only TSM estimates |
@@ -329,8 +348,8 @@ depth, indivisible auctions, randomized exhaustive cross-checks, stale/unknown
 results, pagination, throttling, retry timeouts, interruptions, owned-stock
 filtering, profile isolation, full bootstrap, tooltip text, provider priorities,
 source settings, API errors, price-age semantics, callbacks, and shopping handoff.
-The default suite has 108 tests. Two additional contract tests run the actual
-unmodified public API Lua from separately downloaded release ZIPs (110 total):
+The default suite has 122 tests. Three additional contract tests run the actual
+unmodified public API Lua from separately downloaded release ZIPs (125 total):
 
 ```sh
 python3 tests/run.py --auctionator /path/to/Auctionator-347.zip --tsm /path/to/TradeSkillMaster.zip
@@ -367,3 +386,7 @@ legacy Argent Dawn writs and never guesses quest/item mappings or quantities.
 CI rebuilds both catalogs, runs the default suite, and uploads the clean install
 ZIP as the **WaylaidLedger-install** artifact. `python3 tools/package.py` builds
 the same single-folder archive locally.
+
+The editable data catalogs and generated runtime tables are explained in
+[docs/CATALOG.md](docs/CATALOG.md), including OR crate alternatives, AND writ
+objectives, scan deduplication, and the separate persisted price cache.

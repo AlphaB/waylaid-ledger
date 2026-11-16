@@ -74,6 +74,7 @@ function Tooltip.Append(tooltip, itemID)
         tooltip:AddLine("Identify this shipment first to compare its filling costs.", 0.75, 0.75, 0.75, true)
         return
     end
+    addon.lastContractID = itemID
     if writ then
         addon.lastWritID = itemID
         local rows, total = addon.WritPricing.Rows(itemID)

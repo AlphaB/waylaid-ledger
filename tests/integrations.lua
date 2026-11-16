@@ -20,7 +20,7 @@ local function reset()
     addon.db.source, addon.db.tsmKey, addon.db.profile = "auto", "DBMinBuyout", "default"
     local market = addon:GetMarket()
     market.items, market.failures = {}, {}
-    addon.lastCrateID, addon.UI.selectedCrateID, addon.UI.optionIndex = nil, nil, nil
+    addon.lastCrateID, addon.lastContractID, addon.UI.selectedCrateID, addon.UI.optionIndex = nil, nil, nil, nil
     addon.scanner:SetOpen(true)
 end
 
@@ -128,7 +128,7 @@ test("provider cache is short-lived, caches misses and invalidates on DB updates
     Providers.Read("auctionator",2);Providers.Read("auctionator",2);equal(f.reads,4)
     GetTime=originalTime
 end)
-test("list Refresh rereads provider prices, recalculates sorting and never scans or clears own snapshots",function()
+test("list Refresh invalidates provider cache and starts an own scan without clearing snapshots",function()
     reset();local oldWrit=addon.db.writSource;addon.db.writSource="auto"
     local prices={[264050]=100,[4245]=400,[264037]=40,[8069]=3}
     fakeAuctionator(prices)
@@ -144,9 +144,9 @@ test("list Refresh rereads provider prices, recalculates sorting and never scans
     equal(view.visibleEntries[1].itemID,264037);equal(view.visibleEntries[1].total,640)
     equal(view.visibleEntries[2].itemID,264050);equal(view.visibleEntries[2].total,1000)
     equal(view.scroll.retainScrollPosition,true)
-    equal(#addon.scanner.requests,before);equal(addon.scanner.active,false)
+    assert(#addon.scanner.requests>=before);equal(addon.scanner.active,true);equal(#addon.scanner.queue,300)
     equal(addon:GetMarket().items[2770],snapshot)
-    frame:Hide();addon.BrowseUI.views.writs=nil;addon.db.writSource=oldWrit
+    addon:StopScan();frame:Hide();addon.BrowseUI.views.writs=nil;addon.db.writSource=oldWrit
 end)
 test("replacement provider API and market context invalidate cached values",function()
     reset();fakeAuctionator({[1]=10});equal(Providers.Read("auctionator",1).unitPrice,10)
@@ -288,7 +288,7 @@ end)
 test("diagnostics include provider policy, per-row provenance, and API errors",function()
     reset();fakeAuctionator({[2770]=5});addon.lastCrateID=248683
     local report=addon:Report()
-    assert(report:match("0.6.1"));assert(report:match("Price policy: auto"))
+    assert(report:match("0.7.0"));assert(report:match("Price policy: auto"))
     assert(report:match("source=auctionator estimated=true ageDays=0"))
     Providers.errors.tsm="not ready";report=addon:Report();assert(report:match("TSM last error: not ready"))
 end)

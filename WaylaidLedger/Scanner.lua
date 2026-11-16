@@ -47,7 +47,7 @@ function Scanner:Start(itemIDs)
         return false, "A scan is already running. Stop it before starting another."
     end
     if #itemIDs == 0 then
-        return false, "No recognized crates found. Use Scan all or hover a crate first."
+        return false, "No matching writs or crates to scan."
     end
     self.queue, self.index, self.completed, self.failed = {}, 1, 0, 0
     local seen = {}
@@ -157,11 +157,31 @@ function Scanner:Tick()
         return
     end
     local action = pending.action
+    if action == "search" and (self.api.GetItemKeyInfo or self.runtime.isEquipment) and not pending.infoChecked then
+        local ok, info = true, nil
+        if self.api.GetItemKeyInfo then ok, info = pcall(self.api.GetItemKeyInfo, pending.key) end
+        if not ok then self:Fail("Could not read item classification: " .. tostring(info)); return end
+        if not info and self.runtime.isEquipment then
+            local classified, equipment = pcall(self.runtime.isEquipment, pending.itemID)
+            if not classified then self:Fail("Could not classify item: " .. tostring(equipment)); return end
+            if equipment ~= nil then info = { isEquipment = equipment } end
+        end
+        if not info then
+            if not pending.metadataRequested and self.runtime.loadItem then
+                self.runtime.loadItem(pending.itemID)
+                pending.metadataRequested = true
+            end
+            return -- Wait for classification; do not mistake unqueried gear for sold out.
+        end
+        pending.infoChecked = true
+        pending.searchMethod = info.isEquipment and "SendSellSearchQuery" or "SendSearchQuery"
+        if not self.api[pending.searchMethod] then self:Fail("Required equipment search API unavailable."); return end
+    end
     -- Set the state before sending: event callbacks may run synchronously.
     pending.action, pending.sentAt = nil, now
     local ok, errorMessage
     if action == "search" then
-        ok, errorMessage = self:Send("SendSearchQuery", pending.key, {}, true)
+        ok, errorMessage = self:Send(pending.searchMethod or "SendSearchQuery", pending.key, {}, true)
     elseif pending.kind == "commodity" then
         ok, errorMessage = self:Send("RequestMoreCommoditySearchResults", pending.itemID)
     else

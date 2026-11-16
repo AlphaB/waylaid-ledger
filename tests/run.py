@@ -27,6 +27,7 @@ try:
     if args.tsm:
         with zipfile.ZipFile(args.tsm) as archive:
             lua.globals().UPSTREAM_TSM = archive.read('TradeSkillMaster/App/API.lua').decode()
+            lua.globals().UPSTREAM_TSM_GROUP_IMPORT = archive.read('TradeSkillMaster/LibTSMTypes/Source/ImportExport/GroupImport.lua').decode()
     lua.execute((root / 'tests/spec.lua').read_text(), name='tests/spec.lua')
 except Exception as error:
     print(error, file=sys.stderr)

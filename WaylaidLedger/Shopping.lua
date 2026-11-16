@@ -1,18 +1,14 @@
 local _, addon = ...
 
--- Browse complete acquisition baskets. Purchase prices are provider estimates;
--- own scans continue to cover only the existing crate-delivery material catalog.
+-- Complete acquisition baskets share the same source policy for the contract
+-- purchase and finished delivery goods, including quantity-aware own scans.
 addon.Shopping = {}
 local Shopping = addon.Shopping
 
 local function purchaseQuote(kind, itemID)
-    local mode = kind == "writs" and addon.db.writSource or "auto"
+    local mode = kind == "writs" and addon.db.writSource or addon.db.source
     if mode == "off" then return nil end
-    local rows = addon.Pricing.Resolve({ options = {{ itemID = itemID, quantity = 1 }} },
-        {}, time(), addon.db.maxAge, {}, mode, function(source, id)
-            if addon.db.profile == "default" then return addon.Providers.Read(source, id) end
-        end)
-    return rows[1]
+    return addon:ResolveRows({{ itemID = itemID, quantity = 1 }}, mode)[1]
 end
 
 function Shopping.Entry(kind, itemID)

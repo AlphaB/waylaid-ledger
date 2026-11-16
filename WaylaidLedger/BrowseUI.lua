@@ -112,7 +112,10 @@ function Browse.Render(view)
     end
     view.visibleEntries = visible
     view.scroll:SetDataProvider(CreateDataProvider(visible), true)
-    view.summary:SetText(string.format("%d priced / %d items", priced, #visible))
+    if addon.scanner.active then
+        view.summary:SetText(string.format("Scanning %d/%d", addon.scanner.index, #addon.scanner.queue))
+    else view.summary:SetText(string.format("%d priced / %d items", priced, #visible)) end
+    view.refreshButton:SetText(addon.scanner.active and "Stop" or "Refresh")
     view.empty:SetShown(#visible == 0)
     Browse.Layout(view)
 end
@@ -151,13 +154,16 @@ function Browse.Create(host, kind)
     view.summary:SetPoint("TOPLEFT", 255, -13)
     local refresh = CreateFrame("Button", nil, host, "UIPanelButtonTemplate")
     refresh:SetSize(75, 22); refresh:SetPoint("TOPRIGHT", -100, -8); refresh:SetText("Refresh")
-    refresh:SetScript("OnClick", function() addon.Providers.Invalidate(); Browse.Refresh(view) end)
+    refresh:SetScript("OnClick", function()
+        if addon.scanner.active then addon:StopScan() else addon:RefreshList(view) end
+    end)
     refresh:SetScript("OnEnter", function(self)
         if not GameTooltip then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine("Refresh list", 1, 0.82, 0)
-        GameTooltip:AddLine("Recalculate using saved scans and Auctionator/TSM prices.", 1, 1, 1, true)
-        GameTooltip:AddLine("Does not start an auction-house scan.", 0.7, 0.7, 0.7, true)
+        GameTooltip:AddLine("Scan the filtered list, its purchase items and all delivery goods.", 1, 1, 1, true)
+        GameTooltip:AddLine(addon.db.refreshAuctionator and "Then open a limited Auctionator Shopping search when available."
+            or "Own scanner only. Auctionator follow-up is configurable in Settings.", 0.7, 0.7, 0.7, true)
         GameTooltip:Show()
     end)
     refresh:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
