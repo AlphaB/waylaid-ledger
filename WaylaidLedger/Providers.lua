@@ -1,7 +1,7 @@
 local _, addon = ...
 local L = addon.L
 
--- Optional-addon adapters use only the released public APIs. Provider values
+-- Price and shopping adapters use released public APIs. Provider values
 -- are estimates, never fabricated order-book snapshots or exact scan times.
 addon.Providers = { cache = {}, errors = {}, boundAPI = nil }
 local Providers = addon.Providers
@@ -98,39 +98,146 @@ function Providers.Read(source, itemID)
     return value
 end
 
+local processUpdates
+local function wake()
+    if not Providers.frame then
+        Providers.frame = CreateFrame("Frame")
+    end
+    Providers.frame:SetScript("OnUpdate", processUpdates)
+end
+
+function Providers.ScheduleRefresh()
+    Providers.refreshAt = GetTime() + 0.25
+    wake()
+end
+
+function Providers.BeginExternalScan()
+    if Providers.scan then
+        return
+    end
+    Providers.scan = { updatedAt = GetTime() }
+    addon.autoPaused, addon.autoDue, addon.autoReason = true, nil, nil
+    addon.pendingProviderScan, addon.providerDue = nil, nil
+    if addon.scanner and addon.scanner.active then
+        addon:StopScan()
+    end
+    if addon.UpdateScheduler and addon.scanner then
+        addon:UpdateScheduler()
+    end
+    if addon.Discovery and addon.Discovery.frame then
+        addon.Discovery.frame:SetScript("OnUpdate", nil)
+    end
+    if addon.BrowseUI then
+        addon.BrowseUI.UpdateScanStatus()
+    end
+    wake()
+end
+
+function Providers.EndExternalScan()
+    if not Providers.scan then
+        return
+    end
+    Providers.scan = nil
+    Providers.Invalidate()
+    -- One retry after the item-data stream has settled, never an own AH query.
+    if addon.Discovery then
+        addon.Discovery.Retry(true)
+    end
+    if addon.BrowseUI then
+        addon.BrowseUI.UpdateScanStatus()
+    end
+    Providers.ScheduleRefresh()
+end
+
+processUpdates = function()
+    if Providers.scan then
+        -- Compatibility fallback for missing completion/failure events. Never
+        -- restart an automatic own scan when the external scan ends or times out.
+        if GetTime() - Providers.scan.updatedAt > 120 then
+            Providers.EndExternalScan()
+        end
+        return
+    end
+    if Providers.refreshAt and GetTime() < Providers.refreshAt then
+        return
+    end
+    if addon.BulkScan and addon.BulkScan.engine and addon.BulkScan.engine.job then
+        return
+    end
+    Providers.frame:SetScript("OnUpdate", nil)
+    Providers.refreshAt = nil
+    if addon.Tooltip then
+        addon.Tooltip.Refresh()
+    end
+    if addon.UI then
+        addon.UI.Update()
+    end
+end
+
 function Providers.Install()
     local api = auctionatorAPI()
     if api and Providers.boundAPI ~= api and type(api.RegisterForDBUpdate) == "function" then
         local ok, errorMessage = pcall(api.RegisterForDBUpdate, CALLER, function()
             Providers.Invalidate()
-            -- Shopping scans can update the database repeatedly. Prices do not
-            -- change delivery descriptions; only redraw once the burst settles.
-            Providers.refreshAt = GetTime() + 0.25
-            if not Providers.frame then
-                Providers.frame = CreateFrame("Frame")
+            -- Older Auctionator builds expose only the public DB callback.
+            if not Providers.boundScanBus then
+                Providers.EndExternalScan()
             end
-            Providers.frame:SetScript("OnUpdate", function()
-                if GetTime() < Providers.refreshAt then
-                    return
-                end
-                if addon.BulkScan and addon.BulkScan.engine and addon.BulkScan.engine.job then
-                    return
-                end
-                Providers.frame:SetScript("OnUpdate", nil)
-                Providers.refreshAt = nil
-                if addon.Tooltip then
-                    addon.Tooltip.Refresh()
-                end
-                if addon.UI then
-                    addon.UI.Update()
-                end
-            end)
+            Providers.ScheduleRefresh()
         end)
         if ok then
             Providers.boundAPI = api
         else
             Providers.errors.auctionator = "Update callback: " .. tostring(errorMessage)
         end
+    end
+    -- Optional, guarded compatibility adapter: Auctionator's public DB callback
+    -- has no progress payload. Its scan event bus supplies progress and failure
+    -- without reading, copying or retaining the raw auction snapshot.
+    local bus = type(Auctionator) == "table" and Auctionator.EventBus
+    local fullScan = type(Auctionator) == "table" and Auctionator.FullScan
+    local events = type(fullScan) == "table" and fullScan.Events
+    if
+        type(bus) ~= "table"
+        or type(bus.Register) ~= "function"
+        or type(events) ~= "table"
+        or Providers.boundScanBus == bus
+    then
+        return
+    end
+    for _, key in ipairs({ "ScanStart", "ScanProgress", "ScanComplete", "ScanFailed" }) do
+        if type(events[key]) ~= "string" then
+            return
+        end
+    end
+    local listener = {
+        ReceiveEvent = function(_, event, progress)
+            if event == events.ScanStart then
+                Providers.BeginExternalScan()
+            elseif event == events.ScanProgress and Providers.scan then
+                Providers.scan.updatedAt = GetTime()
+                if type(progress) == "number" and progress == progress then
+                    local percent = math.floor(math.max(0, math.min(1, progress)) * 100)
+                    if percent ~= Providers.scan.percent then
+                        Providers.scan.percent = percent
+                        if addon.BrowseUI then
+                            addon.BrowseUI.UpdateScanStatus()
+                        end
+                    end
+                end
+            elseif event == events.ScanComplete or event == events.ScanFailed then
+                Providers.EndExternalScan()
+            end
+        end,
+    }
+    local ok = pcall(
+        bus.Register,
+        bus,
+        listener,
+        { events.ScanStart, events.ScanProgress, events.ScanComplete, events.ScanFailed }
+    )
+    if ok then
+        Providers.boundScanBus = bus
     end
 end
 

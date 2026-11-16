@@ -39,6 +39,8 @@ try:
                 "Source/API/v1/GetAuctionAge.lua",
                 "Source/API/v1/MultiSearch.lua",
                 "Source_ModernAH/API/v1/RegisterForDBUpdate.lua",
+                "Source/Utilities/EventBusMixin.lua",
+                "Source_ModernAH/FullScan/Events.lua",
             ]
             lua.globals().UPSTREAM_AUCTIONATOR = lua.table_from(
                 {name: archive.read("Auctionator/" + name).decode() for name in names}

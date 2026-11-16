@@ -8,6 +8,8 @@ local Locales = addon.DiscoveryLocales
 local BATCH, BUDGET_MS = 5, 2
 local queue, queued, cursor = {}, {}, 1
 local retryRequested, dirty = false, false
+local waveDone, waveTotal = 0, 0
+local requested = {}
 local retryAt
 local QUIET_SECONDS = 0.25
 local reading, tooltipItems, itemTooltips = {}, {}, {}
@@ -22,6 +24,10 @@ end
 
 local function enqueue(itemID)
     if not queued[itemID] then
+        if #queue == 0 then
+            waveDone, waveTotal = 0, 0
+        end
+        waveTotal = waveTotal + 1
         queue[#queue + 1], queued[itemID] = itemID, true
     end
     wake()
@@ -310,12 +316,14 @@ function Discovery.Read(itemID, data)
         itemTooltips[itemID] = nil
     end
     if not data then
-        if C_Item and C_Item.RequestLoadItemDataByID then
+        if not requested[itemID] and C_Item and C_Item.RequestLoadItemDataByID then
+            requested[itemID] = true
             C_Item.RequestLoadItemDataByID(itemID)
         end
         reading[itemID] = nil
         return false
     end
+    requested[itemID] = nil
     local definitions = kind == "crates" and addon.Crates or addon.Writs
     local definition = definitions[itemID]
     local requirements, reason = Discovery.Parse(data.lines, kind, itemID)
@@ -335,11 +343,26 @@ function Discovery.Read(itemID, data)
             return false
         end
         Discovery.pending[itemID] = true
-        definition.unresolved, definition.reason = true, reason
-        -- A changed, incomplete live description must not retain old quantities.
-        definition[kind == "crates" and "options" or "requirements"] = {}
-        definition[kind == "crates" and "requirements" or "options"] = nil
-        return false
+        local changed = not definition.unresolved or definition.reason ~= reason or (known and #known > 0)
+        if changed then
+            definition.unresolved, definition.reason = true, reason
+            -- A changed, incomplete live description must not retain old quantities.
+            definition[kind == "crates" and "options" or "requirements"] = {}
+            definition[kind == "crates" and "requirements" or "options"] = nil
+        end
+        return false, changed
+    end
+    local known = definition[kind == "crates" and "options" or "requirements"] or {}
+    local changed = definition.unresolved or definition.fallback or #known ~= #requirements
+    for index, requirement in ipairs(requirements) do
+        local old = known[index]
+        if not old or old.itemID ~= requirement.itemID or old.quantity ~= requirement.quantity then
+            changed = true
+        end
+    end
+    Discovery.pending[itemID] = nil
+    if not changed then
+        return true, false
     end
     definition[kind == "crates" and "options" or "requirements"] = requirements
     definition[kind == "crates" and "requirements" or "options"] = nil
@@ -353,7 +376,11 @@ function Discovery.Read(itemID, data)
         end
     end
     Discovery.pending[itemID] = nil
-    return true
+    return true, true
+end
+
+function Discovery.Progress()
+    return waveDone, waveTotal
 end
 
 -- Events only request work. A full scan can load thousands of unrelated items;
@@ -430,6 +457,10 @@ function Discovery.Prune()
 end
 
 process = function()
+    if addon.Providers and addon.Providers.scan then
+        Discovery.frame:SetScript("OnUpdate", nil)
+        return
+    end
     -- Plain-name requirements need the complete market name index first.
     local job = addon.BulkScan and addon.BulkScan.engine and addon.BulkScan.engine.job
     if job and not job.resolving then
@@ -451,15 +482,19 @@ process = function()
         local itemID = queue[cursor]
         cursor = cursor + 1
         if Discovery.pending[itemID] then
-            Discovery.Read(itemID)
+            local _, changed = Discovery.Read(itemID)
             Discovery.progress = Discovery.progress + 1
-            dirty = true
+            dirty = dirty or changed
             attempts = attempts + 1
         end
         queued[itemID] = nil
+        waveDone = waveDone + 1
         if started and debugprofilestop() - started >= BUDGET_MS then
             break
         end
+    end
+    if job and job.resolving and addon.BrowseUI then
+        addon.BrowseUI.UpdateScanStatus()
     end
     if cursor <= #queue or retryRequested then
         -- Events can arrive between batches. Do not retain an ever-growing
@@ -559,6 +594,12 @@ function Discovery.Install()
         frame:RegisterEvent(event)
     end
     frame:SetScript("OnEvent", function(_, event, itemID, success)
+        -- Auctionator may load every AH item and update tooltips repeatedly.
+        -- Keep our discovery idle until its completion callback, even when its
+        -- row loop finishes before its price database has been processed.
+        if addon.Providers and addon.Providers.scan then
+            return
+        end
         if event == "ITEM_DATA_LOAD_RESULT" then
             if not success then
                 return

@@ -54,6 +54,38 @@ local function fakeAuctionator(prices)
     return state
 end
 
+test("older Auctionator scans finish through the public callback or timeout without starting our scanner", function()
+    reset()
+    local f = fakeAuctionator({})
+    local oldTime, oldBus = GetTime, Providers.boundScanBus
+    local now = 0
+    GetTime = function()
+        return now
+    end
+    Providers.boundScanBus = nil
+    local ok, err = pcall(function()
+        Auctionator.FullScan = true -- Unsupported progress adapter must be harmless.
+        Providers.Install()
+        addon.autoReason, addon.autoDue = "open", 2
+        Providers.BeginExternalScan()
+        assert(Providers.scan)
+        equal(addon.autoDue, nil)
+        f.callback()
+        equal(Providers.scan, nil)
+        equal(addon.scanner.active, false)
+        Providers.BeginExternalScan()
+        now = 121
+        Providers.frame.scripts.OnUpdate()
+        equal(Providers.scan, nil)
+        equal(addon.autoDue, nil)
+        equal(addon.autoPaused, true)
+    end)
+    Providers.scan, Providers.refreshAt = nil, nil
+    Providers.frame:SetScript("OnUpdate", nil)
+    GetTime, Providers.boundScanBus = oldTime, oldBus
+    assert(ok, err)
+end)
+
 test("auto resolver prefers fresh depth scans and preserves observed shortages", function()
     local queries = 0
     local rows, known = resolve(

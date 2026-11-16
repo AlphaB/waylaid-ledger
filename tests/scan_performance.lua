@@ -99,7 +99,7 @@ local baseline = collectgarbage("count")
 local peak, elapsed = baseline, 0
 for _ = 1, 3 do
     local started = os.clock()
-    api.ReplicateItems()
+    scanner:Start({})
     local frame = addon.BulkScan.engine.frame
     frame.scripts.OnEvent(frame, "REPLICATE_ITEM_LIST_UPDATE")
     local ticks = 0

@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The lowest known filling cost is highlighted in green for all price sources,
 including cached prices. Auctionator and TSM are optional price providers. Own scans support both crate and writ costs.
 
-Version **0.8.0** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.8.1** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -132,12 +132,15 @@ Snapshots are restricted to the same region/realm/faction/project; shared-bank
 items are counted once. `/wll inventory` shows snapshot timestamps. Settings can
 clear remembered inventory without clearing prices.
 
-With Auto or Own selected, opening a Waylaid list refreshes missing or stale
-prices for that category. This does not depend on inventory tracking. **Stop**
-pauses automatic refresh for the current AH visit; a manual refresh or reopening
-the AH enables it again. Starting another auction search stops our queue. There
-are no auction queries away from the AH. The old tracked-refresh checkbox has
-been removed because active-list scanning supersedes it.
+Opening or switching Waylaid tabs only displays saved/provider prices. Missing
+prices and unresolved descriptions never start a scan just because a list is
+visible. Click **Refresh** to scan explicitly. The legacy tracked-refresh
+preference no longer schedules work. There are no auction queries away from
+the AH.
+
+While Auctionator's autoscan is active, Waylaid pauses its discovery work and
+uses Auctionator's prices after completion. It does not read or copy that scan's
+auction rows, and cancels any pending own automatic scan for that AH visit.
 
 ### Scan when opening the auction house
 
@@ -191,12 +194,15 @@ stock/depth scans keep priority until stale. No matching rows means no queries.
 Old snapshots remain until replaced by a completed result; failures do not turn
 into invented zero prices.
 
-The button becomes **Stop** while Waylaid scans or processes a shared snapshot.
-Progress shows **Full scan: waiting**, **Shared scan: waiting**, or an actual
-**Auctions N/M** count. An Auctionator full scan is reused without sending a
-second request. Stop cancels Waylaid's processing; it does not stop another addon's
-scan. Detailed scans show **Items N/M**. Only the status text is updated during
-snapshot processing, preserving the list and scroll position.
+The button becomes **Stop** during Waylaid's own scan. Progress shows
+**Full scan: waiting**, **Auctions N/M**, and **Descriptions N/M** while resolving
+deliveries. Detailed scans show **Items N/M**. Status updates preserve the list
+and scroll position.
+
+During Auctionator scans, the list displays **Auctionator: N%** from its scan
+progress events. Refresh is disabled until completion or failure; Waylaid cannot
+stop another addon's scan. Older builds without progress events show a waiting
+message. Completion refreshes prices once; switching tabs never restarts scanning.
 
 Clients without replication support retain filtered per-item Refresh scans and
 an optional Auctionator follow-up controlled by `/wll auctionatorfollowup on|off`.
@@ -297,7 +303,7 @@ Use `/wll scan deep` for detailed stock/stack checks across all catalogued items
 | `/wll banks on` | Include visited banks (`off` excludes them) |
 | `/wll alts on` | Include remembered alts (`off` excludes them) |
 | `/wll scanopen on` | Auto-scan missing/stale crate prices on AH open (`off` disables it) |
-| `/wll autoscan on` | Legacy tracked-refresh preference; active-list scanning is automatic in Auto/Own |
+| `/wll autoscan on` | Legacy preference; no longer starts scans on tab changes |
 | `/wll details on` | Always show tooltip details (`off` uses Shift) |
 | `/wll writsource auto` | Writ prices: auto, own, auctionator, tsm, or off |
 | `/wll scan all` | Scan all 424 unique catalogued items |
@@ -348,8 +354,8 @@ Please start with a small test:
    Check the minimap button and settings dropdowns. Away from the AH, left-click
    should open settings without a scan popup. During a full scan, check that
    progress uses auction counts and returns to priced/item counts afterward.
-   If using Auctionator, repeat with its full scan and verify the shared progress.
-   Type `/wll debug`, then `/wll scan bags`. Check that Stop pauses auto refresh.
+   If using Auctionator, repeat with its full scan and verify its percentage, stable rows, and no own scan on tab switches.
+   Type `/wll debug`, then `/wll scan bags`. Check that Stop cancels our scan.
 4. After completion, hover the crate. Check one listed material manually in the
    auction house, including enough units to fill the crate.
 5. Close the auction house and hover again. `/reload` and verify cached prices
@@ -399,8 +405,8 @@ depth, indivisible auctions, randomized exhaustive cross-checks, stale/unknown
 results, pagination, throttling, retry timeouts, interruptions, owned-stock
 filtering, profile isolation, full bootstrap, tooltip text, provider priorities,
 source settings, API errors, price-age semantics, callbacks, and shopping handoff.
-The default suite has 202 tests. Three additional contract tests run the actual
-unmodified public API Lua from separately downloaded release ZIPs (205 total):
+The default suite has 206 tests. Four additional contract tests run the actual
+unmodified provider API and Auctionator event-bus Lua from separately downloaded release ZIPs (210 total):
 
 ```sh
 python3 tests/run.py --auctionator /path/to/Auctionator-347.zip --tsm /path/to/TradeSkillMaster.zip

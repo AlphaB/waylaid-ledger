@@ -80,15 +80,6 @@ function UI.SelectBrowserTab(kind)
     if not UI.auctionHosts or not UI.auctionHosts[kind] then
         return
     end
-    if
-        addon.scanAutomatic
-        and not addon.scanOnOpen
-        and addon.scanner.active
-        and ((addon.scanBrowser and addon.db.browserTab ~= kind) or (not addon.scanBrowser and kind == "writs"))
-    then
-        addon:StopScan(L["Automatic refresh paused after changing category."])
-        addon.autoPaused = false
-    end
     addon.db.browserTab = kind
     UI.switchingBrowser = true
     for category, page in pairs(UI.auctionHosts) do
@@ -101,12 +92,6 @@ function UI.SelectBrowserTab(kind)
     end
     UI.switchingBrowser = false
     addon.BrowseUI.Refresh(addon.BrowseUI.views[kind])
-    if kind == "crates" then
-        addon:RequestAutoScan()
-    else
-        pausePanelScan()
-    end
-    addon:RequestBrowseScan()
     addon.Navigation.RefreshView(addon.BrowseUI.views[kind])
 end
 
@@ -318,7 +303,7 @@ function UI.RegisterSettings()
     )
     label(frame, "Display", 18, -202, 270, "GameFontNormal")
     label(frame, "Automatic scans", 18, -306, 270, "GameFontNormal")
-    label(frame, "Auto and Own scan missing prices in the open list.", 18, -378, 270, "GameFontDisableSmall")
+    label(frame, "Switching tabs uses saved prices. Click Refresh to scan.", 18, -378, 270, "GameFontDisableSmall")
     label(frame, "Inventory", 320, -54, 270, "GameFontNormal")
     for _, option in ipairs({
         {

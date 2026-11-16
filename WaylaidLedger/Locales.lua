@@ -1691,3 +1691,45 @@ addon.Locales.esMX["Scan purchases and delivery goods for the filtered list."] =
     addon.Locales.esES["Scan purchases and delivery goods for the filtered list."]
 addon.Locales.esMX["Loaded. /wll opens the auction list at the AH, or settings elsewhere."] =
     addon.Locales.esES["Loaded. /wll opens the auction list at the AH, or settings elsewhere."]
+
+-- External scans are observed only for status; tab switches never query the AH.
+addon.Locales.deDE["Another addon is scanning."] = "Ein anderes Addon scannt."
+addon.Locales.deDE["Descriptions %d/%d"] = "Beschreibungen %d/%d"
+addon.Locales.deDE["Switching tabs uses saved prices. Click Refresh to scan."] =
+    "Tabwechsel verwenden gespeicherte Preise. Zum Scannen Aktualisieren anklicken."
+addon.Locales.deDE["Auctionator: %d%%"] = "Auctionator: %d%%"
+addon.Locales.frFR["Another addon is scanning."] = "Un autre addon analyse les enchères."
+addon.Locales.frFR["Descriptions %d/%d"] = "Descriptions %d/%d"
+addon.Locales.frFR["Switching tabs uses saved prices. Click Refresh to scan."] =
+    "Changer d’onglet utilise les prix enregistrés. Cliquez sur Actualiser pour analyser."
+addon.Locales.frFR["Auctionator: %d%%"] = "Auctionator: %d%%"
+addon.Locales.esES["Another addon is scanning."] = "Otro addon está escaneando."
+addon.Locales.esES["Descriptions %d/%d"] = "Descripciones %d/%d"
+addon.Locales.esES["Switching tabs uses saved prices. Click Refresh to scan."] =
+    "Cambiar de pestaña usa precios guardados. Pulsa Actualizar para escanear."
+addon.Locales.esES["Auctionator: %d%%"] = "Auctionator: %d%%"
+addon.Locales.esMX["Another addon is scanning."] = "Otro addon está escaneando."
+addon.Locales.esMX["Descriptions %d/%d"] = "Descripciones %d/%d"
+addon.Locales.esMX["Switching tabs uses saved prices. Click Refresh to scan."] =
+    "Cambiar de pestaña usa precios guardados. Pulsa Actualizar para escanear."
+addon.Locales.esMX["Auctionator: %d%%"] = "Auctionator: %d%%"
+addon.Locales.ptBR["Another addon is scanning."] = "Outro addon está escaneando."
+addon.Locales.ptBR["Descriptions %d/%d"] = "Descrições %d/%d"
+addon.Locales.ptBR["Switching tabs uses saved prices. Click Refresh to scan."] =
+    "Trocar de aba usa preços salvos. Clique em Atualizar para escanear."
+addon.Locales.ptBR["Auctionator: %d%%"] = "Auctionator: %d%%"
+addon.Locales.ruRU["Another addon is scanning."] = "Другой аддон сканирует аукцион."
+addon.Locales.ruRU["Descriptions %d/%d"] = "Описания %d/%d"
+addon.Locales.ruRU["Switching tabs uses saved prices. Click Refresh to scan."] =
+    "При смене вкладок используются сохранённые цены. Нажмите «Обновить» для сканирования."
+addon.Locales.ruRU["Auctionator: %d%%"] = "Auctionator: %d%%"
+addon.Locales.koKR["Another addon is scanning."] = "다른 애드온이 검색 중입니다."
+addon.Locales.koKR["Descriptions %d/%d"] = "설명 %d/%d"
+addon.Locales.koKR["Switching tabs uses saved prices. Click Refresh to scan."] =
+    "탭 전환 시 저장된 가격을 사용합니다. 검색하려면 새로고침을 누르세요."
+addon.Locales.koKR["Auctionator: %d%%"] = "Auctionator: %d%%"
+addon.Locales.zhTW["Another addon is scanning."] = "其他插件正在掃描。"
+addon.Locales.zhTW["Descriptions %d/%d"] = "說明 %d/%d"
+addon.Locales.zhTW["Switching tabs uses saved prices. Click Refresh to scan."] =
+    "切換分頁會使用已儲存的價格。按重新整理即可掃描。"
+addon.Locales.zhTW["Auctionator: %d%%"] = "Auctionator: %d%%"

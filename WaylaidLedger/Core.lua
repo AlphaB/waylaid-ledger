@@ -1,6 +1,6 @@
 local addonName, addon = ...
 local L = addon.L
-addon.version = "0.8.0"
+addon.version = "0.8.1"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -61,85 +61,59 @@ function addon:UpdateScheduler()
     end
 end
 
+-- Automatic scanning is an explicit AH-open preference. Browsing lists,
+-- changing a source and receiving bag/item events must never launch queries.
 function addon:CanAutoScan(reason)
-    if self.autoPaused or self.providerDue or not self.scanner.open or self.scanner.active then
-        return false
-    end
-    if reason == "browse" then
-        local kind = self.UI.VisibleBrowserTab()
-        local source = kind and self.Shopping.Source(kind)
-        return source == "auto" or source == "own"
-    end
-    if self.db.source ~= "auto" and self.db.source ~= "own" then
-        return false
-    end
-    if reason == "open" then
-        return self.db.scanOnOpen
-    end
-    return self.db.tracking.enabled and self.db.tracking.autoScan and self.UI.IsScanPanelVisible()
+    return reason == "open"
+        and self.db.scanOnOpen
+        and not self.autoPaused
+        and not self.providerDue
+        and self.scanner.open
+        and not self.scanner.active
+        and not self.Providers.scan
+        and (self.db.source == "auto" or self.db.source == "own")
 end
 
 function addon:RequestBrowseScan()
-    if self.autoReason == "open" or not self:CanAutoScan("browse") then
-        return
-    end
-    self.autoReason, self.autoDue = "browse", GetTime() + 0.5
-    self:UpdateScheduler()
+    -- Kept for older integrations; tab selection only displays cached prices.
 end
 
 function addon:RequestAutoScan(onOpen)
-    -- An opening scan has priority over tab-driven refresh until it starts or
-    -- is cancelled. The delay lets another addon's startup scan take the house.
-    if not onOpen and self.autoReason == "open" then
+    if not onOpen or not self:CanAutoScan("open") then
         return
     end
-    if not onOpen and self.UI.VisibleBrowserTab() then
-        return self:RequestBrowseScan()
-    end
-    local reason = onOpen and "open" or "panel"
-    if not self:CanAutoScan(reason) then
-        return
-    end
-    self.autoReason = reason
-    self.autoDue = GetTime() + (onOpen and 2 or 0.5)
+    self.autoReason, self.autoDue = "open", GetTime() + 2
     self:UpdateScheduler()
 end
 
 function addon:AutoScan()
-    local reason = self.autoReason or "panel"
+    local reason = self.autoReason
     self.autoReason = nil
     if not self:CanAutoScan(reason) then
         return
     end
-    local quietPeriod = reason == "open" and 2 or 1
-    if self.lastExternalAt and GetTime() - self.lastExternalAt < quietPeriod then
-        self.autoReason, self.autoDue = reason, self.lastExternalAt + quietPeriod
+    if self.lastExternalAt and GetTime() - self.lastExternalAt < 2 then
+        self.autoReason, self.autoDue = reason, self.lastExternalAt + 2
         return
     end
     self.Inventory.CaptureBags()
     local market, items = self:GetMarket(), {}
-    if reason == "browse" then
-        items = self.Shopping.ScanItems(self.UI.VisibleBrowserTab())
-    else
-        local crateIDs = reason == "open" and self.Catalog.AllCrates() or self.Inventory.CrateIDs()
-        for _, itemID in ipairs(self.Catalog.Materials(crateIDs)) do
-            local snapshot = market.items[itemID]
-            if not snapshot or market.failures[itemID] or time() - snapshot.scannedAt > self.db.maxAge then
-                items[#items + 1] = itemID
-            end
+    for _, itemID in ipairs(self.Catalog.Materials(self.Catalog.AllCrates())) do
+        local snapshot = market.items[itemID]
+        if not snapshot or market.failures[itemID] or time() - snapshot.scannedAt > self.db.maxAge then
+            items[#items + 1] = itemID
         end
     end
-    if #items == 0 then
-        if reason == "open" then
-            self:RequestBrowseScan()
-        end
-        return
+    if #items > 0 then
+        self:BeginScan(items, reason, "crates")
     end
-    self:BeginScan(items, reason, reason == "browse" and self.UI.VisibleBrowserTab() or "crates")
 end
 
 -- All scopes use one lifecycle and retain which preference governs the work.
 function addon:BeginScan(items, jobOrReason, category)
+    if self.Providers.scan then
+        return false
+    end
     if not self.scanner.open then
         self:Print(L["Open the auction house first."])
         return false
@@ -875,6 +849,9 @@ local function initialize()
         if api[method] then
             hooksecurefunc(api, method, function(argument)
                 if not addon.scanner.issuing then
+                    if method == "ReplicateItems" then
+                        addon.Providers.BeginExternalScan()
+                    end
                     addon.NativeShopping.ExternalQuery(method, argument)
                     addon.lastExternalAt = GetTime()
                     if addon.scanner.active then
@@ -949,13 +926,14 @@ frame:SetScript("OnEvent", function(_, event, argument)
     end
     if event == "AUCTION_HOUSE_SHOW" then
         scanner:SetOpen(true)
-        addon.autoPaused, addon.autoDue, addon.autoReason = false, nil, nil
+        addon.autoPaused, addon.autoDue, addon.autoReason = addon.Providers.scan ~= nil, nil, nil
         addon.Inventory.CaptureBags()
         addon.UI.AttachAuction()
         addon.UI.Update()
         addon:RequestAutoScan(true)
         addon:RequestAutoScan()
     elseif event == "AUCTION_HOUSE_CLOSED" then
+        addon.Providers.EndExternalScan()
         addon.autoDue, addon.autoReason, addon.scanOnOpen = nil, nil, false
         addon.refreshJob, addon.pendingProviderScan, addon.providerDue = nil, nil, nil
         scanner:SetOpen(false)

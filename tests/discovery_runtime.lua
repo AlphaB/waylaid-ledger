@@ -186,25 +186,15 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         equal(a.scanner.active, true)
         C_AuctionHouse.ReplicateItems()
         equal(a.scanner.active, false)
-        equal(a.BulkScan.engine.job.own, false)
-        equal(view.summary.text, "Shared scan: waiting")
-        equal(view.refreshButton.text, "Stop")
-        frame.scripts.OnEvent(frame, "REPLICATE_ITEM_LIST_UPDATE")
-        while frame.scripts.OnUpdate do
-            frame.scripts.OnUpdate()
-            if a.Discovery.frame.scripts.OnUpdate then
-                a.Discovery.frame.scripts.OnUpdate()
-            end
-        end
-        while a.Discovery.frame.scripts.OnUpdate do
-            a.Discovery.frame.scripts.OnUpdate()
-        end
-        equal(view.refreshButton.text, "Refresh")
-        C_AuctionHouse.ReplicateItems()
-        equal(view.refreshButton.text, "Stop")
-        view.refreshButton.scripts.OnClick()
         equal(a.BulkScan.engine.job, nil)
+        equal(view.summary.text, "Another addon is scanning.")
         equal(view.refreshButton.text, "Refresh")
+        frame.scripts.OnEvent(frame, "REPLICATE_ITEM_LIST_UPDATE")
+        equal(frame.scripts.OnUpdate, nil)
+        view.refreshButton.scripts.OnClick()
+        assert(a.Providers.scan)
+        a.Providers.EndExternalScan()
+        equal(a.Providers.scan, nil)
         a:StartScan("deep")
         equal(#a.scanner.queue, 428)
         equal(a.scanner.bulkMode, false)
@@ -213,16 +203,23 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         a:GetMarket().bulkAt = nil
         a.UI.auctionHost:Show()
         a.UI.SelectBrowserTab("writs")
-        a.autoReason, a.autoPaused, a.lastExternalAt = "browse", false, nil
         local beforeAuto = requests
+        for _ = 1, 20 do
+            a.UI.SelectBrowserTab("crates")
+            a.UI.SelectBrowserTab("writs")
+        end
+        equal(requests, beforeAuto)
+        equal(a.autoDue, nil)
+        a.db.scanOnOpen = true
+        a.autoReason, a.autoPaused, a.lastExternalAt = "open", false, nil
         a:AutoScan()
         equal(requests, beforeAuto + 1)
         equal(a.scanner.bulkMode, true)
-        equal(a.scanBrowser, true)
+        equal(a.scanBrowser, false)
         equal(a:RefreshList(a.BrowseUI.views.writs), false)
-        equal(a.scanBrowser, true)
+        equal(a.scanBrowser, false)
         equal(a.scanAutomatic, true)
-        equal(a.scanContext.reason, "browse")
+        equal(a.scanContext.reason, "open")
         frame.scripts.OnEvent(frame, "REPLICATE_ITEM_LIST_UPDATE")
         while frame.scripts.OnUpdate do
             frame.scripts.OnUpdate()
@@ -234,7 +231,7 @@ test("bundled install discovers additional crates and writs using one bulk scan"
             a.Discovery.frame.scripts.OnUpdate()
         end
         equal(a.scanner.active, false)
-        -- A completed automatic browse scan must not own the next manual refresh.
+        -- A completed automatic opening scan must not own the next manual refresh.
         equal(a:RefreshList(a.BrowseUI.views.writs), true)
         equal(a.scanAutomatic, false)
         equal(a.scanBrowser, false)
@@ -252,6 +249,104 @@ test("bundled install discovers additional crates and writs using one bulk scan"
         equal(a.scanContext.reason, "manual")
         equal(a.scanContext.category, "writs")
         host.scripts.OnEvent(host, "AUCTION_HOUSE_CLOSED")
+
+        -- Replay Auctionator autoscan through the real core hooks and both
+        -- event streams, with tab navigation while the scan owns the AH.
+        local listener, dbUpdate
+        local events =
+            { ScanStart = "start", ScanProgress = "progress", ScanComplete = "complete", ScanFailed = "failed" }
+        Auctionator = {
+            API = {
+                v1 = {
+                    RegisterForDBUpdate = function(_, callback)
+                        dbUpdate = callback
+                    end,
+                    GetAuctionPriceByItemID = function()
+                        return 42
+                    end,
+                },
+            },
+            FullScan = { Events = events },
+            EventBus = {
+                Register = function(_, receiver)
+                    listener = receiver
+                end,
+            },
+        }
+        a.Providers.Install()
+        a.db.scanOnOpen = true
+        host.scripts.OnEvent(host, "AUCTION_HOUSE_SHOW")
+        assert(a.autoDue)
+        listener:ReceiveEvent(events.ScanStart)
+        C_AuctionHouse.ReplicateItems()
+        local externalRequests = requests
+        equal(a.autoDue, nil)
+        equal(a.scanner.active, false)
+        equal(a.BulkScan.engine.job, nil)
+        local rowsRead, descriptions, redraws = 0, 0, 0
+        local oldRows, oldRead, oldUpdate = f.api.GetReplicateItemInfo, a.Discovery.Read, a.UI.Update
+        f.api.GetReplicateItemInfo = function(...)
+            rowsRead = rowsRead + 1
+            return oldRows(...)
+        end
+        a.Discovery.Read = function(...)
+            descriptions = descriptions + 1
+            return oldRead(...)
+        end
+        a.UI.Update = function(...)
+            redraws = redraws + 1
+            return oldUpdate(...)
+        end
+        frame.scripts.OnEvent(frame, "REPLICATE_ITEM_LIST_UPDATE")
+        a.UI.auctionHost:Show()
+        for _ = 1, 20 do
+            a.UI.SelectBrowserTab("writs")
+            a.UI.SelectBrowserTab("crates")
+        end
+        equal(requests, externalRequests)
+        equal(a.autoDue, nil)
+        equal(a:StartScan("all"), false)
+        local discovery = a.Discovery.frame
+        local rendersBefore = redraws
+        collectgarbage("collect")
+        local memoryBefore = collectgarbage("count")
+        for tick = 1, 600 do
+            for id = 1, 100 do
+                discovery.scripts.OnEvent(discovery, "ITEM_DATA_LOAD_RESULT", 10000 + tick * 100 + id, true)
+                discovery.scripts.OnEvent(discovery, "TOOLTIP_DATA_UPDATE", 1000 + id)
+            end
+            listener:ReceiveEvent(events.ScanProgress, 0.2 + tick / 600 * 0.79)
+            a.Providers.frame.scripts.OnUpdate()
+            if discovery.scripts.OnUpdate then
+                discovery.scripts.OnUpdate()
+            end
+        end
+        collectgarbage("collect")
+        assert(collectgarbage("count") - memoryBefore < 512, "external scan retained market data")
+        equal(rowsRead, 0)
+        equal(descriptions, 0)
+        equal(redraws, rendersBefore)
+        equal(a.BrowseUI.views.crates.summary.text, "Auctionator: 99%")
+        equal(a.BrowseUI.views.crates.refreshButton.enabled, false)
+        equal(frame.scripts.OnUpdate, nil)
+        equal(requests, externalRequests)
+        dbUpdate()
+        assert(a.Providers.scan, "price callbacks must not unlock an active full scan")
+        listener:ReceiveEvent(events.ScanComplete, { { replicateInfo = {} } })
+        equal(a.Providers.scan, nil)
+        equal(a.autoDue, nil)
+        equal(requests, externalRequests)
+        equal(a.BrowseUI.views.crates.refreshButton.enabled, true)
+        -- Failure and AH closure also release status, without resuming queries.
+        listener:ReceiveEvent(events.ScanStart)
+        listener:ReceiveEvent(events.ScanFailed)
+        equal(a.Providers.scan, nil)
+        equal(a.autoDue, nil)
+        listener:ReceiveEvent(events.ScanStart)
+        host.scripts.OnEvent(host, "AUCTION_HOUSE_CLOSED")
+        equal(a.Providers.scan, nil)
+        equal(a.autoDue, nil)
+        f.api.GetReplicateItemInfo, a.Discovery.Read, a.UI.Update = oldRows, oldRead, oldUpdate
     end)
     for key, value in pairs(saved) do
         if key ~= "callback" and key ~= "slash" then

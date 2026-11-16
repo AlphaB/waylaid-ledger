@@ -125,9 +125,23 @@ function Browse.Layout(view)
 end
 
 function Browse.ScanStatus()
+    local external = addon.Providers.scan
+    if external then
+        return external.percent and string.format(L["Auctionator: %d%%"], external.percent)
+            or L["Another addon is scanning."],
+            true,
+            true
+    end
     local scanner = addon.scanner
     local job = addon.BulkScan.engine and addon.BulkScan.engine.job
     if job then
+        if job.resolving then
+            local done, total = addon.Discovery.Progress()
+            if total == 0 then
+                return L["Finishing full scan"], true
+            end
+            return string.format(L["Descriptions %d/%d"], done, total), true
+        end
         if job.received and job.count > 0 then
             return string.format(L["Auctions %d/%d"], job.index, job.count), true
         end
@@ -146,11 +160,12 @@ function Browse.ScanStatus()
 end
 
 function Browse.UpdateStatus(view)
-    local status, busy = Browse.ScanStatus()
+    local status, busy, external = Browse.ScanStatus()
     view.summary:SetText(
         status or string.format(L["%d priced / %d items"], view.priced or 0, #(view.visibleEntries or {}))
     )
-    addon.Localization.ButtonText(view.refreshButton, busy and L["Stop"] or L["Refresh"])
+    addon.Localization.ButtonText(view.refreshButton, busy and not external and L["Stop"] or L["Refresh"])
+    view.refreshButton:SetEnabled(not external)
 end
 
 function Browse.UpdateScanStatus()
@@ -229,7 +244,10 @@ function Browse.Create(host, kind)
     refresh:SetPoint("TOPRIGHT", -100, -8)
     addon.Localization.ButtonText(refresh, L["Refresh"])
     refresh:SetScript("OnClick", function()
-        local _, busy = Browse.ScanStatus()
+        local _, busy, external = Browse.ScanStatus()
+        if external then
+            return
+        end
         if busy then
             addon:StopScan()
         else

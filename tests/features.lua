@@ -144,7 +144,7 @@ test("disabling tracking stops capture and hides remembered counts without delet
         equal(Inventory.Totals().items[248683], nil)
     end)
 end)
-test("automatic refresh scans only missing or failed tracked materials", function()
+test("missing tracked prices do not trigger scans while browsing", function()
     inventoryFixture(function(f)
         f.bags[0] = { { id = 248683, count = 1 } }
         Inventory.CaptureBags()
@@ -163,6 +163,8 @@ test("automatic refresh scans only missing or failed tracked materials", functio
         equal(addon.scanner.active, false)
         market.failures[2771] = "timeout"
         addon:AutoScan()
+        equal(addon.scanner.active, false)
+        addon:BeginScan({ 2771 }, "manual")
         equal(addon.scanner.active, true)
         equal(#addon.scanner.queue, 1)
         equal(addon.scanner.queue[1], 2771)
@@ -172,7 +174,7 @@ test("automatic refresh scans only missing or failed tracked materials", functio
         market.items, market.failures = oldItems, oldFailures
     end)
 end)
-test("auto refresh is opt-out and never queries away from AH or in forced provider mode", function()
+test("legacy tracked autoscan preferences never schedule tab-driven queries", function()
     inventoryFixture(function(f)
         f.bags[0] = { { id = 248683, count = 1 } }
         Inventory.CaptureBags()
@@ -186,7 +188,7 @@ test("auto refresh is opt-out and never queries away from AH or in forced provid
         addon.db.source = "own"
         addon.autoPaused = false
         addon:RequestAutoScan()
-        assert(addon.autoDue)
+        equal(addon.autoDue, nil)
         addon:SetFeature("autoscan", false)
         equal(addon.autoDue, nil)
         equal(addon.scanner.active, false)
@@ -314,8 +316,9 @@ test("one outer auction tab contains native internal category tabs without chang
         addon.scanner:Start({ 2770 })
         assert(addon.scanner.active)
         addon.UI.SelectBrowserTab("writs")
-        equal(addon.scanner.active, false)
+        equal(addon.scanner.active, true)
         equal(addon.autoDue, nil)
+        addon:StopScan()
         addon.scanAutomatic = false
         addon.UI.browserTabs.crates.scripts.OnClick()
         equal(writHost:IsShown(), false)
