@@ -9,7 +9,7 @@ are needed. This requirement applies to future UI changes, not just this fix.
 `Navigation.RegisterWindow(frame, options)` registers show/hide handling and
 restores windows after combat or late gamepad initialization. `options.target`
 is a control or a function resolving a dynamic control; `options.scroll` is the
-native scroll frame. Preserve the current visible control during refreshes.
+native scroll frame or a function resolving the current page’s scroll frame. Preserve the current visible control during refreshes.
 
 The options canvas has its own native focus scope. Blizzard's standard
 `SettingsPanel:FocusContainer` selects from `SettingsList`, which does not
@@ -18,6 +18,10 @@ SettingsPanel focus groups. A single deferred repair handles the native
 `ActivateCategory` call that follows canvas `OnShow`; it does nothing if the
 page closes or another dialog takes focus. Back closes the parent Settings
 window. Native window paging remains available to return to the category list.
+
+The standalone cached browser registers its own lifecycle, initial search target,
+dynamic category scroll frame and Back handler. Its list navigation reuses the
+auction controls with the standalone window as owner. Opening the AH hides it.
 
 Reports and baskets register their native lifecycle; legacy scan controls open settings.
 Reports register their scroll frame for right-stick scrolling. Reopening an
@@ -63,29 +67,34 @@ checks separately if release permissions must enforce them.
 Record the addon version, client build, controller and tested locales. Run this
 checklist before describing a release as fully verified for native controllers:
 
-1. Open options from the official AddOns settings list, auction-list Settings
+1. Before visiting an auctioneer, left-click the minimap button or use `/wll`.
+   Browse both cached lists, filter to zero rows, sort, scroll, inspect tooltips,
+   refresh saved prices, and activate a row to see the shopping hint. Open
+   Settings and return with Back; close/reopen the browser with Back, Escape and
+   the minimap button. Visit/leave the AH and repeat both category paths.
+2. Open options from the official AddOns settings list, auction-list Settings
    button, legacy controls command and minimap. Reach all six checkboxes, three
    dropdowns (including every menu choice) and three tool buttons; toggle every preference and verify persistence after reload.
    Activate options both with the UI closed and with the category already open.
-2. Use Back to close settings. Use native window paging to reach settings
+3. Use Back to close settings. Use native window paging to reach settings
    categories and return. Open diagnostics and inventory reports from options,
    reopen each while still visible, and close them back to the prior window.
-3. Scroll a long diagnostic/inventory report with the right stick. Verify text
+4. Scroll a long diagnostic/inventory report with the right stick. Verify text
    selection/keyboard behavior with the native onscreen keyboard and a physical
    keyboard. Clipboard shortcuts still depend on the client's keyboard support.
-4. Navigate both auction tabs, all toolbar controls and search input. Traverse
+5. Navigate both auction tabs, all toolbar controls and search input. Traverse
    more rows than fit onscreen, scroll both ways, then filter to zero rows and
    clear the filter. Refresh/reprice while a row is selected and confirm that
    selection and activation refer to the same item.
-5. Open and reopen a basket, navigate every requirement, and hand off to the
+6. Open and reopen a basket, navigate every requirement, and hand off to the
    native item and commodity buy screens. Verify quantity input and purchase
    confirmation remain native and require explicit user input. Close the AH
    and check that no hidden basket/list retains focus or scrolling.
-6. Switch between mouse/keyboard and controller with settings, a report and a
+7. Switch between mouse/keyboard and controller with settings, a report and a
    basket open. Enable the native controller UI after addon load. Open/close
    windows during combat where the client permits it; verify recovery afterward
    without blocked-action errors, stale focus or stolen buy-screen focus.
-7. Repeat the affected paths with long translated labels and with optional
+8. Repeat the affected paths with long translated labels and with optional
    auction addons enabled and disabled. Check controller tooltip display and
    the client's modifier support for detailed tooltips.
 

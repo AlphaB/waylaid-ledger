@@ -67,6 +67,9 @@ function Browse.ShowTooltip(row)
     if not entry.reward then
         GameTooltip:AddLine(L["Reward unverified; excluded from cost-per-reward ranking."], 0.85, 0.85, 0.85, true)
     end
+    if row.waylaidView and row.waylaidView.cached then
+        GameTooltip:AddLine(L["Open the auction house to shop."], 0.85, 0.85, 0.85, true)
+    end
     GameTooltip:Show()
 end
 
@@ -202,7 +205,10 @@ function Browse.ScanStatus()
 end
 
 function Browse.UpdateStatus(view)
-    local status, busy, external = Browse.ScanStatus()
+    local status, busy, external
+    if not view.cached then
+        status, busy, external = Browse.ScanStatus()
+    end
     view.summary:SetText(
         status or string.format(L["%d priced / %d items"], view.priced or 0, #(view.visibleEntries or {}))
     )
@@ -301,7 +307,7 @@ function Browse.Refresh(view)
 end
 
 function Browse.UpdateVisible()
-    if Browse.updating or not addon.scanner.open or (AuctionHouseFrame and not AuctionHouseFrame:IsShown()) then
+    if Browse.updating then
         return
     end
     Browse.updating = true
@@ -313,9 +319,10 @@ function Browse.UpdateVisible()
     Browse.updating = false
 end
 
-function Browse.Create(host, kind)
+function Browse.Create(host, kind, cachedOwner)
     local view = { host = host, kind = kind, headers = {}, sortKey = "unitCost", sortDescending = false }
-    Browse.views[kind] = view
+    view.cached, view.owner = cachedOwner ~= nil, cachedOwner
+    Browse.views[cachedOwner and ("cached_" .. kind) or kind] = view
     local search = CreateFrame("EditBox", nil, host, "SearchBoxTemplate")
     search:SetSize(180, 22)
     search:SetPoint("TOPLEFT", 20, -8)
@@ -337,6 +344,11 @@ function Browse.Create(host, kind)
     refresh:SetPoint("TOPRIGHT", -100, -8)
     addon.Localization.ButtonText(refresh, L["Refresh"])
     refresh:SetScript("OnClick", function()
+        if view.cached then
+            addon.Providers.Invalidate()
+            Browse.Refresh(view)
+            return
+        end
         local _, busy, external = Browse.ScanStatus()
         if external then
             return
@@ -353,8 +365,16 @@ function Browse.Create(host, kind)
         end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         local _, busy = Browse.ScanStatus()
-        GameTooltip:AddLine(busy and L["Stop scan"] or L["Refresh prices"], 1, 0.82, 0)
-        if busy then
+        GameTooltip:AddLine(not view.cached and busy and L["Stop scan"] or L["Refresh prices"], 1, 0.82, 0)
+        if view.cached then
+            GameTooltip:AddLine(
+                L["Saved prices. Visit the auction house for current prices and purchases."],
+                1,
+                1,
+                1,
+                true
+            )
+        elseif busy then
             GameTooltip:AddLine(
                 L["Stop Waylaid's scan or snapshot processing; keep saved prices. Other addons' scans continue."],
                 1,

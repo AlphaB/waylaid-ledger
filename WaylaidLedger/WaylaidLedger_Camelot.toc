@@ -3,7 +3,7 @@
 ## IconTexture: Interface\Icons\INV_Crate_05
 ## Notes: Compare complete writ and crate delivery costs and shop at the auction house.
 ## Author: Mikhail Salosin
-## Version: 0.9.7
+## Version: 1.0.0
 ## OptionalDeps: Auctionator, TradeSkillMaster
 ## SavedVariables: WaylaidLedgerDB
 ## Category: Auction & Economy

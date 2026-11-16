@@ -74,7 +74,11 @@ function Nav.RefreshWindow(frame)
         fallback = fallback()
     end
     local target = ancestor and current:IsVisible() and current or fallback
-    Nav.Refresh(frame, options.scroll, target)
+    local scroll = options.scroll
+    if type(scroll) == "function" then
+        scroll = scroll()
+    end
+    Nav.Refresh(frame, scroll, target)
 end
 
 function Nav.RegisterWindow(frame, options)
@@ -130,13 +134,19 @@ function Nav.CurrentEntry(view)
 end
 
 function Nav.UpdateAuctionScroll()
-    local view = Nav.auctionView
-    if not Nav.auctionOwned or not AuctionHouseFrame or not available() then
+    if not available() then
         return
     end
     local button = SmartNavigation:GetCurrentButton()
-    local focused = view and view.host:IsVisible() and button and (button == view.scroll or button.waylaidView == view)
-    SmartNavigation:SetScrollFrameForFrame(AuctionHouseFrame, focused and view.scroll or nil)
+    for _, view in pairs(addon.BrowseUI.views) do
+        if view.host:IsVisible() then
+            local owner = view.owner or AuctionHouseFrame
+            local focused = button and (button == view.scroll or button.waylaidView == view)
+            if owner then
+                SmartNavigation:SetScrollFrameForFrame(owner, focused and view.scroll or nil)
+            end
+        end
+    end
 end
 
 function Nav.BindView(view)
@@ -189,9 +199,9 @@ function Nav.BindView(view)
             index == 1 and view.search or (index == 5 and view.settingsButton or view.refreshButton)
         )
     end
-    local tabs = addon.UI.browserTabs or {}
+    local tabs = view.tabs or addon.UI.browserTabs or {}
     local category = tabs[view.kind]
-    local auctionTab = addon.UI.auctionTab
+    local auctionTab = not view.cached and addon.UI.auctionTab or nil
     -- Auction tabs sit below the page, category tabs above it. Bind both
     -- explicitly: geometric navigation can pick a native scroll child instead.
     link(auctionTab, directions.UP, view.search)
@@ -235,9 +245,11 @@ function Nav.RefreshView(view, previous, enterPage)
             target = view.search
         end
     end
-    Nav.auctionOwned, Nav.auctionCleanupPending, Nav.auctionView = true, false, view
+    if not view.cached then
+        Nav.auctionOwned, Nav.auctionCleanupPending, Nav.auctionView = true, false, view
+    end
     Nav.BindView(view)
-    Nav.Refresh(AuctionHouseFrame, nil, target)
+    Nav.Refresh(view.owner or AuctionHouseFrame, nil, target)
     Nav.UpdateAuctionScroll()
 end
 
@@ -245,7 +257,7 @@ function Nav.EnterView(view)
     if not available() or not view.host:IsVisible() then
         return
     end
-    Nav.Focus(AuctionHouseFrame)
+    Nav.Focus(view.owner or AuctionHouseFrame)
     Nav.RefreshView(view, nil, true)
 end
 

@@ -1061,3 +1061,93 @@ test("changing a crate price preference cannot stop or pause an independent writ
         equal(addon.autoDue, nil)
     end)
 end)
+
+test("cached browser works before auction UI load and reuses saved baskets without auction queries", function()
+    fixture(function(f)
+        addon.scanner:SetOpen(false)
+        AuctionHouseFrame = nil
+        f.snapshot(264037, 1, 50)
+        f.snapshot(8069, 200, 2)
+        addon.db.browserTab = "writs"
+        addon.UI.Toggle()
+        local window = addon.UI.cachedBrowser
+        local view = window.views.writs
+        assert(window:IsVisible())
+        equal(view.owner, window)
+        equal(addon.UI.VisibleBrowserTab(), nil)
+        equal(addon.UI.IsScanPanelVisible(), false)
+        equal(#view.entries, 150)
+        local priced
+        for _, entry in ipairs(view.entries) do
+            if entry.itemID == 264037 then
+                priced = entry
+            end
+        end
+        equal(priced.total, 450)
+        view.search:SetText("Crafted Solid Shot")
+        view.search.scripts.OnTextChanged(view.search)
+        equal(#view.visibleEntries, 1)
+        local row = view.scroll:FindFrame(view.visibleEntries[1])
+        row.scripts.OnClick(row)
+        equal(#f.queries, 0)
+        equal(addon.scanner.active, false)
+        equal(addon.autoDue, nil)
+        f.snapshot(8069, 200, 3)
+        view.refreshButton.scripts.OnClick()
+        equal(view.visibleEntries[1].total, 650)
+        equal(#f.queries, 0)
+        equal(addon.scanner.active, false)
+        equal(addon.refreshJob, nil)
+        window.tabs.crates.scripts.OnClick()
+        equal(#window.views.crates.entries, 30)
+        window.tabs.writs.scripts.OnClick()
+        equal(view.query, "Crafted Solid Shot")
+        addon.UI.Toggle()
+        equal(window:IsVisible(), false)
+        addon.UI.Toggle()
+        equal(view.query, "Crafted Solid Shot")
+        view.search:SetText("")
+        view.search.scripts.OnTextChanged(view.search)
+        addon.UI.Toggle()
+    end)
+end)
+
+test("cached controller lists retain virtual navigation, sorting, empty results and window ownership", function()
+    fixture(function(f)
+        addon.scanner:SetOpen(false)
+        f.navigation()
+        addon.db.browserTab = "writs"
+        addon.UI.OpenCachedBrowser()
+        local window = addon.UI.cachedBrowser
+        local view = window.views.writs
+        equal(f.focus, window)
+        equal(f.current, view.search)
+        f.current = view.headers[1].overrides.down()
+        for index = 2, 25 do
+            f.current = f.current.overrides.down()
+            equal(f.current.entry.listIndex, index)
+        end
+        local id = f.current.entry.itemID
+        addon.BrowseUI.Sort(view, "name")
+        equal(f.current.entry.itemID, id)
+        addon.Navigation.UpdateAuctionScroll()
+        equal(f.scrollOwner, window)
+        equal(f.scroll, view.scroll)
+        view.search:SetText("no matching contract")
+        view.search.scripts.OnTextChanged(view.search)
+        equal(#view.visibleEntries, 0)
+        equal(f.current, view.search)
+        equal(f.scroll, nil)
+        window.tabs.crates.scripts.OnClick()
+        equal(f.current, window.views.crates.search)
+        equal(window.SmartNavigationCloseHandler(), true)
+        equal(f.hidden, window)
+        equal(window:IsVisible(), false)
+        view.search:SetText("")
+        view.search.scripts.OnTextChanged(view.search)
+        addon.UI.OpenCachedBrowser()
+        addon.scanner:SetOpen(true)
+        addon.UI.AttachAuction()
+        equal(window:IsVisible(), false)
+    end)
+end)
