@@ -83,6 +83,20 @@ Navigate methods, then checks row entry without native centering, traversal in b
 past the virtual pool, and focus-scoped scrolling. Rendering, input dispatch and
 secure execution still require the live-client checklist in README.
 
+## Settings version (0.9.6)
+
+The settings heading displays `Waylaid Ledger  v` followed by `addon.version`,
+using the same installed version as diagnostics. It remains a noninteractive
+font string in the existing heading space; the initial controller target stays
+on Crate prices. Controller settings open/reopen checks and all ten localized
+startup checks cover the version display. Release validation passed: 236 default
+Lua checks, 238 each with freshly fetched pinned/latest Forever navigation
+sources, Lua formatting, Python lint/format checks, and install ZIP integrity.
+
+Live verification remains unperformed for 0.9.6: check the heading at supported
+UI scales and complete [CONTROLLER.md](CONTROLLER.md)'s live-client checklist,
+including mouse/keyboard, hardware controller input and secure/taint behavior.
+
 ## AddOns list icon (0.9.5)
 
 Both install manifests declare `IconTexture: Interface\Icons\INV_Crate_05`,
@@ -253,7 +267,7 @@ Native controller support is required for every UI change and release. Follow
 live-client checklist. Preserve sortable-header and virtual-row navigation.
 
 
-## Auction-house freeze investigation (0.9.6)
+## Auction-house freeze investigation (0.9.7)
 
 The live 0.9.4 report exposed paths excluded by the prior synthetic benchmark:
 Ledger requested its own 240,290-auction snapshot with scan-on-open enabled in
@@ -287,7 +301,7 @@ alongside the existing scan/full-scan/Shopping benchmarks. Release validation al
 uses pinned and latest Forever controller sources and the released Auctionator
 347 public adapter sources. See the PR for exact results.
 
-Outstanding manual verification: repeat the AH-opening comparison with 0.9.6
+Outstanding manual verification: repeat the AH-opening comparison with 0.9.7
 and the user's existing SavedVariables, keep Auto and scan-on-open enabled, and
 verify no own scan request is logged when a provider is available. Check browse
 updates, refreshed prices, manual Own scans, AH closure and reopening. Run every

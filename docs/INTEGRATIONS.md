@@ -1,6 +1,6 @@
 # Auction addon integrations
 
-## Current behavior (0.9.6)
+## Current behavior (0.9.7)
 
 Auctionator and TSM supply optional cached price estimates. Auto reuses fresh
 own snapshots, then provider estimates. Tab switches, missing prices, and unresolved

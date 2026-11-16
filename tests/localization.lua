@@ -107,6 +107,7 @@ for _, sample in ipairs(locales) do
             equal(a.initialized, true)
             assert(a.UI.settingsChecks.scanopen)
             a.UI.ToggleSettings()
+            equal(a.UI.settingsTitle:GetText(), "Waylaid Ledger  v" .. a.version)
             equal(a.UI.crateSourceButton.text, a.L["Auto"])
             a:SetSource("own")
             equal(a.db.source, "own")
