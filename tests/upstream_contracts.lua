@@ -11,6 +11,7 @@ if UPSTREAM_AUCTIONATOR then
             Auctionator = {
                 API = { v1 = {}, InternalVerifyID = function() end },
                 FullScan = {},
+                Shopping = { Tab = {} },
                 IncrementalScan = { Events = { PricesProcessed = "prices" } },
                 Debug = { Message = function() end },
                 Utilities = {
@@ -34,6 +35,7 @@ if UPSTREAM_AUCTIONATOR then
             for _, path in ipairs({
                 "Source/Utilities/EventBusMixin.lua",
                 "Source_ModernAH/FullScan/Events.lua",
+                "Source/Shopping/Events.lua",
                 "Source_ModernAH/API/v1/RegisterForDBUpdate.lua",
             }) do
                 setfenv(assert(loadstring(UPSTREAM_AUCTIONATOR[path], path)), env)()
@@ -53,6 +55,22 @@ if UPSTREAM_AUCTIONATOR then
             equal(a.Providers.scan, nil)
             bus:Fire(source, events.ScanStart)
             bus:Fire(source, events.ScanFailed)
+            equal(a.Providers.scan, nil)
+            local shopping = Auctionator.Shopping.Tab.Events
+            bus:Fire(source, shopping.SearchStart)
+            assert(a.Providers.scan)
+            bus:Fire(source, "prices")
+            assert(a.Providers.scan, "per-item prices must not end a Shopping search")
+            bus:Fire(source, shopping.SearchIncrementalUpdate, { { itemID = 1 } })
+            bus:Fire(source, events.ScanStart)
+            bus:Fire(source, shopping.SearchEnd, {})
+            assert(a.Providers.scan, "Shopping completion must not unlock a concurrent full scan")
+            bus:Fire(source, events.ScanComplete, {})
+            equal(a.Providers.scan, nil)
+            bus:Fire(source, shopping.SearchStart)
+            bus:Fire(source, events.ScanComplete, {})
+            assert(a.Providers.scan, "unrelated completion must not unlock Shopping")
+            bus:Fire(source, shopping.SearchEnd, {})
             equal(a.Providers.scan, nil)
         end)
         Auctionator = saved

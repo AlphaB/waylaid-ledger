@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.3
+
+- Extend Auctionator scan suspension to Shopping searches, including completion and cancellation; per-item database updates no longer reprice tooltips or rebuild lists during those searches.
+- Track overlapping full scans and Shopping searches independently so one completion cannot resume work while the other is still active.
+- Preserve native list rows and controller focus when refresh leaves item order unchanged; update prices and offscreen entry data in place.
+- Report Shopping adapter availability and activity in `/wll report`.
+- Add a Shopping event-storm benchmark and regression coverage for unchanged rows, changed sorting, cancellation, watchdog recovery and the released Auctionator event bus.
+- Local simulations verify reduced work; in-game blinking and CPU usage still need confirmation.
+
 ## 0.9.2
 
 - Replace font-based sort arrows, which can render as missing-glyph squares, with WoW's native sort-arrow texture.

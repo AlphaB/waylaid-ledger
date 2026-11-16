@@ -240,13 +240,45 @@ function Browse.Render(view, resetFocus)
     for index, entry in ipairs(visible) do
         entry.listIndex = index
     end
-    view.visibleEntries = visible
-    view.scroll:SetDataProvider(CreateDataProvider(visible), true)
+    -- Replacing a ScrollBox provider releases/reacquires every visible button,
+    -- even when the same items remain in the same order. Preserve the existing
+    -- entry objects (also used by offscreen rows) and repaint prices in place.
+    local old = view.visibleEntries
+    local sameOrder = old ~= nil and #old == #visible
+    if sameOrder then
+        for index, entry in ipairs(visible) do
+            if old[index].itemID ~= entry.itemID then
+                sameOrder = false
+                break
+            end
+        end
+    end
+    if sameOrder then
+        for index, entry in ipairs(visible) do
+            local current = old[index]
+            if current ~= entry then
+                for key in pairs(current) do
+                    current[key] = nil
+                end
+                for key, value in pairs(entry) do
+                    current[key] = value
+                end
+            end
+        end
+        view.scroll:ForEachFrame(function(row)
+            initializeRow(view, row, row.entry)
+        end)
+    else
+        view.visibleEntries = visible
+        view.scroll:SetDataProvider(CreateDataProvider(visible), true)
+    end
     view.priced = priced
     Browse.UpdateStatus(view)
     view.empty:SetShown(#visible == 0)
     Browse.Layout(view)
-    addon.Navigation.RefreshView(view, previous)
+    if not sameOrder or resetFocus then
+        addon.Navigation.RefreshView(view, previous)
+    end
 end
 
 function Browse.Sort(view, key)

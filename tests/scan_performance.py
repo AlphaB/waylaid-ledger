@@ -11,10 +11,11 @@ parser.add_argument(
     "--source", type=pathlib.Path, default=root, help="Addon source root; permits before/after comparisons"
 )
 parser.add_argument("--verify", action="store_true", help="Assert bounded retained scan data")
-parser.add_argument("--scenario", choices=["snapshot", "auctionator"], default="snapshot")
+parser.add_argument("--scenario", choices=["snapshot", "auctionator", "auctionator-shopping"], default="snapshot")
 args = parser.parse_args()
 lua = LuaRuntime()
 lua.globals().PROJECT_ROOT = str(args.source.resolve())
 lua.globals().VERIFY_BOUNDS = args.verify
-scenario = "auctionator_performance.lua" if args.scenario == "auctionator" else "scan_performance.lua"
+lua.globals().SHOPPING_SCAN = args.scenario == "auctionator-shopping"
+scenario = "auctionator_performance.lua" if args.scenario.startswith("auctionator") else "scan_performance.lua"
 lua.execute((root / "tests" / scenario).read_text())

@@ -1,6 +1,6 @@
 # Auction addon integrations
 
-## Current behavior (0.8.6)
+## Current behavior (0.9.3)
 
 Auctionator and TSM supply optional cached price estimates. Auto reuses fresh
 own snapshots, then provider estimates. Tab switches, missing prices, and unresolved
@@ -22,6 +22,25 @@ and automatic list rebuilding are deferred; visible tooltips resume at completio
 Database callbacks during an active scan do not repeatedly discard provider
 caches. Refresh is disabled meanwhile. The price cache is capped at 2,048 entries;
 forced provider pricing never computes an unused own order-book quote.
+
+Shopping searches use a separate lifecycle: `Shopping.Tab.Events.SearchStart`,
+`SearchIncrementalUpdate`, and `SearchEnd` (also emitted for cancellation).
+These now suspend the same work until the whole search finishes, rather than
+refreshing after each item's database update. Result payloads are ignored.
+Overlapping full scans and Shopping searches retain separate ownership; neither
+completion unlocks the other. Progress and database activity renew the 120-second
+watchdog. `/wll report` includes Shopping adapter availability and active state.
+
+When prices refresh, the native list keeps its data provider and entry objects
+if the filtered item order is unchanged. Visible labels update in place and
+offscreen entries receive current quotes; a changed order or membership still
+rebuilds the list with the existing scroll/focus preservation behavior.
+
+The synthetic 20,000-tooltip Shopping benchmark reproduced 20,000 quote resolutions,
+200 list refreshes and about 65 MiB of allocation pressure in 0.9.2. With 0.9.3,
+the same traffic performs zero quote resolutions/list refreshes during the search
+and allocates about 2 KiB. This measures the addon under a mocked Lua host, not
+live game frame times or WoW's per-addon CPU attribution.
 
 This optional event-bus adapter is version-sensitive, unlike the public price API.
 Tests execute Auctionator 347's unmodified event bus, event constants and DB callback.

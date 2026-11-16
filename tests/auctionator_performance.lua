@@ -145,6 +145,7 @@ addon.BrowseUI = {
     end,
 }
 local dbUpdate
+local listeners = {}
 Auctionator = {
     API = {
         v1 = {
@@ -156,12 +157,30 @@ Auctionator = {
     FullScan = {
         Events = { ScanStart = "start", ScanProgress = "progress", ScanComplete = "complete", ScanFailed = "failed" },
     },
-    EventBus = { Register = function() end },
+    Shopping = {
+        Tab = {
+            Events = {
+                SearchStart = "shopping start",
+                SearchIncrementalUpdate = "shopping update",
+                SearchEnd = "shopping end",
+            },
+        },
+    },
+    EventBus = {
+        Register = function(_, listener, events)
+            for _, event in ipairs(events) do
+                listeners[event] = listener
+            end
+        end,
+    },
 }
 addon.Discovery.Install()
 addon.Tooltip.Install()
 addon.Providers.Install()
-addon.Providers.BeginExternalScan("benchmark")
+local startEvent = SHOPPING_SCAN and "shopping start" or "start"
+if listeners[startEvent] then
+    listeners[startEvent]:ReceiveEvent(startEvent)
+end
 local tooltip, data = frame(), { id = 21 }
 local discovery, deliveries = addon.Discovery.frame, 0
 collectgarbage("collect")
@@ -186,7 +205,7 @@ for index = 1, 20000 do
         dbUpdate()
         addon.UI.Update()
     end
-    if addon.Providers.frame.scripts.OnUpdate then
+    if addon.Providers.frame and addon.Providers.frame.scripts.OnUpdate then
         addon.Providers.frame.scripts.OnUpdate()
     end
 end
