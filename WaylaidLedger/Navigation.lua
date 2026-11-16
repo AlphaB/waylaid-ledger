@@ -74,6 +74,43 @@ function Nav.CurrentEntry(view)
     end
 end
 
+function Nav.UpdateAuctionScroll()
+    local view = Nav.auctionView
+    if not Nav.auctionOwned or not AuctionHouseFrame or not available() then
+        return
+    end
+    local button = SmartNavigation:GetCurrentButton()
+    local focused = view and view.host:IsVisible() and button and (button == view.scroll or button.waylaidView == view)
+    SmartNavigation:SetScrollFrameForFrame(AuctionHouseFrame, focused and view.scroll or nil)
+end
+
+function Nav.BindView(view)
+    if
+        not SmartNavigation_AddJumpNavigationOverride
+        or not SMART_NAV_INPUT_DIRECTION
+        or (InCombatLockdown and InCombatLockdown())
+    then
+        return
+    end
+    -- Enter a row directly, bypassing native geometric navigation's automatic
+    -- centering of scroll-frame children before the list has focus.
+    local function enter()
+        if not available() or not view.host:IsVisible() then
+            return
+        end
+        local target
+        view.scroll:ForEachFrame(function(row)
+            if row.entry and (not target or row.entry.listIndex < target.entry.listIndex) then
+                target = row
+            end
+        end)
+        return target or true
+    end
+    for _, control in ipairs({ view.search, view.refreshButton, view.settingsButton }) do
+        SmartNavigation_AddJumpNavigationOverride(control, SMART_NAV_INPUT_DIRECTION.DOWN, enter)
+    end
+end
+
 function Nav.RefreshView(view, previous)
     if not available() or not view.host:IsVisible() then
         return
@@ -94,8 +131,10 @@ function Nav.RefreshView(view, previous)
             target = view.search
         end
     end
-    Nav.auctionOwned, Nav.auctionCleanupPending = true, false
-    Nav.Refresh(AuctionHouseFrame, view.scroll, target)
+    Nav.auctionOwned, Nav.auctionCleanupPending, Nav.auctionView = true, false, view
+    Nav.BindView(view)
+    Nav.Refresh(AuctionHouseFrame, nil, target)
+    Nav.UpdateAuctionScroll()
 end
 
 function Nav.LeaveAuction()
@@ -103,6 +142,7 @@ function Nav.LeaveAuction()
         return
     end
     Nav.auctionCleanupPending = true
+    Nav.auctionView = nil
     if not available() or not AuctionHouseFrame then
         return
     end
@@ -170,6 +210,10 @@ function Nav.Install()
     end
     if not available() then
         return
+    end
+    if SmartNavigation.RegisterCallback and Nav.callbackOwner ~= SmartNavigation then
+        SmartNavigation:RegisterCallback("SelectedButtonUpdated", Nav.UpdateAuctionScroll, Nav)
+        Nav.callbackOwner = SmartNavigation
     end
     Nav.CleanupAuction()
     for frame in pairs(Nav.windows) do

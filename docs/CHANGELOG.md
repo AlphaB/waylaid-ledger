@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8.2
+## 0.8.3
 
 - Add timestamped, opt-in chat diagnostics with explicit `/wll debug on` and `/wll debug off` commands.
 - Explain Auctionator scan detection, progress, completion/failure, closure, watchdog timeouts, and database callbacks.
@@ -8,6 +8,15 @@
 - Summarize tab selections, UI updates, description retries, and ignored discovery events without per-event chat spam.
 - Include active external scan state and suppressed-message counts in `/wll report`; bound retained logs to 100 entries and 1,000 characters per message.
 - Test disabled logging, repeated enable/disable, event-storm throttling, and logging during the Auctionator autoscan simulation.
+
+## 0.8.2
+
+- Enable controller list scrolling only while a row in the active list has focus.
+- Move down from Search, Refresh/Stop or Settings directly into a visible row without scrolling first.
+- Exclude scrollbar arrow/thumb controls from gamepad focus; mouse scrolling remains available.
+- Preserve D-pad row selection across virtual-row boundaries, filtering, price updates and category changes.
+- Add focus/viewport/boundary regressions and an optional test using unmodified Forever navigation code.
+- 209 default Lua 5.1 regression tests; live in-game controller verification remains required.
 
 ## 0.8.1
 

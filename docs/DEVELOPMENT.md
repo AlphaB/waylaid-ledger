@@ -72,6 +72,16 @@ The source/API review and simulated tests cannot establish live-client behavior.
 In particular, actual query scheduling, addon restrictions, and compatibility
 with installed auction addons need an in-game check.
 
+## Controller regression checks (v0.8.2)
+
+`python tests/run.py --forever-navigation /path/to/native/sources` also runs the
+unmodified Forever `SmartNavigation.lua` and `Utility.lua` navigation/selection
+methods against the addon. The directory must contain those two source files;
+upstream code is an external test input and is never bundled in the install ZIP.
+This checks row entry without native centering, traversal in both directions
+past the virtual pool, and focus-scoped scrolling. Rendering, input dispatch and
+secure execution still require the live-client checklist in README.
+
 ## Manual verification
 
 Use an identified Apprentice Herbs or Apprentice Ore crate for the first test.

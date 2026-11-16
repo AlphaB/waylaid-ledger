@@ -295,6 +295,7 @@ function Browse.Create(host, kind)
     settings:SetScript("OnClick", function()
         addon.UI.ToggleSettings()
     end)
+    view.settingsButton = settings
     view.inset = CreateFrame("Frame", nil, host, "InsetFrameTemplate")
     view.inset:SetPoint("TOPLEFT", 10, -40)
     view.inset:SetPoint("BOTTOMRIGHT", -10, -4)
@@ -309,6 +310,8 @@ function Browse.Create(host, kind)
     view.scroll:SetPoint("TOPLEFT", 4, -29)
     view.scroll:SetPoint("BOTTOMRIGHT", -26, 4)
     view.scrollBar = CreateFrame("EventFrame", nil, view.inset, "WowClassicScrollBar")
+    -- Arrow/thumb buttons are mouse controls, not selectable list entries.
+    addon.Navigation.Ignore(view.scrollBar)
     -- Avoid the classic middle atlas rendering as a green strip on Forever.
     -- Only the decorative rail changes; native thumb/arrow behavior is retained.
     view.scrollBar.Background.Middle:SetColorTexture(0.08, 0.08, 0.08, 1)

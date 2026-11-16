@@ -17,6 +17,9 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--auctionator", type=pathlib.Path, help="Path to an Auctionator release ZIP")
 parser.add_argument("--tsm", type=pathlib.Path, help="Path to a TradeSkillMaster release ZIP")
 parser.add_argument(
+    "--forever-navigation", type=pathlib.Path, help="Directory containing native SmartNavigation.lua and Utility.lua"
+)
+parser.add_argument(
     "--forever-ui",
     type=pathlib.Path,
     help="Directory containing unmodified Forever commodity list and buy-frame Lua sources",
@@ -32,6 +35,10 @@ for literal in re.findall(r'\[("(?:[^"\\]|\\.)*")\]\s*=', (root / "WaylaidLedger
     localization_keys.add(json.loads(literal))
 lua.globals().LOCALIZATION_KEYS = lua.table_from(sorted(localization_keys))
 try:
+    if args.forever_navigation:
+        lua.globals().UPSTREAM_FOREVER_NAVIGATION = lua.table_from(
+            {name: (args.forever_navigation / name).read_text() for name in ["SmartNavigation.lua", "Utility.lua"]}
+        )
     if args.auctionator:
         with zipfile.ZipFile(args.auctionator) as archive:
             names = [
