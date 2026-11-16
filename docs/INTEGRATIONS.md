@@ -68,10 +68,10 @@ lowest-known comparison.
 TSM age remains explicitly unknown. Estimates are never assigned a fabricated
 `scannedAt` or available quantity and are never stored as own scan snapshots.
 
-The single lowest known cost across resolved options is highlighted. A fresh
-own scan uses green; an imported estimate or older own cache uses amber. Ties
+The single lowest known cost across resolved options is highlighted green
+for all sources, including imported and cached prices. Ties
 are allowed, while failures, shortages and unknown costs remain excluded.
-The compact tooltip uses color and plain amounts with an estimate prefix.
+The compact tooltip uses color and plain amounts without estimate prefixes.
 Shift reveals source/age inline; source badges and footer legends are removed.
 
 Provider reads, including misses, are cached on demand for 15 seconds, keyed by
@@ -104,7 +104,7 @@ user to retry instead of searching with the wrong language.
 
 ## Validation performed
 
-- 103 standard Lua 5.1 tests execute the production modules.
+- 107 standard Lua 5.1 tests execute the production modules.
 - Two optional tests execute the **unmodified public API source** from Auctionator
   347 and TSM 4.15.7, with their internal services and UI stubbed.
 - Auctionator contract check: returned copper and day age, update registration,
@@ -159,3 +159,19 @@ queries defer pending opening work until two seconds of quiet, including page
 requests. They cancel active scans; manual refresh or the next AH visit is
 required after interruption. Existing shopping handoffs still
 stop our scanner before calling the provider.
+
+## Native UI (v0.6.0)
+
+Only one `WaylaidLedger` tab is registered with LibAHTab, labelled Waylaid.
+Writs and Crates are child pages controlled by native `PanelTopTabButtonTemplate`
+buttons. Internal tabs never register with LibAHTab or touch Blizzard's AH tab array.
+
+The lists use the same `WowScrollBoxList` / `WowClassicScrollBar` primitives as
+Forever's classic auction item list, plus the native inset and column headers.
+The element initializer rebinds recycled buttons; callbacks read current entry
+data. Item-tooltip updates do not replace the data provider under the pointer.
+
+The official AddOns page uses `Settings.RegisterCanvasLayoutCategory`,
+`Settings.RegisterAddOnCategory`, and `Settings.OpenToCategory(category:GetID())`.
+Registration happens once per addon load; all settings entry points open it.
+All features continue using the same SavedVariables keys.

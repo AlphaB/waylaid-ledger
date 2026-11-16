@@ -2,10 +2,10 @@
 
 A standalone World of Warcraft: Forever addon that scans the auction house for
 Waylaid Crate materials and adds the cost of every filling option to crate
-item tooltips. The lowest known filling cost is highlighted in green for a fresh own scan,
-or amber for a provider/cached estimate. Auctionator and TSM are optional price providers.
+item tooltips. The lowest known filling cost is highlighted in green for all price sources,
+including cached prices. Auctionator and TSM are optional price providers.
 
-Version **0.5.1** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.6.0** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -21,10 +21,12 @@ Version **0.5.1** · Forever **1.60.1 / interface 16001** · No addon dependenci
 3. Restart the game, enable **Waylaid Ledger** in the AddOns menu, and log in.
 4. Hover an identified crate. If Auctionator or TSM already has pricing data,
    estimates appear immediately, including away from the auction house.
-5. Visit an auctioneer and select **Writs** or **Waylaid Crates**. Each tab lists
+5. Visit an auctioneer and select **Waylaid**, then its internal **Writs** or
+   **Waylaid Crates** tab. Each list shows
    its catalog in order of **purchase + delivery** cost. Click a row to open
    Auctionator Shopping with one writ/crate and its complete delivery bundle.
-   The minimap button opens your last used tab; right-click it for settings.
+   The minimap button opens your last used list; right-click it for the official
+   **Settings → AddOns → Waylaid Ledger** page.
 6. Hover a recognized Waylaid Crate in your bags, chat, or the auction house to
    compare its options. `/wll settings` changes price preferences.
    `/wll controls` opens the original scan and diagnostic controls.
@@ -42,10 +44,10 @@ Each line is the cost to buy one complete bundle for **one crate**. The crate's
 own purchase price is not included. Existing inventory is not deducted.
 
 - Each option uses one compact row: quantity/item on the left, amount on the
-  right. Imported amounts keep a `~` prefix. Source badges and the gray
-  explanatory footer have been removed.
-- The **lowest displayed known filling cost** is highlighted. **Green** means
-  a fresh own scan; **amber** means an estimate or older cached scan. All tied
+  right. Prices have no `~` prefix. Source badges and the gray explanatory
+  footer remain removed.
+- The **lowest displayed known filling cost** is highlighted **green** for
+  every source, including estimates and older cached scans. All tied
   minima highlight, even if every available price is cached. Unknown prices,
   failed scans, and observed shortages never win.
 - **Not scanned / No price** means no usable data exists for the selected source.
@@ -74,12 +76,15 @@ requirements are known. Its tooltip explains this instead of inventing prices.
 
 ## Tracking and controls
 
-`/wll settings` configures the minimap button, bag tracking, bank inclusion, alt
-inclusion, automatic AH refresh, tooltip details, and writ price source. Drag the
+`/wll settings` opens **Settings → AddOns → Waylaid Ledger**. This page configures
+crate/writ price sources, the TSM price definition, minimap visibility, bag/bank/alt
+tracking, automatic AH refresh, and tooltip details. Drag the
 minimap button to reposition it. Away from the AH, `/wll` opens a standalone window.
-At the AH, Writs and Waylaid Crates share the addon tab row used by Auctionator.
-The former button grid is available separately through `/wll controls` or
-Settings → Scan controls / diagnostics.
+At the AH, only **one Waylaid tab** occupies the addon tab row. Writs and
+Waylaid Crates use internal top tabs, leaving more room for Auctionator and
+other auction addons. Each category keeps its own search and scroll position.
+The original scan controls remain under `/wll controls` or the official settings
+page's **Scan controls** button; there is no separate settings popup.
 
 Bag snapshots update on login and inventory changes. Character/shared bank
 snapshots update while the bank is open. Log into each alt and visit its bank
@@ -118,11 +123,12 @@ from the auction house.
 
 ## Ranked auction lists
 
-The **Writs** tab lists all 150 known identified writs. **Waylaid Crates** lists
+Inside the Waylaid auction tab, **Writs** lists all 150 known identified writs,
+and **Waylaid Crates** lists
 all 30 identified crates. Columns show the purchase price of one writ/crate, the
 full delivery cost, and their sum. Rows with known totals sort from cheapest to
-most expensive; unknown totals follow alphabetically. Known-old totals remain
-visible, gray and marked `*`. Missing data is never counted as zero.
+most expensive; unknown totals follow alphabetically. Missing data is never counted as zero. Prices have no estimate prefixes or
+age markers; detailed provenance remains available on hover.
 
 Each crate row chooses its cheapest usable filling option across scans and
 provider estimates. Older cached prices remain eligible for this comparison. This is the **lowest known** cost; unpriced alternatives might be cheaper.
@@ -136,6 +142,8 @@ Own. Writ purchase and delivery both follow the separate writ source preference.
 The selected TSM key applies to both purchase and delivery provider estimates.
 Custom profiles disable external prices and therefore cannot show complete totals.
 
+The list uses Blizzard's native auction-style ScrollBox and scrollbar, framed
+column headers, compact striped rows, and recycled visible item buttons.
 Search filters item names and required goods. **Refresh** rereads provider data;
 it does not start a server scan. Auctionator database updates and our scan updates
 refresh the visible list automatically. Hidden lists do not poll or read prices.
@@ -261,13 +269,14 @@ Use own scans there. Return to `default` for normal provider estimates.
 
 ## First live test
 
-The earlier versions were tested in the user's live client. The restored highlight and tooltip cleanup are tested in a simulated Lua 5.1 client and need a
-live check.
+The earlier versions were tested in the user's live client. The unified tab, native lists and official settings page are tested in a
+simulated Lua 5.1 client and need a live check.
 Please start with a small test:
 
 1. Enable Lua errors with `/console scriptErrors 1`, then `/reload`.
 2. Have an identified crate in your bags and open the auction house.
-3. Check both list tabs alongside Auctionator, sorting, filtering, and row hovers.
+3. Check the single Waylaid tab alongside Auctionator and the two internal tabs.
+   Check filtering, mouse-wheel/scrollbar scrolling, and row hovers.
    Check one purchase + delivery total and click it: Auctionator should open
    Shopping with one writ/crate and the full delivery quantity.
    Check the minimap button and settings.
@@ -314,8 +323,8 @@ depth, indivisible auctions, randomized exhaustive cross-checks, stale/unknown
 results, pagination, throttling, retry timeouts, interruptions, owned-stock
 filtering, profile isolation, full bootstrap, tooltip text, provider priorities,
 source settings, API errors, price-age semantics, callbacks, and shopping handoff.
-The default suite has 103 tests. Two additional contract tests run the actual
-unmodified public API Lua from separately downloaded release ZIPs (105 total):
+The default suite has 107 tests. Two additional contract tests run the actual
+unmodified public API Lua from separately downloaded release ZIPs (109 total):
 
 ```sh
 python3 tests/run.py --auctionator /path/to/Auctionator-347.zip --tsm /path/to/TradeSkillMaster.zip

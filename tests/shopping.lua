@@ -156,12 +156,24 @@ test("browse rows render ranked totals, filter delivery names, and route clicks 
         f.price(264050,100);f.price(4245,400);f.price(264037,40);f.price(8069,3)
         local host=CreateFrame("Frame",nil,UIParent);host:SetSize(1000,550)
         local view=addon.BrowseUI.Create(host,"writs");addon.BrowseUI.Refresh(view)
-        equal(#view.visibleEntries,150);equal(view.rows[1].entry.itemID,264050)
-        assert(view.rows[1].total.text:match("^~ "));assert(view.rows[1].deliveryName.text:match("Small Silk Pack"))
-        view.rows[1].scripts.OnClick(view.rows[1]);equal(#f.searches[1],2)
+        equal(#view.visibleEntries,150);equal(#view.scroll.rows,10);equal(view.scroll.rows[1].entry.itemID,264050)
+        assert(not view.scroll.rows[1].total.text:match("~"));assert(view.scroll.rows[1].deliveryName.text:match("Small Silk Pack"))
+        view.scroll.rows[1].scripts.OnClick(view.scroll.rows[1]);equal(#f.searches[1],2)
         view.search:SetText("Crafted Solid Shot");view.search.scripts.OnTextChanged(view.search)
-        equal(#view.visibleEntries,1);equal(view.rows[1].entry.itemID,264037)
-        equal(view.rows[2]:IsShown(),false);equal(view.scroll:GetVerticalScroll(),0)
+        equal(#view.visibleEntries,1);equal(view.scroll.rows[1].entry.itemID,264037)
+        view.scroll.rows[1].scripts.OnClick(view.scroll.rows[1])
+        equal(#f.searches,2);equal(f.searches[2][1].searchString,"Craftsman's Writ: Crafted Solid Shot")
+        equal(f.searches[2][2].quantity,200)
+        equal(view.scroll.template,"WowScrollBoxList");equal(view.scrollBar.template,"WowClassicScrollBar")
+        equal(view.inset.template,"InsetFrameTemplate")
+        local previousEnd=0
+        for _,header in ipairs(view.headers) do
+            equal(header.template,"ColumnDisplayButtonNoScriptsTemplate")
+            assert(header.point[4]>=previousEnd)
+            previousEnd=header.point[4]+header:GetWidth()
+        end
+        assert(previousEnd<=host:GetWidth()-42)
+        equal(view.scroll.rows[2]:IsShown(),false);equal(view.scroll.offset,0)
         view.search:SetText("does not exist");view.search.scripts.OnTextChanged(view.search)
         equal(#view.visibleEntries,0);equal(view.empty:IsShown(),true)
         host:Hide();addon.BrowseUI.views.writs=nil
@@ -182,5 +194,21 @@ test("row shopping requires a tab-switching API while legacy list creation stays
         equal(addon.Providers.ShoppingAvailable(),true);equal(addon.Providers.ShoppingAvailable(true),false)
         addon:StartScan("all");equal(addon:ShopEntry("writs",264050),false)
         equal(addon.scanner.active,true)
+    end)
+end)
+
+test("item hover does not rebuild the native list and recycle the button under the pointer",function()
+    fixture(function(f)
+        f.price(248683,50);f.price(2770,1);f.price(2771,2)
+        local host=CreateFrame("Frame",nil,UIParent);host:SetSize(1000,550)
+        local view=addon.BrowseUI.Create(host,"crates");addon.BrowseUI.Refresh(view)
+        local calls=0;local original=view.scroll.SetDataProvider
+        view.scroll.SetDataProvider=function(self,...) calls=calls+1;return original(self,...) end
+        local oldTip=GameTooltip;GameTooltip=CreateFrame("GameTooltip")
+        GameTooltip.SetItemByID=function(tip,id) addon.Tooltip.Append(tip,id) end
+        local row=view.scroll.rows[1];equal(row.entry.itemID,248683)
+        addon.BrowseUI.ShowTooltip(row)
+        equal(calls,0);equal(row.entry.itemID,248683)
+        GameTooltip=oldTip;host:Hide();addon.BrowseUI.views.crates=nil
     end)
 end)

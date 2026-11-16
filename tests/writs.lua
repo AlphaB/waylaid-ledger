@@ -93,7 +93,7 @@ test("writ hover is compact, suppresses duplicates and preserves the selected cr
         local tip=CreateFrame("GameTooltip")
         addon.Tooltip.Append(tip,264050)
         equal(#tip.lines,3);equal(tip.lines[3][1],"1x Small Silk Pack")
-        assert(tip.lines[3][2]:match("^~ "));assert(not tip.lines[3][2]:match("%[A%]"))
+        assert(not tip.lines[3][2]:match("~"));assert(not tip.lines[3][2]:match("%[A%]"))
         equal(addon.lastCrateID,oldCrate);equal(addon.lastWritID,264050)
         addon.Tooltip.Append(tip,264050);equal(#tip.lines,3)
         addon.db.writSource="off"

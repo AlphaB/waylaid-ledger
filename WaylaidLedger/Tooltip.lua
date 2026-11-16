@@ -19,7 +19,7 @@ local function appendRows(tooltip, rows, detailed, compare)
         if (owned[row.itemID] or 0) > 0 then label = label .. " (" .. owned[row.itemID] .. " owned)" end
         local value, red, green, blue = "Not scanned", 0.65, 0.65, 0.65
         if row.status == "ok" then
-            value = ((row.estimated or row.stale) and "~ " or "") .. money(row.cost)
+            value = money(row.cost)
             red, green, blue = 1, 1, 1
             if row.purchased and row.purchased > row.quantity then value = value .. " (buy " .. row.purchased .. ")" end
         elseif row.status == "short" then
@@ -32,8 +32,7 @@ local function appendRows(tooltip, rows, detailed, compare)
         end
         local winner = best and row.status == "ok" and not row.error and row.cost == best.cost
         if winner then
-            if row.estimated or row.stale then red, green, blue = 1, 0.72, 0.2
-            else red, green, blue = 0.25, 1, 0.35 end
+            red, green, blue = 0.25, 1, 0.35
         end
         if detailed then
             value = value .. " - " .. (row.sourceLabel or row.source)
@@ -46,7 +45,7 @@ local function appendRows(tooltip, rows, detailed, compare)
             -- GetMoneyString can embed white color codes that override the
             -- FontString RGB. Preserve coin textures and explicitly tint digits.
             value = value:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-            local color = (row.estimated or row.stale) and "|cffffb833" or "|cff40ff59"
+            local color = "|cff40ff59"
             value = color .. value .. "|r"
         end
         tooltip:AddDoubleLine(label, value, red, green, blue, red, green, blue)
@@ -83,14 +82,14 @@ function Tooltip.Append(tooltip, itemID)
         tooltip:AddLine("Waylaid Ledger - delivery estimate", 1, 0.82, 0)
         appendRows(tooltip, rows, detailed)
         if #rows > 1 then
-            tooltip:AddDoubleLine("Total", total and ("~ " .. money(total)) or "Incomplete prices",
+            tooltip:AddDoubleLine("Total", total and money(total) or "Incomplete prices",
                 0.75, 0.75, 0.75, 0.75, 0.75, 0.75)
         end
         return
     end
     addon.lastCrateID = itemID
     if addon.UI and addon.UI.Update then
-        addon.UI.Update()
+        addon.UI.Update(false)
     end
     local rows = addon:GetRows(itemID)
     local detailed = addon.db.tooltipDetails or (IsShiftKeyDown and IsShiftKeyDown())

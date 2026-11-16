@@ -1,5 +1,5 @@
 local addonName, addon = ...
-addon.version = "0.5.1"
+addon.version = "0.6.0"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -308,7 +308,7 @@ function addon:Report()
         string.format("Tracking: enabled=%s banks=%s alts=%s autoRefresh=%s paused=%s",
             tostring(self.db.tracking.enabled), tostring(self.db.tracking.bank), tostring(self.db.tracking.alts),
             tostring(self.db.tracking.autoScan), tostring(self.autoPaused)),
-        "AH tabs: " .. tostring(self.UI.auctionHost ~= nil) .. "; active: " .. tostring(self.db.browserTab) .. "; minimap hidden: " .. tostring(self.db.minimap.hide),
+        "AH tab: " .. tostring(self.UI.auctionHost ~= nil) .. "; active: " .. tostring(self.db.browserTab) .. "; minimap hidden: " .. tostring(self.db.minimap.hide),
         "Last basket: " .. tostring(self.lastBasket and self.lastBasket.itemID)
             .. "; total: " .. tostring(self.lastBasket and self.lastBasket.total),
         "Auction-open scan: " .. tostring(self.db.scanOnOpen) .. "; pending reason: " .. tostring(self.autoReason),
@@ -494,6 +494,7 @@ local function initialize()
         end,
     })
     addon.UI.Create()
+    addon.UI.RegisterSettings()
     addon.MinimapButton.Create()
     addon.Inventory.CaptureBags()
     addon.Providers.Install()

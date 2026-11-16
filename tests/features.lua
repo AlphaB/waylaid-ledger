@@ -126,7 +126,7 @@ test("waiting to request another page is not mistaken for a response timeout",fu
     f.ready=false;f.now=16;f.scanner:Tick()
     equal(f.scanner.pending.attempt,1);equal(f.scanner.pending.action,"more")
 end)
-test("auction integration shares the real tab library and does not alter Blizzard tab array",function()
+test("one outer auction tab contains native internal category tabs without changing Blizzard tabs",function()
     local lib=LibStub("LibAHTab-1-0")
     local oldState=lib.internalState
     local oldAH,oldMode=AuctionHouseFrame,AuctionHouseFrameDisplayMode
@@ -141,23 +141,30 @@ test("auction integration shares the real tab library and does not alter Blizzar
         AuctionHouseFrame.SetDisplayMode=function(self,mode) self.displayMode=mode end
         AuctionHouseFrame.SetTitle=function(self,title) self.title=title end
         AuctionHouseFrameDisplayMode={Buy={"BuyFrame"}}
-        addon.scanAutomatic=false;addon.scanner:SetOpen(true)
+        addon.scanAutomatic=false;addon.scanner:SetOpen(true);addon.db.browserTab="crates"
         addon.UI.AttachAuction();assert(addon.UI.auctionHost)
-        equal(#AuctionHouseFrame.Tabs,3)
+        equal(#AuctionHouseFrame.Tabs,3);equal(#lib.internalState.Tabs,1)
+        equal(lib:DoesIDExist("WaylaidLedger"),true);equal(lib:DoesIDExist("WaylaidLedgerWrits"),false)
         equal(addon.UI.panel:GetParent(),addon.UI.frame)
-        addon.UI.Toggle();equal(addon.UI.auctionHosts.crates,addon.UI.auctionHost)
+        addon.UI.Toggle();equal(addon.UI.auctionHosts.crates:GetParent(),addon.UI.auctionHost)
         equal(addon.UI.auctionHost:IsShown(),true);equal(addon.UI.frame:IsShown(),false)
         local writHost=addon.UI.auctionHosts.writs
-        lib:SetSelected("WaylaidLedgerWrits");equal(writHost:IsShown(),true)
-        equal(addon.UI.auctionHost:IsShown(),false);equal(addon.db.browserTab,"writs")
+        addon.UI.browserTabs.writs.scripts.OnClick()
+        equal(writHost:IsShown(),true);equal(addon.UI.auctionHost:IsShown(),true)
+        equal(addon.UI.auctionHosts.crates:IsShown(),false);equal(addon.db.browserTab,"writs")
         equal(addon.UI.IsScanPanelVisible(),false)
+        local writView=addon.BrowseUI.views.writs
+        writView.search:SetText("Crafted Solid Shot");writView.search.scripts.OnTextChanged(writView.search)
+        equal(#writView.visibleEntries,1)
+        addon.UI.SelectBrowserTab("crates");addon.UI.SelectBrowserTab("writs")
+        equal(writView.search:GetText(),"Crafted Solid Shot");equal(#writView.visibleEntries,1)
+        equal(#lib.internalState.Tabs,1)
         addon.UI.OpenControls();addon.scanAutomatic=true
-        addon.scanMarket=addon:GetMarket();addon.scanner:Start({2770})
-        assert(addon.scanner.active)
-        lib:SetSelected("WaylaidLedgerWrits")
+        addon.scanMarket=addon:GetMarket();addon.scanner:Start({2770});assert(addon.scanner.active)
+        addon.UI.SelectBrowserTab("writs")
         equal(addon.scanner.active,false);equal(addon.autoDue,nil)
         addon.scanAutomatic=false
-        lib:SetSelected("WaylaidLedgerCrates");equal(writHost:IsShown(),false)
+        addon.UI.browserTabs.crates.scripts.OnClick();equal(writHost:IsShown(),false)
         equal(addon.UI.IsScanPanelVisible(),true)
         local other=CreateFrame("Frame",nil,AuctionHouseFrame)
         lib:CreateTab("OtherAddonTest",other,"Other")
@@ -169,7 +176,8 @@ test("auction integration shares the real tab library and does not alter Blizzar
     lib.internalState=oldState
     AuctionHouseFrame,AuctionHouseFrameDisplayMode=oldAH,oldMode
     PanelTemplates_TabResize,PanelTemplates_SelectTab,PanelTemplates_DeselectTab=oldResize,oldSelect,oldDeselect
-    addon.UI.auctionHost,addon.UI.tabLibrary,addon.UI.auctionHosts=nil,nil,nil;addon.BrowseUI.views={};addon.autoDue=nil;addon:UpdateScheduler()
+    addon.UI.auctionHost,addon.UI.tabLibrary,addon.UI.auctionHosts,addon.UI.browserTabs=nil,nil,nil,nil
+    addon.BrowseUI.views={};addon.autoDue=nil;addon:UpdateScheduler()
     assert(ok,err)
 end)
 test("minimap visibility, settings click, dragging and saved angle work",function()

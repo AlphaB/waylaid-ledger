@@ -225,6 +225,7 @@ function methods:SetVerticalScroll(value) self.scroll=value end
 function methods:GetVerticalScroll() return rawget(self,"scroll") or 0 end
 function methods:Show() local changed=not self.shown;self.shown=true;if changed and self.scripts.OnShow then self.scripts.OnShow(self) end end
 function methods:Hide() local changed=self.shown;self.shown=false;if changed and self.scripts.OnHide then self.scripts.OnHide(self) end end
+function methods:IsVisible() return self:IsShown() end
 function methods:IsShown() local parent=rawget(self,"parent");return self.shown and (not parent or not parent.IsShown or parent:IsShown()) end
 function methods:SetShown(shown) if shown then self:Show() else self:Hide() end end
 function methods:AddLine(text,...) self.lines[#self.lines+1]={text,...} end
@@ -243,14 +244,51 @@ function methods:SetEnabled(value) self.enabled=value end
 function methods:SetChecked(value) self.checked=value end
 function methods:GetChecked() return self.checked end
 setmetatable(methods,{__index=function() return function() end end})
-function CreateFrame(kind,name,parent)
-    local f=setmetatable({scripts={},events={},shown=true,lines={},parent=parent}, {__index=methods})
+function CreateFrame(kind,name,parent,template)
+    local f=setmetatable({scripts={},events={},shown=true,lines={},parent=parent,template=template}, {__index=methods})
     f.TitleText=f:CreateFontString()
     frames[#frames+1]=f
     if name then _G[name]=f end
     return f
 end
 UIParent={};UISpecialFrames={};SlashCmdList={};tinsert=table.insert
+Settings={categories={}}
+function Settings.RegisterCanvasLayoutCategory(frame,name)
+    local category={frame=frame,name=name,id=#Settings.categories+1}
+    function category:GetID() return self.id end
+    return category
+end
+function Settings.RegisterAddOnCategory(category) Settings.categories[#Settings.categories+1]=category end
+function Settings.OpenToCategory(id)
+    Settings.opened=id
+    for _,category in ipairs(Settings.categories) do category.frame:Hide() end
+    SettingsPanel.shown=true
+    Settings.categories[id].frame:SetParent(SettingsPanel)
+    Settings.categories[id].frame:Show()
+end
+SettingsPanel={shown=false,Hide=function(self) self.shown=false end,IsShown=function(self) return self.shown end}
+HideUIPanel=function(frame) frame:Hide() end
+function CreateDataProvider(entries) return entries end
+function CreateScrollBoxListLinearView()
+    return {SetElementExtent=function(self,extent) self.extent=extent end,
+        SetElementInitializer=function(self,kind,callback) self.initializer=callback end}
+end
+ScrollUtil={InitScrollBoxListWithScrollBar=function(scroll,bar,view)
+    scroll.rows={};scroll.view=view
+    scroll.ForEachFrame=function(self,action) for _,row in ipairs(self.rows) do if row:IsShown() then action(row) end end end
+    scroll.ScrollToBegin=function(self) self.offset=0 end
+    scroll.SetDataProvider=function(self,entries)
+        self.provider=entries
+        for index=1,math.min(10,#entries) do
+            local row=self.rows[index] or CreateFrame("Button",nil,self)
+            self.rows[index]=row;view.initializer(row,entries[index]);row:Show()
+        end
+        for index=#entries+1,#self.rows do self.rows[index]:Hide() end
+    end
+end}
+PanelTemplates_TabResize=function() end
+PanelTemplates_SelectTab=function(tab) tab.selected=true end
+PanelTemplates_DeselectTab=function(tab) tab.selected=false end
 SearchBoxTemplate_OnTextChanged=function() end
 C_Item={GetItemNameByID=function() return nil end,RequestLoadItemDataByID=function() end}
 GetTime=function() return 0 end;time=function() return 100 end;date=function() return "12:00:00" end
@@ -335,5 +373,6 @@ assert(loadfile(PROJECT_ROOT .. "/tests/writs.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/shopping.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/auction_open.lua"))(addon, test, equal, host)
 assert(loadfile(PROJECT_ROOT .. "/tests/tooltip_age.lua"))(addon, test, equal)
+assert(loadfile(PROJECT_ROOT .. "/tests/settings.lua"))(addon, test, equal)
 assert(loadfile(PROJECT_ROOT .. "/tests/upstream_contracts.lua"))(addon, test, equal)
 print(string.format("\n%d tests passed on %s",passed,_VERSION))

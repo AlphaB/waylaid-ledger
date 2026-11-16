@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.0
+
+- One outer Waylaid auction tab, with internal Writs and Waylaid Crates tabs.
+- Native auction-style ScrollBox and scrollbar, framed headers and compact striped rows.
+- Recycle visible row buttons instead of creating one for every catalog item.
+- Preserve category search and scroll state; avoid rebuilding rows during item hover.
+- Move all preferences to Settings → AddOns → Waylaid Ledger.
+- Settings buttons, minimap right-click and `/wll settings` open the same official page.
+- Remove `~` price prefixes and list footer/age markers.
+- Highlight every cheapest known tooltip option in green, including provider/cached prices.
+- 107 default Lua 5.1 tests; 109 with upstream API contracts.
+
 ## 0.5.1
 
 - Remove the outdated-data notification from all item and basket tooltips.

@@ -104,10 +104,11 @@ Character identity uses GUID; snapshots are partitioned by market identity.
 Account banks. A bank tab without loaded slots cannot erase a prior snapshot.
 Shared-bank snapshots are included once. No remote-character API is assumed.
 
-`UI.lua` retains standalone scan controls and registers two LibAHTab panels.
-`BrowseUI.lua` supplies searchable scrolling rows with separate purchase, delivery,
-and total columns. Only visible lists are rebuilt on price/UI updates; filtering
-reuses the current entries. There is no background polling. `Minimap.lua` uses native frames, with an update callback only during drag.
+`UI.lua` retains standalone scan controls, registers one LibAHTab panel, and
+switches internal category pages. `BrowseUI.lua` supplies a native ScrollBox
+with purchase, delivery and total columns. Only visible lists are rebuilt on
+price updates; filtering reuses current entries, and item hover updates only
+the standalone controls. There is no background polling. `Minimap.lua` uses native frames, with an update callback only during drag.
 
 `WritData.lua` is generated offline from `data/writs.json`: 150 Forever quests,
 150 distinct required goods, 148 additional IDs relative to crate materials.
@@ -147,7 +148,7 @@ requires `MultiSearchAdvanced`, whose upstream implementation switches tabs.
 
 All 180 purchase IDs are read only from optional price databases. Neither list
 construction nor Refresh creates auction queries or expands the scanner catalog.
-Automatic tracked-crate refresh runs in the Crates tab/scan controls, not Writs.
+Automatic tracked-crate refresh runs in the internal Crates page/scan controls, not Writs.
 Tests execute actual Auctionator 347 public source to check Shopping tab clicks
 and both complete baskets, including the 200-unit ammo requirement.
 
@@ -168,8 +169,33 @@ Tooltip default amounts carry no source badges or explanatory footers.
 Version 0.5.1 removes the outdated-data notice and its helpers entirely.
 `Pricing.LowestKnown` supplies one cost comparison for tooltips, controls,
 resolved winner flags and shopping, including cached prices. Failed, unknown
-and insufficient results remain ineligible. A fresh own-scan winner is green;
-a provider estimate or cached own-scan winner is amber. Native money-string
+and insufficient results remain ineligible. All lowest-known winners are green, regardless of source or cache age. Native money-string
 color codes are stripped only for the winning amount and an explicit tint is
 applied without removing coin textures. Source freshness still drives Auto
 resolution and refresh. Shift/detailed mode retains inline source/age.
+
+## Native lists and settings (v0.6.0)
+
+Primary client sources inspected from the Forever branch:
+
+- [Auction item-list template](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_AuctionHouseUI/Classic/Blizzard_AuctionHouseItemList.xml)
+- [ScrollBox](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_SharedXML/Shared/Scroll/ScrollBox.lua)
+- [List view initializer contract](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_SharedXML/Shared/Scroll/ScrollBoxListView.lua)
+- [Native templates](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_SharedXML/Mainline/SharedUIPanelTemplates.xml)
+- [Settings registration/opening API](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_Settings_Shared/Blizzard_Settings.lua)
+
+Native list frames initialize with `CreateScrollBoxListLinearView`, a 34px
+element extent, and a Button initializer. `CreateDataProvider` supplies filtered
+entries, retaining scroll position on refresh; filtering explicitly returns to
+the beginning. The initializer creates row parts once and rebinds entry data
+on every reuse. Headers and numbers share calculated column boundaries.
+
+`UI.SelectBrowserTab` owns internal visibility, selection and tracked-refresh
+gating. The outer LibAHTab container preserves the last category. AH-opening
+scans retain their independent lifecycle across internal switches.
+
+Settings are a registered canvas category with native checkboxes and source
+controls. No custom settings dialog or extra slash-command state is created.
+Tests simulate a recycled visible-row pool, confirm post-filter click quantities,
+check header bounds and hover stability, and validate official-category routing.
+Actual client template rendering still requires the user's live check.

@@ -47,8 +47,8 @@ test("cached prices retain their cheapest highlight at any age without a notific
             equal(#tip.lines,4);checkNoNotice(tip)
             equal(highlighted(tip.lines[3]),true);equal(highlighted(tip.lines[4]),false)
             if age>addon.db.maxAge then
-                equal(tip.lines[3][3],1);equal(tip.lines[3][4],0.72)
-                assert(tip.lines[3][2]:match("~ "))
+                equal(tip.lines[3][3],0.25);equal(tip.lines[3][4],1)
+                assert(not tip.lines[3][2]:match("~"))
             else equal(tip.lines[3][3],0.25) end
         end
     end)
