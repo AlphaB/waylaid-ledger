@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.1
+
+- Replace the classic scrollbar middle artwork with a dark rail to remove the green strip.
+- Keep native scrolling, arrows and thumb behavior unchanged.
+- Rename the internal Writs tab to Craftsman's Writs.
+- Clarify Refresh behavior in its button tooltip and documentation.
+- Test that Refresh bypasses cached provider reads and resorts saved prices without scanning.
+- 108 default Lua 5.1 tests; 110 with upstream API contracts.
+
 ## 0.6.0
 
 - One outer Waylaid auction tab, with internal Writs and Waylaid Crates tabs.

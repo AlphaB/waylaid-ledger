@@ -144,6 +144,7 @@ test("one outer auction tab contains native internal category tabs without chang
         addon.scanAutomatic=false;addon.scanner:SetOpen(true);addon.db.browserTab="crates"
         addon.UI.AttachAuction();assert(addon.UI.auctionHost)
         equal(#AuctionHouseFrame.Tabs,3);equal(#lib.internalState.Tabs,1)
+        equal(addon.UI.browserTabs.writs.text,"Craftsman's Writs")
         equal(lib:DoesIDExist("WaylaidLedger"),true);equal(lib:DoesIDExist("WaylaidLedgerWrits"),false)
         equal(addon.UI.panel:GetParent(),addon.UI.frame)
         addon.UI.Toggle();equal(addon.UI.auctionHosts.crates:GetParent(),addon.UI.auctionHost)

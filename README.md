@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The lowest known filling cost is highlighted in green for all price sources,
 including cached prices. Auctionator and TSM are optional price providers.
 
-Version **0.6.0** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.6.1** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -21,7 +21,7 @@ Version **0.6.0** · Forever **1.60.1 / interface 16001** · No addon dependenci
 3. Restart the game, enable **Waylaid Ledger** in the AddOns menu, and log in.
 4. Hover an identified crate. If Auctionator or TSM already has pricing data,
    estimates appear immediately, including away from the auction house.
-5. Visit an auctioneer and select **Waylaid**, then its internal **Writs** or
+5. Visit an auctioneer and select **Waylaid**, then its internal **Craftsman's Writs** or
    **Waylaid Crates** tab. Each list shows
    its catalog in order of **purchase + delivery** cost. Click a row to open
    Auctionator Shopping with one writ/crate and its complete delivery bundle.
@@ -123,7 +123,7 @@ from the auction house.
 
 ## Ranked auction lists
 
-Inside the Waylaid auction tab, **Writs** lists all 150 known identified writs,
+Inside the Waylaid auction tab, **Craftsman's Writs** lists all 150 known identified writs,
 and **Waylaid Crates** lists
 all 30 identified crates. Columns show the purchase price of one writ/crate, the
 full delivery cost, and their sum. Rows with known totals sort from cheapest to
@@ -144,8 +144,14 @@ Custom profiles disable external prices and therefore cannot show complete total
 
 The list uses Blizzard's native auction-style ScrollBox and scrollbar, framed
 column headers, compact striped rows, and recycled visible item buttons.
-Search filters item names and required goods. **Refresh** rereads provider data;
-it does not start a server scan. Auctionator database updates and our scan updates
+Search filters item names and required goods. **Refresh** rereads prices already
+saved by Auctionator/TSM and reuses our own saved scan snapshots, according to
+the selected source. It recalculates delivery choices and purchase + delivery
+totals, then sorts the active list again while retaining its filter and scroll
+position. It does **not** query the live AH, start a scan, or make Auctionator/TSM
+collect new data. Run an Auctionator scan first to obtain new provider prices,
+or use `/wll controls` for our crate-material scans. If saved data has not
+changed, Refresh can show the same amounts. Its hover tooltip explains this. Auctionator database updates and our scan updates
 refresh the visible list automatically. Hidden lists do not poll or read prices.
 Hover a row for the price breakdown and provenance. Totals are acquisition
 estimates, not profits: rewards, owned stock, AH fees and travel are not deducted.
@@ -323,8 +329,8 @@ depth, indivisible auctions, randomized exhaustive cross-checks, stale/unknown
 results, pagination, throttling, retry timeouts, interruptions, owned-stock
 filtering, profile isolation, full bootstrap, tooltip text, provider priorities,
 source settings, API errors, price-age semantics, callbacks, and shopping handoff.
-The default suite has 107 tests. Two additional contract tests run the actual
-unmodified public API Lua from separately downloaded release ZIPs (109 total):
+The default suite has 108 tests. Two additional contract tests run the actual
+unmodified public API Lua from separately downloaded release ZIPs (110 total):
 
 ```sh
 python3 tests/run.py --auctionator /path/to/Auctionator-347.zip --tsm /path/to/TradeSkillMaster.zip

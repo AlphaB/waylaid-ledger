@@ -104,7 +104,7 @@ user to retry instead of searching with the wrong language.
 
 ## Validation performed
 
-- 107 standard Lua 5.1 tests execute the production modules.
+- 108 standard Lua 5.1 tests execute the production modules.
 - Two optional tests execute the **unmodified public API source** from Auctionator
   347 and TSM 4.15.7, with their internal services and UI stubbed.
 - Auctionator contract check: returned copper and day age, update registration,
@@ -175,3 +175,17 @@ The official AddOns page uses `Settings.RegisterCanvasLayoutCategory`,
 `Settings.RegisterAddOnCategory`, and `Settings.OpenToCategory(category:GetID())`.
 Registration happens once per addon load; all settings entry points open it.
 All features continue using the same SavedVariables keys.
+
+## Refresh and scrollbar rail (v0.6.1)
+
+Refresh invalidates only the adapter's 15-second memory cache and rebuilds the
+active list. Provider public APIs return their existing saved price data; own
+scan snapshots are retained. It recalculates/resorts baskets without starting
+a scan or issuing an auction query. A production-button regression check verifies
+newly saved provider amounts, changed ordering, retained scroll policy, unchanged
+scanner requests and preserved own snapshots.
+
+The native classic scrollbar's `Background.Middle` is explicitly given a neutral
+solid color. This avoids the green middle artwork on the reported client while
+retaining the native template, mouse-wheel, track, arrows and thumb bindings.
+Primary template: [TrimScrollBar.xml](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_SharedXML/Shared/Scroll/TrimScrollBar.xml).

@@ -218,7 +218,7 @@ function UI.AttachAuction()
     for _, kind in ipairs({ "writs", "crates" }) do
         local category = kind
         local tab = CreateFrame("Button", nil, host, "PanelTopTabButtonTemplate")
-        tab:SetText(category == "writs" and "Writs" or "Waylaid Crates")
+        tab:SetText(category == "writs" and "Craftsman's Writs" or "Waylaid Crates")
         PanelTemplates_TabResize(tab, 18)
         if previous then tab:SetPoint("TOPLEFT", previous, "TOPRIGHT", 3, 0)
         else tab:SetPoint("TOPLEFT", 10, 0) end

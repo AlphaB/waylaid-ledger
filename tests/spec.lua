@@ -241,12 +241,17 @@ function methods:IsObjectType(kind) return kind=="Frame" end
 function methods:CreateTexture() return self:CreateFontString() end
 function methods:SetPoint(...) self.point={...} end
 function methods:SetEnabled(value) self.enabled=value end
+function methods:SetColorTexture(...) self.color={...} end
 function methods:SetChecked(value) self.checked=value end
 function methods:GetChecked() return self.checked end
 setmetatable(methods,{__index=function() return function() end end})
 function CreateFrame(kind,name,parent,template)
     local f=setmetatable({scripts={},events={},shown=true,lines={},parent=parent,template=template}, {__index=methods})
     f.TitleText=f:CreateFontString()
+    if template=="WowClassicScrollBar" then
+        f.Background=f:CreateFontString()
+        f.Background.Middle=f:CreateTexture()
+    end
     frames[#frames+1]=f
     if name then _G[name]=f end
     return f
@@ -277,8 +282,8 @@ ScrollUtil={InitScrollBoxListWithScrollBar=function(scroll,bar,view)
     scroll.rows={};scroll.view=view
     scroll.ForEachFrame=function(self,action) for _,row in ipairs(self.rows) do if row:IsShown() then action(row) end end end
     scroll.ScrollToBegin=function(self) self.offset=0 end
-    scroll.SetDataProvider=function(self,entries)
-        self.provider=entries
+    scroll.SetDataProvider=function(self,entries,retain)
+        self.provider=entries;self.retainScrollPosition=retain
         for index=1,math.min(10,#entries) do
             local row=self.rows[index] or CreateFrame("Button",nil,self)
             self.rows[index]=row;view.initializer(row,entries[index]);row:Show()

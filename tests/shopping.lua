@@ -166,6 +166,8 @@ test("browse rows render ranked totals, filter delivery names, and route clicks 
         equal(f.searches[2][2].quantity,200)
         equal(view.scroll.template,"WowScrollBoxList");equal(view.scrollBar.template,"WowClassicScrollBar")
         equal(view.inset.template,"InsetFrameTemplate")
+        local rail=view.scrollBar.Background.Middle.color
+        equal(rail[1],0.08);equal(rail[2],0.08);equal(rail[3],0.08);equal(rail[4],1)
         local previousEnd=0
         for _,header in ipairs(view.headers) do
             equal(header.template,"ColumnDisplayButtonNoScriptsTemplate")
