@@ -505,6 +505,12 @@ end
 function methods:CreateTexture()
     return self:CreateFontString()
 end
+function methods:SetTexture(path)
+    self.texture = path
+end
+function methods:SetTexCoord(...)
+    self.texCoord = { ... }
+end
 function methods:SetPoint(...)
     self.point = { ... }
 end

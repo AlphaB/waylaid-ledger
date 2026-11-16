@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.2
+
+- Replace font-based sort arrows, which can render as missing-glyph squares, with WoW's native sort-arrow texture.
+- Flip the texture for ascending/descending order and reserve label space beside the active indicator.
+
 ## 0.9.1
 
 - Make all five table columns sortable; clicking the same header reverses the direction.

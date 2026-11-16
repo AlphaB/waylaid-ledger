@@ -14,7 +14,7 @@ addon.L = setmetatable({}, {
     end,
 })
 
-function Localization.ButtonText(button, label)
+function Localization.ButtonText(button, label, reservedWidth)
     button:SetText(label)
     local font = button.GetFontString and button:GetFontString()
     if not font or not font.GetFont or not font.GetStringWidth then
@@ -29,7 +29,7 @@ function Localization.ButtonText(button, label)
     end
     font:SetFont(face, size, flags)
     font:SetWordWrap(false)
-    local available = math.max(1, button:GetWidth() - 12)
+    local available = math.max(1, button:GetWidth() - 12 - (reservedWidth or 0))
     local width = font:GetStringWidth()
     if width > available then
         font:SetFont(face, math.max(9, size * available / width), flags)

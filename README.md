@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The lowest known filling cost is highlighted in green for all price sources,
 including cached prices. Auctionator and TSM are optional price providers. Own scans support both crate and writ costs.
 
-Version **0.9.1** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **0.9.2** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 ## Install
 
@@ -189,7 +189,7 @@ age markers; detailed provenance remains available on hover.
 
 Click any column header to sort by item name, purchase price, delivery cost,
 total cost, or cost per reputation/Favor. Click it again to reverse the order;
-the active header shows an arrow. Missing numeric values stay at the bottom in
+the active header shows a native arrow image independent of font glyphs. Missing numeric values stay at the bottom in
 both directions. Each table keeps its selection through filtering, Refresh and
 tab changes during the session. Reloading starts both tables at lowest cost per
 reputation/Favor again.
