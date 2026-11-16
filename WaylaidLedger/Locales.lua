@@ -1893,3 +1893,45 @@ local sortHelp = {
 for locale, label in pairs(sortHelp) do
     addon.Locales[locale]["Click to sort; click again to reverse."] = label
 end
+
+-- Cached browser
+addon.Locales.deDE["Waylaid Ledger - saved prices"] = "Waylaid Ledger - gespeicherte Preise"
+addon.Locales.deDE["Left-click opens the lists anywhere. Right-click opens settings."] =
+    "Linksklick öffnet die Listen überall. Rechtsklick öffnet die Einstellungen."
+addon.Locales.deDE["Saved prices. Visit the auction house for current prices and purchases."] =
+    "Gespeicherte Preise. Besuche das Auktionshaus für aktuelle Preise und Einkäufe."
+addon.Locales.frFR["Waylaid Ledger - saved prices"] = "Waylaid Ledger - prix enregistrés"
+addon.Locales.frFR["Left-click opens the lists anywhere. Right-click opens settings."] =
+    "Clic gauche : listes partout. Clic droit : options."
+addon.Locales.frFR["Saved prices. Visit the auction house for current prices and purchases."] =
+    "Prix enregistrés. Rendez-vous à l’hôtel des ventes pour les prix actuels et les achats."
+addon.Locales.esES["Waylaid Ledger - saved prices"] = "Waylaid Ledger - precios guardados"
+addon.Locales.esES["Left-click opens the lists anywhere. Right-click opens settings."] =
+    "Clic izquierdo: listas en cualquier lugar. Clic derecho: opciones."
+addon.Locales.esES["Saved prices. Visit the auction house for current prices and purchases."] =
+    "Precios guardados. Visita la casa de subastas para ver precios actuales y comprar."
+addon.Locales.ptBR["Waylaid Ledger - saved prices"] = "Waylaid Ledger - preços salvos"
+addon.Locales.ptBR["Left-click opens the lists anywhere. Right-click opens settings."] =
+    "Clique esquerdo abre as listas em qualquer lugar. Clique direito abre as configurações."
+addon.Locales.ptBR["Saved prices. Visit the auction house for current prices and purchases."] =
+    "Preços salvos. Visite a casa de leilões para preços atuais e compras."
+addon.Locales.ruRU["Waylaid Ledger - saved prices"] = "Waylaid Ledger - сохранённые цены"
+addon.Locales.ruRU["Left-click opens the lists anywhere. Right-click opens settings."] =
+    "Левая кнопка открывает списки в любом месте. Правая — настройки."
+addon.Locales.ruRU["Saved prices. Visit the auction house for current prices and purchases."] =
+    "Сохранённые цены. Посетите аукцион, чтобы увидеть актуальные цены и сделать покупки."
+addon.Locales.koKR["Waylaid Ledger - saved prices"] = "Waylaid Ledger - 저장된 가격"
+addon.Locales.koKR["Left-click opens the lists anywhere. Right-click opens settings."] =
+    "왼쪽 클릭: 어디서나 목록 열기. 오른쪽 클릭: 설정 열기."
+addon.Locales.koKR["Saved prices. Visit the auction house for current prices and purchases."] =
+    "저장된 가격입니다. 최신 가격 확인 및 구매는 경매장을 방문하세요."
+addon.Locales.zhTW["Waylaid Ledger - saved prices"] = "Waylaid Ledger - 已儲存價格"
+addon.Locales.zhTW["Left-click opens the lists anywhere. Right-click opens settings."] =
+    "左鍵：隨時開啟清單。右鍵：開啟設定。"
+addon.Locales.zhTW["Saved prices. Visit the auction house for current prices and purchases."] =
+    "已儲存的價格。請前往拍賣場查看最新價格及購買。"
+addon.Locales.esMX["Waylaid Ledger - saved prices"] = addon.Locales.esES["Waylaid Ledger - saved prices"]
+addon.Locales.esMX["Left-click opens the lists anywhere. Right-click opens settings."] =
+    addon.Locales.esES["Left-click opens the lists anywhere. Right-click opens settings."]
+addon.Locales.esMX["Saved prices. Visit the auction house for current prices and purchases."] =
+    addon.Locales.esES["Saved prices. Visit the auction house for current prices and purchases."]

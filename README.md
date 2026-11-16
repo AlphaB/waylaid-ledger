@@ -5,7 +5,7 @@ Waylaid Crate materials and adds the cost of every filling option to crate
 item tooltips. The lowest known filling cost is highlighted in green for all price sources,
 including cached prices. Auctionator and TSM are optional price providers. Own scans support both crate and writ costs.
 
-Version **0.9.7** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **1.0.0** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 In Auto mode, Auctionator or TSM prices prevent an extra Ledger scan when opening
 the auction house, even if Scan on open is enabled. Own scans and explicit scan
@@ -30,7 +30,10 @@ commands remain available.
    its catalog in order of **purchase + delivery** cost. Click a row to open
    Auctionator Shopping when available, or a built-in basket with one writ/crate
    and its complete delivery bundle.
-   The minimap button opens your last used list; right-click it for the official
+   Left-click the minimap button (or use `/wll`) to browse your last used list
+   anywhere, with saved prices, search, sorting and delivery tooltips. Away from
+   the auction house, Refresh reloads saved prices; visit an auctioneer to scan
+   current prices or buy. Right-click the minimap button for the official
    **Settings → AddOns → Waylaid Ledger** page.
 6. Hover a recognized Waylaid Crate in your bags, chat, or the auction house to
    compare its options. `/wll settings` changes price preferences.

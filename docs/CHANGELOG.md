@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0
+
+- Left-click the minimap button or use `/wll` to browse crates and writs with saved prices away from the auction house. Right-click still opens settings.
+- Reuse both auction lists with search, column sorting, purchase/delivery totals, reward costs and tooltips in a movable window.
+- Refresh reloads saved prices outside the auction house; scanning and purchases still require an auctioneer.
+- Add native controller navigation, scrolling and Back handling to the saved-price browser.
+
 ## 0.9.7
 
 - Avoid a redundant opening full scan in Auto when Auctionator or TSM provides prices; explicit scans, Own mode and custom profiles remain available.

@@ -89,8 +89,11 @@ local function pausePanelScan()
     addon:UpdateScheduler()
 end
 
-function UI.SelectBrowserTab(kind)
-    if not UI.auctionHosts or not UI.auctionHosts[kind] then
+function UI.SelectBrowserTab(kind, browser)
+    local pages = browser and browser.pages or UI.auctionHosts
+    local tabs = browser and browser.tabs or UI.browserTabs
+    local views = browser and browser.views or addon.BrowseUI.views
+    if not pages or not pages[kind] then
         return
     end
     addon.db.browserTab = kind
@@ -98,31 +101,22 @@ function UI.SelectBrowserTab(kind)
         addon:Trace("ui.tab", 2, "Selected %s; displaying cached prices (no scan requested)", kind)
     end
     UI.switchingBrowser = true
-    for category, page in pairs(UI.auctionHosts) do
+    for category, page in pairs(pages) do
         page:SetShown(category == kind)
         if category == kind then
-            PanelTemplates_SelectTab(UI.browserTabs[category])
+            PanelTemplates_SelectTab(tabs[category])
         else
-            PanelTemplates_DeselectTab(UI.browserTabs[category])
+            PanelTemplates_DeselectTab(tabs[category])
         end
     end
     UI.switchingBrowser = false
-    addon.BrowseUI.Refresh(addon.BrowseUI.views[kind])
-    addon.Navigation.EnterView(addon.BrowseUI.views[kind])
+    addon.BrowseUI.Refresh(views[kind])
+    addon.Navigation.EnterView(views[kind])
 end
 
-function UI.AttachAuction()
-    if UI.auctionHost or not AuctionHouseFrame or not LibStub then
-        return
-    end
-    local lib = LibStub:GetLibrary("LibAHTab-1-0", true)
-    if not lib then
-        return
-    end
-    local host = CreateFrame("Frame", nil, AuctionHouseFrame)
-    host:SetPoint("TOPLEFT", AuctionHouseFrame, "TOPLEFT", 10, -35)
-    host:SetPoint("BOTTOMRIGHT", AuctionHouseFrame, "BOTTOMRIGHT", -10, 34)
-    UI.auctionHost, UI.auctionHosts, UI.browserTabs, UI.tabLibrary = host, {}, {}, lib
+-- Both containers use exactly the same category controls and list implementation.
+function UI.CreateBrowser(host, cached)
+    host.pages, host.tabs, host.views = {}, {}, {}
     local previous
     for _, kind in ipairs({ "writs", "crates" }) do
         local category = kind
@@ -135,19 +129,83 @@ function UI.AttachAuction()
             tab:SetPoint("TOPLEFT", 10, 0)
         end
         tab:SetScript("OnClick", function()
-            UI.SelectBrowserTab(category)
+            UI.SelectBrowserTab(category, host)
         end)
-        UI.browserTabs[category], previous = tab, tab
+        host.tabs[category], previous = tab, tab
         local page = CreateFrame("Frame", nil, host)
         page:SetPoint("TOPLEFT", 0, -32)
         page:SetPoint("BOTTOMRIGHT")
         page:Hide()
-        UI.auctionHosts[category] = page
-        addon.BrowseUI.Create(page, category)
-        if category == "crates" then
+        host.pages[category] = page
+        host.views[category] = addon.BrowseUI.Create(page, category, cached and host or nil)
+        host.views[category].tabs = host.tabs
+        if not cached and category == "crates" then
             page:SetScript("OnHide", pausePanelScan)
         end
     end
+end
+
+function UI.OpenCachedBrowser()
+    if not UI.cachedBrowser then
+        local frame = CreateFrame("Frame", "WaylaidLedgerBrowserFrame", UIParent, "BasicFrameTemplateWithInset")
+        frame:Hide()
+        frame:SetSize(1000, 600)
+        frame:SetPoint("CENTER")
+        frame:SetClampedToScreen(true)
+        frame:SetMovable(true)
+        frame:EnableMouse(true)
+        frame:RegisterForDrag("LeftButton")
+        frame:SetScript("OnDragStart", frame.StartMoving)
+        frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+        frame.TitleText:SetText(L["Waylaid Ledger - saved prices"])
+        UI.cachedBrowser = frame
+        UI.CreateBrowser(frame, true)
+        -- Leave room for the native title bar and close button.
+        frame.tabs.writs:ClearAllPoints()
+        frame.tabs.writs:SetPoint("TOPLEFT", 20, -30)
+        for _, page in pairs(frame.pages) do
+            page:ClearAllPoints()
+            page:SetPoint("TOPLEFT", 10, -62)
+            page:SetPoint("BOTTOMRIGHT", -10, 12)
+        end
+        frame:SetScript("OnShow", function()
+            UI.SelectBrowserTab(frame.pages[addon.db.browserTab] and addon.db.browserTab or "crates", frame)
+        end)
+        frame.SmartNavigationCloseHandler = function()
+            frame:Hide()
+            return true
+        end
+        tinsert(UISpecialFrames, "WaylaidLedgerBrowserFrame")
+        addon.Navigation.RegisterWindow(frame, {
+            target = function()
+                return frame.views[addon.db.browserTab or "crates"].search
+            end,
+            scroll = function()
+                return frame.views[addon.db.browserTab or "crates"].scroll
+            end,
+        })
+    end
+    UI.cachedBrowser:Show()
+    addon.Navigation.EnterView(UI.cachedBrowser.views[addon.db.browserTab])
+end
+
+function UI.AttachAuction()
+    if addon.scanner.open and UI.cachedBrowser then
+        UI.cachedBrowser:Hide()
+    end
+    if UI.auctionHost or not AuctionHouseFrame or not LibStub then
+        return
+    end
+    local lib = LibStub:GetLibrary("LibAHTab-1-0", true)
+    if not lib then
+        return
+    end
+    local host = CreateFrame("Frame", nil, AuctionHouseFrame)
+    host:SetPoint("TOPLEFT", AuctionHouseFrame, "TOPLEFT", 10, -35)
+    host:SetPoint("BOTTOMRIGHT", AuctionHouseFrame, "BOTTOMRIGHT", -10, 34)
+    UI.auctionHost, UI.auctionHosts, UI.browserTabs, UI.tabLibrary = host, {}, {}, lib
+    UI.CreateBrowser(host)
+    UI.auctionHosts, UI.browserTabs = host.pages, host.tabs
     host:SetScript("OnShow", function()
         UI.SelectBrowserTab(UI.auctionHosts[addon.db.browserTab] and addon.db.browserTab or "crates")
     end)
@@ -187,7 +245,11 @@ function UI.Toggle()
             return
         end
     end
-    UI.ToggleSettings()
+    if UI.cachedBrowser and UI.cachedBrowser:IsShown() then
+        UI.cachedBrowser:Hide()
+    else
+        UI.OpenCachedBrowser()
+    end
 end
 
 local function label(parent, value, x, y, width, font)
@@ -336,7 +398,7 @@ function UI.RegisterSettings()
             "Show minimap button",
             18,
             -226,
-            "Left-click opens the auction list at the AH, or settings elsewhere.",
+            "Left-click opens the lists anywhere. Right-click opens settings.",
         },
         { "details", "Always show detailed price tooltips", 18, -260, "Hold Shift for details when disabled." },
         {

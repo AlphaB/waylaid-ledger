@@ -304,6 +304,37 @@ test("partial or absent native controller APIs leave mouse UI operational and re
     end)
 end)
 
+test("cached browser restores controller focus after late activation, combat and reopening over a report", function()
+    fixture(function(f, nav)
+        f.enabled = false
+        addon.UI.OpenCachedBrowser()
+        local browser = addon.UI.cachedBrowser
+        equal(f.shown[browser], nil)
+        f.enabled = true
+        nav.Install()
+        equal(f.shown[browser], true)
+        equal(f.current, browser.views[addon.db.browserTab].search)
+        addon.UI.ShowReport("Cached browser focus")
+        equal(f.active, addon.UI.report)
+        addon.UI.OpenCachedBrowser()
+        equal(f.active, browser)
+        equal(f.current, browser.views[addon.db.browserTab].search)
+        f.combat = true
+        browser.SmartNavigationCloseHandler()
+        equal(f.shown[browser], true)
+        f.combat = false
+        host.scripts.OnEvent(host, "PLAYER_REGEN_ENABLED")
+        equal(f.shown[browser], nil)
+        f.combat = true
+        addon.UI.OpenCachedBrowser()
+        equal(f.shown[browser], nil)
+        f.combat = false
+        host.scripts.OnEvent(host, "PLAYER_REGEN_ENABLED")
+        equal(f.shown[browser], true)
+        assert(f.groups[browser])
+    end)
+end)
+
 if not UPSTREAM_NAVIGATION then
     return
 end
@@ -424,6 +455,31 @@ test("Forever source discovers every options action and report editor in its reg
         loadSource("FrameControlsManager.lua")
         assert(wrapped[env.GamepadFrameControlsManagerMixin.FrameShown])
         assert(wrapped[env.GamepadFrameControlsManagerMixin.FrameHidden])
+        addon.UI.OpenCachedBrowser()
+        local browser = addon.UI.cachedBrowser
+        assert(nav.windows[browser])
+        for _, kind in ipairs({ "writs", "crates" }) do
+            addon.UI.SelectBrowserTab(kind, browser)
+            local actions = inspect(browser)
+            local view = browser.views[kind]
+            for _, control in ipairs({
+                browser.tabs.writs,
+                browser.tabs.crates,
+                view.search,
+                view.refreshButton,
+                view.settingsButton,
+            }) do
+                assert(actions[control], "cached browser action missing from native discovery")
+            end
+            for _, header in ipairs(view.headers) do
+                assert(actions[header], "cached sort header missing from native discovery")
+            end
+            view.scroll:ForEachFrame(function(row)
+                assert(actions[row], "cached row missing from native discovery")
+            end)
+            smart:SetScrollFrameForFrame(browser, view.scroll)
+            equal(f.scrolling, true)
+        end
         -- Every named addon dialog instantiated by the production UI must have
         -- a native focus lifecycle, and every action in it must be discoverable.
         local seen = {}
@@ -444,9 +500,13 @@ test("Forever source discovers every options action and report editor in its reg
                 local function checkChildren(parent)
                     for _, child in ipairs({ parent:GetChildren() }) do
                         if
-                            child:GetScript("OnClick")
-                            or child:IsObjectType("EditBox")
-                            or child:IsObjectType("DropdownButton")
+                            child:IsVisible()
+                            and child:IsEnabled()
+                            and (
+                                child:GetScript("OnClick")
+                                or child:IsObjectType("EditBox")
+                                or child:IsObjectType("DropdownButton")
+                            )
                         then
                             assert(actions[child], name .. " has an unreachable control")
                         end

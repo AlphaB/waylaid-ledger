@@ -1,5 +1,32 @@
 # Implementation notes
 
+## Cached browser (1.0.0)
+
+`UI.CreateBrowser` builds both containers with the same tabs, `BrowseUI` rows,
+filtering, sorting, pricing and tooltips. The standalone instance is created on
+first use without loading Blizzard's auction UI. Its views use separate registry
+keys and a window owner; auction views retain their existing keys and owner.
+The remembered category is shared, while each container retains its own searches
+and scroll positions. Only visible views refresh on data/settings changes.
+
+Outside the AH, Refresh invalidates provider estimates and rebuilds from saved
+prices without queuing scans. Row activation uses the existing closed-AH guard
+and explains that shopping requires an auctioneer. Opening the AH closes the
+standalone window and keeps the normal auction-tab flow.
+
+Validation: regression checks cover cached totals, both categories, search,
+reopening, no auction requests, virtual rows, sorting, empty results, focus,
+late gamepad initialization and combat recovery. Native discovery includes both
+pages of the lazily created browser. All 246 default checks and 248 checks with
+each pinned/latest Forever source passed, along with Lua/Python lint and
+formatting, all five performance scenarios and install ZIP integrity checks.
+
+Manual verification not performed: live Forever rendering before the first AH
+visit, native controller hardware input and right-stick scrolling, Back/return
+focus from Settings, mouse dragging, Escape, real combat/taint behavior, and
+localized layouts. Follow `CONTROLLER.md` with the cached browser and again after
+entering/leaving the AH. Automated checks do not establish those client results.
+
 ## Runtime structure
 
 - `Localization.lua` and `Locales.lua`: client-selected control translations for
@@ -20,7 +47,7 @@
   after 15s. The total per-item deadline is 90s, including throttle/page waits.
 - `Tooltip.lua`: modern item-tooltip post-processing, duplicate suppression,
   refreshes after scan completion, and a legacy hook fallback.
-- `UI.lua`: registered settings and the auction tab host; legacy controls redirect to settings.
+- `UI.lua`: registered settings, the auction tab host and the standalone saved-price browser.
 - `NativeShopping.lua`: ID-based basket and Blizzard buy-screen navigation.
 - `Navigation.lua`: native Forever SmartNavigation/focus integration.
 - `Core.lua`: startup, persisted market caches, commands, API hooks, event routing.
