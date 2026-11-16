@@ -5,6 +5,7 @@ local _, addon = ...
 addon.BulkScan = {}
 local BulkScan = addon.BulkScan
 local COOLDOWN, TIMEOUT, BATCH = 15 * 60, 30, 250
+local BUDGET_MS = 2
 
 function BulkScan.Supported(api)
     return type(api.ReplicateItems) == "function" and type(api.GetNumReplicateItems) == "function"
@@ -46,7 +47,7 @@ function BulkScan.Install(scanner)
         local job = engine.job
         if not job then return end
         local now = scanner.runtime.now()
-        if now - job.startedAt > TIMEOUT then
+        if now - (job.progressAt or job.startedAt) > TIMEOUT then
             -- Preserve completed estimates; never mark absent/partial rows sold out.
             finish("Full scan did not complete. Retry when the auction house is idle.")
             return
@@ -54,6 +55,7 @@ function BulkScan.Install(scanner)
         if not job.received then return end
         local api = scanner.api
         local limit = math.min(job.index + BATCH, job.count)
+        local started = debugprofilestop and debugprofilestop()
         for index = job.index, limit - 1 do
             local ok, info = pcall(function() return { api.GetReplicateItemInfo(index) } end)
             if not ok then finish("Full scan data could not be read: " .. tostring(info)); return end
@@ -71,10 +73,12 @@ function BulkScan.Install(scanner)
                     if not old or price < old then job.prices[itemID] = price end
                 end
             end
+            job.index = index + 1
+            if started and debugprofilestop() - started >= BUDGET_MS then break end
         end
-        job.index = limit
-        if limit < job.count then
-            if job.own then scanner.message = string.format("Reading full scan: %d / %d auctions", limit, job.count) end
+        job.progressAt = now
+        if job.index < job.count then
+            if job.own then scanner.message = string.format("Reading full scan: %d / %d auctions", job.index, job.count) end
             return
         end
         -- Resolve names only after indexing the entire market, so row order does
@@ -141,7 +145,11 @@ function BulkScan.Install(scanner)
                 finish("Full scan could not start: " .. tostring(reason))
             end
         end
-        process()
+        -- Only the bulk frame processes rows, once per rendered frame. The core
+        -- scheduler also calls Tick; doing work here doubles the frame budget.
+        if engine.job and self.runtime.now() - (job.progressAt or job.startedAt) > TIMEOUT then
+            finish("Full scan did not complete. Retry when the auction house is idle.")
+        end
     end
     frame:RegisterEvent("REPLICATE_ITEM_LIST_UPDATE")
     frame:RegisterEvent("AUCTION_HOUSE_CLOSED")
@@ -155,7 +163,7 @@ function BulkScan.Install(scanner)
                 return
             end
             job.received, job.count, job.at = true, count, scanner.runtime.wallTime()
-            process()
+            job.progressAt = scanner.runtime.now()
         elseif event == "AUCTION_HOUSE_CLOSED" then
             if engine.job and engine.job.own then scanner:Stop("Auction house closed; completed prices were kept.")
             else cancel() end

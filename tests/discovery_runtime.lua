@@ -39,6 +39,7 @@ test("empty install discovers and prices complete crates and writs using one bul
         local frame=a.BulkScan.engine.frame
         frame.scripts.OnEvent(frame,"REPLICATE_ITEM_LIST_UPDATE")
         while frame.scripts.OnUpdate do frame.scripts.OnUpdate() end
+        while a.Discovery.frame.scripts.OnUpdate do a.Discovery.frame.scripts.OnUpdate() end
         equal(a.scanner.active,false)
         local crate=a.Shopping.Entry("crates",21)
         equal(crate.purchase,100);equal(crate.delivery,85);equal(crate.total,185)
@@ -58,6 +59,7 @@ test("empty install discovers and prices complete crates and writs using one bul
         equal(a.scanner.active,false);equal(a.BulkScan.engine.job.own,false)
         frame.scripts.OnEvent(frame,"REPLICATE_ITEM_LIST_UPDATE")
         while frame.scripts.OnUpdate do frame.scripts.OnUpdate() end
+        while a.Discovery.frame.scripts.OnUpdate do a.Discovery.frame.scripts.OnUpdate() end
         a:StartScan("deep");equal(#a.scanner.queue,4);equal(a.scanner.bulkMode,false)
         a:StopScan()
         a.db.source="auto";a.db.replication[a.BulkScan.engine.cooldownKey]=nil

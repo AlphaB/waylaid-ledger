@@ -1,6 +1,6 @@
 local test,equal=...
 local function fixture(action)
-    local saved={CreateFrame=CreateFrame,hooksecurefunc=hooksecurefunc}
+    local saved={CreateFrame=CreateFrame,hooksecurefunc=hooksecurefunc,debugprofilestop=debugprofilestop}
     local frames={}
     CreateFrame=function()
         local f={scripts={},events={}}
@@ -29,6 +29,7 @@ local function fixture(action)
     end
     local ok,err=pcall(action,f)
     CreateFrame,hooksecurefunc=saved.CreateFrame,saved.hooksecurefunc
+    debugprofilestop=saved.debugprofilestop
     assert(ok,err)
 end
 
@@ -37,7 +38,10 @@ test("6000 auctions use one request and bounded processing batches",function()
         for index=1,6000 do f.rows[index]=f.row(index,"Item "..index,10,100) end
         equal(f.scanner:Start({}),true);equal(f.calls,1)
         f.frame.scripts.OnEvent(f.frame,"REPLICATE_ITEM_LIST_UPDATE")
-        equal(f.scanner.active,true);equal(f.observed[250],"Item 250");equal(f.observed[251],nil)
+        equal(f.scanner.active,true);equal(next(f.observed),nil)
+        f.scanner:Tick();equal(next(f.observed),nil)
+        f.frame.scripts.OnUpdate()
+        equal(f.observed[250],"Item 250");equal(f.observed[251],nil)
         local batches=1
         while f.frame.scripts.OnUpdate do f.frame.scripts.OnUpdate();batches=batches+1 end
         equal(batches,24);equal(f.scanner.completed,6000);equal(f.calls,1)
@@ -106,5 +110,28 @@ test("replicate read errors end the job without committing incomplete prices",fu
         f.rows={f.row(11,"Herb",20,100)}
         f.scanner:Start({});f.deliver()
         equal(f.scanner.active,false);equal(next(f.market.items),nil)
+    end)
+end)
+
+test("slow replication reads yield on elapsed time without timing out a progressing scan",function()
+    fixture(function(f)
+        local elapsed,reads=0,0
+        debugprofilestop=function() return elapsed end
+        local read=f.api.GetReplicateItemInfo
+        f.api.GetReplicateItemInfo=function(index)
+            elapsed=elapsed+2;reads=reads+1
+            return read(index)
+        end
+        for id=1,100 do f.rows[id]=f.row(id,"Item "..id,10,100) end
+        f.scanner:Start({})
+        f.frame.scripts.OnEvent(f.frame,"REPLICATE_ITEM_LIST_UPDATE")
+        equal(reads,0)
+        for frame=1,100 do
+            f.now=frame
+            f.scanner:Tick();equal(reads,frame-1)
+            f.frame.scripts.OnUpdate();equal(reads,frame)
+        end
+        equal(f.scanner.completed,100);equal(f.scanner.active,false)
+        equal(f.market.items[100].unitPrice,10);equal(f.calls,1)
     end)
 end)
