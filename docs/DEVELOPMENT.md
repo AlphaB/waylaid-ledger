@@ -83,6 +83,20 @@ Navigate methods, then checks row entry without native centering, traversal in b
 past the virtual pool, and focus-scoped scrolling. Rendering, input dispatch and
 secure execution still require the live-client checklist in README.
 
+## AddOns list icon (0.9.5)
+
+Both install manifests declare `IconTexture: Interface\Icons\INV_Crate_05`,
+matching the existing minimap icon. Forever's native
+[AddonList_InitAddon](https://github.com/Gethe/wow-ui-source/blob/forever/Interface/AddOns/Blizzard_AddOnList/AddonList.lua)
+reads this metadata before falling back to the question-mark icon. No runtime UI
+or controller navigation behavior changes.
+
+Release checks passed: 236 default Lua regressions, 238 checks each with pinned
+and latest Forever navigation sources, and clean ZIP packaging/integrity. In-game icon rendering at character
+selection and in the game menu remains unverified. The full live controller
+checklist in [CONTROLLER.md](CONTROLLER.md) also remains unperformed for 0.9.5;
+automated checks cannot establish hardware input or secure/taint behavior.
+
 ## Manual verification
 
 Use an identified Apprentice Herbs or Apprentice Ore crate for the first test.
