@@ -1,9 +1,9 @@
 ## Interface: 16001
 ## Title: Waylaid Ledger
 ## IconTexture: Interface\Icons\INV_Crate_05
-## Notes: Compare complete writ and crate delivery costs and shop at the auction house.
+## Notes: Browse saved crate and writ costs anywhere; scan and shop at the auction house.
 ## Author: Mikhail Salosin
-## Version: 1.0.0
+## Version: 1.0.1
 ## OptionalDeps: Auctionator, TradeSkillMaster
 ## SavedVariables: WaylaidLedgerDB
 ## Category: Auction & Economy

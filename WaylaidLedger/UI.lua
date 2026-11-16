@@ -385,7 +385,7 @@ function UI.RegisterSettings()
     label(frame, "Automatic scans", 18, -306, 270, "GameFontNormal")
     label(
         frame,
-        "Switching tabs uses saved prices. Click Refresh to update prices.",
+        "Lists use saved prices. Refresh reloads prices; scanning requires the AH.",
         18,
         -378,
         270,
@@ -406,14 +406,14 @@ function UI.RegisterSettings()
             "Scan on auction-house open",
             18,
             -330,
-            "Scan missing or stale crate prices on AH open, using Auto or Own scans.",
+            "Scan on AH open with Own scans, or Auto without an available price provider. May start a full scan.",
         },
         {
             "tracking",
             "Remember inventory",
             320,
             -78,
-            "Remember inventory for bag and tracked scans. Prices do not subtract owned items.",
+            "Remember bags and visited banks across characters. Prices do not subtract owned items.",
         },
         { "banks", "Include visited banks", 320, -112, "Include visited character and shared banks" },
         { "alts", "Include remembered characters", 320, -146, "Include remembered characters on this realm/faction" },
@@ -431,7 +431,7 @@ function UI.RegisterSettings()
     end
     label(
         frame,
-        "Offline inventory is a last-seen snapshot. Log into each character and visit their bank once to update it.",
+        "Offline inventory is last seen. Log into characters and revisit banks to refresh it.",
         320,
         -190,
         270,
@@ -452,7 +452,7 @@ function UI.RegisterSettings()
     end)
     label(
         frame,
-        "Refresh and Stop are in the auction list. Advanced tools: /wll help",
+        "Refresh is in each list; Stop appears during Waylaid scans. Advanced tools: /wll help",
         18,
         -438,
         570,

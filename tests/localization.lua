@@ -125,7 +125,7 @@ for _, sample in ipairs(locales) do
             equal(view.stopButton, nil)
             equal(view.headers[2].text, a.L["Purchase"])
             a.BrowseUI.Refresh(view)
-            equal(view.empty.text, a.L["No matching items. For first-time discovery, run /wll scan all at the AH."])
+            equal(view.empty.text, a.L["No matching items. Clear or change the search."])
             local nativeAvailable = a.NativeShopping.Available
             a.NativeShopping.Available = function()
                 return true
@@ -138,6 +138,12 @@ for _, sample in ipairs(locales) do
             GameTooltip.lines = {}
             a.MinimapButton.frame.scripts.OnEnter(a.MinimapButton.frame)
             equal(GameTooltip.lines[2][1], a.L["Left-click: auction list"])
+            a.scanner:SetOpen(false)
+            GameTooltip.lines = {}
+            a.MinimapButton.frame.scripts.OnEnter(a.MinimapButton.frame)
+            equal(GameTooltip.lines[2][1], a.L["Left-click: saved crate and writ lists"])
+            equal(GameTooltip.lines[3][1], a.L["Right-click: settings"])
+            a.scanner:SetOpen(true)
             -- A writ-only inventory still supports the advanced hovered-scan command.
             a.Writs[31] = { name = "Test writ", requirements = { { itemID = 11, quantity = 200 } } }
             a.lastCrateID, a.lastContractID = nil, 31

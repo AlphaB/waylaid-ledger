@@ -53,7 +53,6 @@ addon.Locales.deDE = {
     ["TSM price"] = "TSM-Preis",
     ["Scan controls"] = "Scansteuerung",
     ["Clear remembered inventory"] = "Inventarstände löschen",
-    ["Offline inventory is a last-seen snapshot. Log into each character and visit their bank once to update it."] = "Offline-Bestände zeigen den zuletzt gesehenen Stand. Zum Aktualisieren mit jedem Charakter einloggen und seine Bank besuchen.",
     ["WoW's AddOns settings are unavailable on this client."] = "Die AddOn-Einstellungen sind auf diesem Client nicht verfügbar.",
     ["Waylaid Ledger - select and copy with Ctrl+C / Cmd+C"] = "Waylaid Ledger – markieren und mit Strg+C / Cmd+C kopieren",
     ["No price"] = "Kein Preis",
@@ -71,7 +70,6 @@ addon.Locales.deDE = {
     ["Purchase"] = "Kauf",
     ["Delivery"] = "Lieferung",
     ["Total (lowest first)"] = "Gesamt (aufsteigend)",
-    ["No matching items. For first-time discovery, run /wll scan all at the AH."] = "Keine passenden Artikel. Zur ersten Erfassung im Auktionshaus /wll scan all ausführen.",
     [" (%d owned)"] = " (%d im Besitz)",
     ["Not scanned"] = "Nicht gescannt",
     [" (buy %d)"] = " (%d kaufen)",
@@ -110,11 +108,9 @@ addon.Locales.deDE = {
     ["Scanning..."] = "Scan läuft...",
     ["Scan stopped; completed prices were kept."] = "Scan gestoppt; erfasste Preise bleiben gespeichert.",
     ["Scan stopped because another auction search started. Scan again when the auction house is idle."] = "Scan wegen einer anderen Auktionssuche gestoppt. Scanne erneut, wenn das Auktionshaus bereit ist.",
-    ["Scan finished: %d materials updated, %d failed."] = "Scan beendet: %d Materialien aktualisiert, %d fehlgeschlagen.",
     ["Full scan did not complete. Retry when the auction house is idle."] = "Vollständiger Scan nicht abgeschlossen. Versuche es erneut, wenn das Auktionshaus bereit ist.",
     ["Full scan data could not be read: %s"] = "Scandaten konnten nicht gelesen werden: %s",
     ["Reading full scan: %d / %d auctions"] = "Scan wird gelesen: %d / %d Auktionen",
-    ["Full scan finished: %d item prices. Delivery requirements learned from game descriptions."] = "Vollständiger Scan beendet: %d Artikelpreise. Lieferbedarf aus Spielbeschreibungen erfasst.",
     ["Wait for the full scan to finish or stop it first."] = "Warte auf den vollständigen Scan oder stoppe ihn zuerst.",
     ["An auction scan is already running."] = "Ein Auktionsscan läuft bereits.",
     ["Full-scan cooldown: using saved prices. /wll scan deep refreshes known delivery items."] = "Vollständiger Scan hat Abklingzeit: gespeicherte Preise werden verwendet. /wll scan deep aktualisiert bekannte Lieferwaren.",
@@ -133,7 +129,6 @@ addon.Locales.deDE = {
     ["Choose an option between 1 and %d."] = "Wähle eine Option zwischen 1 und %d.",
     ["Searching all alternatives in Auctionator. Buy only one bundle to fill the crate."] = "Alle Alternativen werden in Auctionator gesucht. Kaufe nur ein Paket zum Füllen der Kiste.",
     ["Opened the selected bundle in Auctionator. Review the listings before buying."] = "Gewähltes Paket in Auctionator geöffnet. Prüfe die Angebote vor dem Kauf.",
-    ["Use /wll scan bags, hovered, tracked, all, crates, or writs."] = "Verwende /wll scan bags, hovered, tracked, all, crates oder writs.",
     ["Stop the current scan first."] = "Stoppe zuerst den aktuellen Scan.",
     ["Choose Auto or Own scans for this category in Settings."] = "Wähle in den Einstellungen Auto oder Eigene Scans für diese Kategorie.",
     ["Price source: %s. Options: auto, auctionator, tsm, own."] = "Preisquelle: %s. Optionen: auto, auctionator, tsm, own.",
@@ -241,7 +236,6 @@ addon.Locales.frFR = {
     ["TSM price"] = "Prix TSM",
     ["Scan controls"] = "Commandes d'analyse",
     ["Clear remembered inventory"] = "Effacer les inventaires",
-    ["Offline inventory is a last-seen snapshot. Log into each character and visit their bank once to update it."] = "Les inventaires hors ligne sont les derniers relevés connus. Connectez chaque personnage et visitez sa banque pour les actualiser.",
     ["WoW's AddOns settings are unavailable on this client."] = "Les options des addons ne sont pas disponibles sur ce client.",
     ["Waylaid Ledger - select and copy with Ctrl+C / Cmd+C"] = "Waylaid Ledger – sélectionner et copier avec Ctrl+C / Cmd+C",
     ["No price"] = "Aucun prix",
@@ -259,7 +253,6 @@ addon.Locales.frFR = {
     ["Purchase"] = "Achat",
     ["Delivery"] = "Livraison",
     ["Total (lowest first)"] = "Total (croissant)",
-    ["No matching items. For first-time discovery, run /wll scan all at the AH."] = "Aucun objet correspondant. Pour commencer, lancez /wll scan all à l'hôtel des ventes.",
     [" (%d owned)"] = " (%d possédés)",
     ["Not scanned"] = "Non analysé",
     [" (buy %d)"] = " (acheter %d)",
@@ -298,11 +291,9 @@ addon.Locales.frFR = {
     ["Scanning..."] = "Analyse en cours...",
     ["Scan stopped; completed prices were kept."] = "Analyse arrêtée ; prix recueillis conservés.",
     ["Scan stopped because another auction search started. Scan again when the auction house is idle."] = "Analyse arrêtée par une autre recherche. Réessayez quand l'hôtel des ventes est libre.",
-    ["Scan finished: %d materials updated, %d failed."] = "Analyse terminée : %d composants actualisés, %d échecs.",
     ["Full scan did not complete. Retry when the auction house is idle."] = "Analyse complète inachevée. Réessayez quand l'hôtel des ventes est libre.",
     ["Full scan data could not be read: %s"] = "Impossible de lire les données de l'analyse : %s",
     ["Reading full scan: %d / %d auctions"] = "Lecture de l'analyse : %d / %d enchères",
-    ["Full scan finished: %d item prices. Delivery requirements learned from game descriptions."] = "Analyse complète terminée : %d prix. Besoins de livraison lus dans les descriptions du jeu.",
     ["Wait for the full scan to finish or stop it first."] = "Attendez la fin de l'analyse complète ou arrêtez-la.",
     ["An auction scan is already running."] = "Une analyse des enchères est en cours.",
     ["Full-scan cooldown: using saved prices. /wll scan deep refreshes known delivery items."] = "Analyse complète en recharge : prix mémorisés utilisés. /wll scan deep actualise les biens à livrer connus.",
@@ -321,7 +312,6 @@ addon.Locales.frFR = {
     ["Choose an option between 1 and %d."] = "Choisissez une option entre 1 et %d.",
     ["Searching all alternatives in Auctionator. Buy only one bundle to fill the crate."] = "Recherche de toutes les options dans Auctionator. N'achetez qu'un seul lot pour remplir la caisse.",
     ["Opened the selected bundle in Auctionator. Review the listings before buying."] = "Lot choisi ouvert dans Auctionator. Vérifiez les offres avant d'acheter.",
-    ["Use /wll scan bags, hovered, tracked, all, crates, or writs."] = "Utilisez /wll scan bags, hovered, tracked, all, crates ou writs.",
     ["Stop the current scan first."] = "Arrêtez d'abord l'analyse en cours.",
     ["Choose Auto or Own scans for this category in Settings."] = "Choisissez Auto ou Mes analyses pour cette catégorie dans les options.",
     ["Price source: %s. Options: auto, auctionator, tsm, own."] = "Source des prix : %s. Options : auto, auctionator, tsm, own.",
@@ -429,7 +419,6 @@ addon.Locales.esES = {
     ["TSM price"] = "Precio TSM",
     ["Scan controls"] = "Controles de análisis",
     ["Clear remembered inventory"] = "Borrar inventarios",
-    ["Offline inventory is a last-seen snapshot. Log into each character and visit their bank once to update it."] = "El inventario sin conexión muestra el último estado conocido. Entra con cada personaje y visita su banco para actualizarlo.",
     ["WoW's AddOns settings are unavailable on this client."] = "Las opciones de addons no están disponibles en este cliente.",
     ["Waylaid Ledger - select and copy with Ctrl+C / Cmd+C"] = "Waylaid Ledger: selecciona y copia con Ctrl+C / Cmd+C",
     ["No price"] = "Sin precio",
@@ -447,7 +436,6 @@ addon.Locales.esES = {
     ["Purchase"] = "Compra",
     ["Delivery"] = "Entrega",
     ["Total (lowest first)"] = "Total (menor primero)",
-    ["No matching items. For first-time discovery, run /wll scan all at the AH."] = "No hay coincidencias. Para descubrir objetos, ejecuta /wll scan all en la subasta.",
     [" (%d owned)"] = " (%d en posesión)",
     ["Not scanned"] = "Sin analizar",
     [" (buy %d)"] = " (comprar %d)",
@@ -486,11 +474,9 @@ addon.Locales.esES = {
     ["Scanning..."] = "Analizando...",
     ["Scan stopped; completed prices were kept."] = "Análisis detenido; precios obtenidos conservados.",
     ["Scan stopped because another auction search started. Scan again when the auction house is idle."] = "Análisis detenido por otra búsqueda. Reintenta cuando la subasta esté libre.",
-    ["Scan finished: %d materials updated, %d failed."] = "Análisis completo: %d materiales actualizados, %d fallidos.",
     ["Full scan did not complete. Retry when the auction house is idle."] = "El análisis completo no terminó. Reintenta cuando la subasta esté libre.",
     ["Full scan data could not be read: %s"] = "No se pudieron leer los datos del análisis: %s",
     ["Reading full scan: %d / %d auctions"] = "Leyendo análisis: %d / %d subastas",
-    ["Full scan finished: %d item prices. Delivery requirements learned from game descriptions."] = "Análisis completo: %d precios. Requisitos de entrega obtenidos de las descripciones del juego.",
     ["Wait for the full scan to finish or stop it first."] = "Espera a que termine el análisis o deténlo primero.",
     ["An auction scan is already running."] = "Ya hay un análisis de subastas en curso.",
     ["Full-scan cooldown: using saved prices. /wll scan deep refreshes known delivery items."] = "Análisis completo en espera: se usan precios guardados. /wll scan deep actualiza mercancías conocidas.",
@@ -509,7 +495,6 @@ addon.Locales.esES = {
     ["Choose an option between 1 and %d."] = "Elige una opción entre 1 y %d.",
     ["Searching all alternatives in Auctionator. Buy only one bundle to fill the crate."] = "Buscando alternativas en Auctionator. Compra un solo lote para llenar el cajón.",
     ["Opened the selected bundle in Auctionator. Review the listings before buying."] = "Lote elegido abierto en Auctionator. Revisa los anuncios antes de comprar.",
-    ["Use /wll scan bags, hovered, tracked, all, crates, or writs."] = "Usa /wll scan bags, hovered, tracked, all, crates o writs.",
     ["Stop the current scan first."] = "Detén primero el análisis actual.",
     ["Choose Auto or Own scans for this category in Settings."] = "Elige Auto o Análisis propios para esta categoría en opciones.",
     ["Price source: %s. Options: auto, auctionator, tsm, own."] = "Fuente de precios: %s. Opciones: auto, auctionator, tsm, own.",
@@ -617,7 +602,6 @@ addon.Locales.ptBR = {
     ["TSM price"] = "Preço TSM",
     ["Scan controls"] = "Controles de busca",
     ["Clear remembered inventory"] = "Limpar inventários salvos",
-    ["Offline inventory is a last-seen snapshot. Log into each character and visit their bank once to update it."] = "O inventário offline mostra o último registro conhecido. Entre em cada personagem e visite seu banco para atualizá-lo.",
     ["WoW's AddOns settings are unavailable on this client."] = "As configurações de addons estão indisponíveis neste cliente.",
     ["Waylaid Ledger - select and copy with Ctrl+C / Cmd+C"] = "Waylaid Ledger: selecione e copie com Ctrl+C / Cmd+C",
     ["No price"] = "Sem preço",
@@ -635,7 +619,6 @@ addon.Locales.ptBR = {
     ["Purchase"] = "Compra",
     ["Delivery"] = "Entrega",
     ["Total (lowest first)"] = "Total (menor primeiro)",
-    ["No matching items. For first-time discovery, run /wll scan all at the AH."] = "Nenhum item encontrado. Para descobrir itens, use /wll scan all no leilão.",
     [" (%d owned)"] = " (%d em posse)",
     ["Not scanned"] = "Não buscado",
     [" (buy %d)"] = " (comprar %d)",
@@ -674,11 +657,9 @@ addon.Locales.ptBR = {
     ["Scanning..."] = "Buscando...",
     ["Scan stopped; completed prices were kept."] = "Busca parada; preços obtidos mantidos.",
     ["Scan stopped because another auction search started. Scan again when the auction house is idle."] = "Busca parada por outra pesquisa. Tente novamente quando o leilão estiver livre.",
-    ["Scan finished: %d materials updated, %d failed."] = "Busca concluída: %d materiais atualizados, %d falharam.",
     ["Full scan did not complete. Retry when the auction house is idle."] = "A busca completa não terminou. Tente quando o leilão estiver livre.",
     ["Full scan data could not be read: %s"] = "Não foi possível ler os dados da busca: %s",
     ["Reading full scan: %d / %d auctions"] = "Lendo busca: %d / %d leilões",
-    ["Full scan finished: %d item prices. Delivery requirements learned from game descriptions."] = "Busca completa: %d preços. Requisitos de entrega obtidos das descrições do jogo.",
     ["Wait for the full scan to finish or stop it first."] = "Aguarde a busca completa terminar ou pare-a primeiro.",
     ["An auction scan is already running."] = "Já há uma busca de leilões em andamento.",
     ["Full-scan cooldown: using saved prices. /wll scan deep refreshes known delivery items."] = "Busca completa em recarga: usando preços salvos. /wll scan deep atualiza mercadorias conhecidas.",
@@ -697,7 +678,6 @@ addon.Locales.ptBR = {
     ["Choose an option between 1 and %d."] = "Escolha uma opção entre 1 e %d.",
     ["Searching all alternatives in Auctionator. Buy only one bundle to fill the crate."] = "Buscando alternativas no Auctionator. Compre apenas um conjunto para encher o caixote.",
     ["Opened the selected bundle in Auctionator. Review the listings before buying."] = "Conjunto escolhido aberto no Auctionator. Confira as ofertas antes de comprar.",
-    ["Use /wll scan bags, hovered, tracked, all, crates, or writs."] = "Use /wll scan bags, hovered, tracked, all, crates ou writs.",
     ["Stop the current scan first."] = "Pare a busca atual primeiro.",
     ["Choose Auto or Own scans for this category in Settings."] = "Escolha Auto ou Buscas próprias para esta categoria nas configurações.",
     ["Price source: %s. Options: auto, auctionator, tsm, own."] = "Fonte de preços: %s. Opções: auto, auctionator, tsm, own.",
@@ -805,7 +785,6 @@ addon.Locales.ruRU = {
     ["TSM price"] = "Цена TSM",
     ["Scan controls"] = "Управление сканированием",
     ["Clear remembered inventory"] = "Очистить сохранённые запасы",
-    ["Offline inventory is a last-seen snapshot. Log into each character and visit their bank once to update it."] = "Запасы персонажей вне сети показывают последнее известное состояние. Для обновления войдите каждым персонажем и посетите его банк.",
     ["WoW's AddOns settings are unavailable on this client."] = "Настройки модификаций недоступны в этом клиенте.",
     ["Waylaid Ledger - select and copy with Ctrl+C / Cmd+C"] = "Waylaid Ledger — выделите и скопируйте: Ctrl+C / Cmd+C",
     ["No price"] = "Нет цены",
@@ -823,7 +802,6 @@ addon.Locales.ruRU = {
     ["Purchase"] = "Покупка",
     ["Delivery"] = "Доставка",
     ["Total (lowest first)"] = "Итого (по возрастанию)",
-    ["No matching items. For first-time discovery, run /wll scan all at the AH."] = "Нет подходящих предметов. Для первого поиска выполните /wll scan all на аукционе.",
     [" (%d owned)"] = " (в наличии: %d)",
     ["Not scanned"] = "Не сканировано",
     [" (buy %d)"] = " (купить %d)",
@@ -862,11 +840,9 @@ addon.Locales.ruRU = {
     ["Scanning..."] = "Сканирование...",
     ["Scan stopped; completed prices were kept."] = "Сканирование остановлено; полученные цены сохранены.",
     ["Scan stopped because another auction search started. Scan again when the auction house is idle."] = "Сканирование остановлено из-за другого поиска. Повторите, когда аукцион освободится.",
-    ["Scan finished: %d materials updated, %d failed."] = "Сканирование завершено: обновлено материалов — %d, ошибок — %d.",
     ["Full scan did not complete. Retry when the auction house is idle."] = "Полное сканирование не завершено. Повторите, когда аукцион освободится.",
     ["Full scan data could not be read: %s"] = "Не удалось прочитать данные сканирования: %s",
     ["Reading full scan: %d / %d auctions"] = "Чтение сканирования: %d / %d лотов",
-    ["Full scan finished: %d item prices. Delivery requirements learned from game descriptions."] = "Полное сканирование завершено: цен — %d. Требования получены из описаний игры.",
     ["Wait for the full scan to finish or stop it first."] = "Дождитесь завершения полного сканирования или остановите его.",
     ["An auction scan is already running."] = "Уже идёт сканирование аукциона.",
     ["Full-scan cooldown: using saved prices. /wll scan deep refreshes known delivery items."] = "Полное сканирование на перезарядке: используются сохранённые цены. /wll scan deep обновляет известные товары.",
@@ -885,7 +861,6 @@ addon.Locales.ruRU = {
     ["Choose an option between 1 and %d."] = "Выберите вариант от 1 до %d.",
     ["Searching all alternatives in Auctionator. Buy only one bundle to fill the crate."] = "Поиск всех вариантов в Auctionator. Для заполнения ящика купите только один комплект.",
     ["Opened the selected bundle in Auctionator. Review the listings before buying."] = "Выбранный комплект открыт в Auctionator. Проверьте предложения перед покупкой.",
-    ["Use /wll scan bags, hovered, tracked, all, crates, or writs."] = "Используйте /wll scan bags, hovered, tracked, all, crates или writs.",
     ["Stop the current scan first."] = "Сначала остановите текущее сканирование.",
     ["Choose Auto or Own scans for this category in Settings."] = "Выберите Авто или Свои сканирования для этой категории в настройках.",
     ["Price source: %s. Options: auto, auctionator, tsm, own."] = "Источник цен: %s. Варианты: auto, auctionator, tsm, own.",
@@ -993,7 +968,6 @@ addon.Locales.koKR = {
     ["TSM price"] = "TSM 가격",
     ["Scan controls"] = "검색 제어",
     ["Clear remembered inventory"] = "저장된 소지품 지우기",
-    ["Offline inventory is a last-seen snapshot. Log into each character and visit their bank once to update it."] = "오프라인 소지품은 마지막으로 확인한 기록입니다. 갱신하려면 각 캐릭터로 접속해 은행을 방문하세요.",
     ["WoW's AddOns settings are unavailable on this client."] = "이 클라이언트에서는 애드온 설정을 사용할 수 없습니다.",
     ["Waylaid Ledger - select and copy with Ctrl+C / Cmd+C"] = "Waylaid Ledger - 선택 후 Ctrl+C / Cmd+C로 복사",
     ["No price"] = "가격 없음",
@@ -1011,7 +985,6 @@ addon.Locales.koKR = {
     ["Purchase"] = "구매",
     ["Delivery"] = "납품",
     ["Total (lowest first)"] = "합계 (낮은 순)",
-    ["No matching items. For first-time discovery, run /wll scan all at the AH."] = "일치하는 아이템이 없습니다. 처음에는 경매장에서 /wll scan all을 실행하세요.",
     [" (%d owned)"] = " (보유 %d개)",
     ["Not scanned"] = "검색 안 됨",
     [" (buy %d)"] = " (%d개 구매)",
@@ -1050,11 +1023,9 @@ addon.Locales.koKR = {
     ["Scanning..."] = "검색 중...",
     ["Scan stopped; completed prices were kept."] = "검색을 중지했습니다. 확인한 가격은 저장되었습니다.",
     ["Scan stopped because another auction search started. Scan again when the auction house is idle."] = "다른 경매 검색이 시작되어 중지했습니다. 경매장이 사용 중이 아닐 때 다시 검색하세요.",
-    ["Scan finished: %d materials updated, %d failed."] = "검색 완료: 재료 %d개 갱신, %d개 실패.",
     ["Full scan did not complete. Retry when the auction house is idle."] = "전체 검색이 완료되지 않았습니다. 경매장이 사용 중이 아닐 때 다시 시도하세요.",
     ["Full scan data could not be read: %s"] = "전체 검색 데이터를 읽을 수 없습니다: %s",
     ["Reading full scan: %d / %d auctions"] = "전체 검색 읽는 중: 경매 %d / %d개",
-    ["Full scan finished: %d item prices. Delivery requirements learned from game descriptions."] = "전체 검색 완료: 아이템 가격 %d개. 게임 설명에서 납품 요구 사항을 확인했습니다.",
     ["Wait for the full scan to finish or stop it first."] = "전체 검색이 끝날 때까지 기다리거나 먼저 중지하세요.",
     ["An auction scan is already running."] = "이미 경매 검색 중입니다.",
     ["Full-scan cooldown: using saved prices. /wll scan deep refreshes known delivery items."] = "전체 검색 대기 시간 중: 저장된 가격을 사용합니다. /wll scan deep으로 알려진 납품 물품을 갱신할 수 있습니다.",
@@ -1073,7 +1044,6 @@ addon.Locales.koKR = {
     ["Choose an option between 1 and %d."] = "1부터 %d 사이의 항목을 선택하세요.",
     ["Searching all alternatives in Auctionator. Buy only one bundle to fill the crate."] = "Auctionator에서 모든 대안을 검색합니다. 상자를 채울 묶음 하나만 구매하세요.",
     ["Opened the selected bundle in Auctionator. Review the listings before buying."] = "선택한 묶음을 Auctionator에서 열었습니다. 구매 전 목록을 확인하세요.",
-    ["Use /wll scan bags, hovered, tracked, all, crates, or writs."] = "/wll scan bags, hovered, tracked, all, crates 또는 writs를 사용하세요.",
     ["Stop the current scan first."] = "먼저 현재 검색을 중지하세요.",
     ["Choose Auto or Own scans for this category in Settings."] = "설정에서 이 분류의 가격 출처를 자동 또는 자체 검색으로 선택하세요.",
     ["Price source: %s. Options: auto, auctionator, tsm, own."] = "가격 출처: %s. 선택: auto, auctionator, tsm, own.",
@@ -1181,7 +1151,6 @@ addon.Locales.zhTW = {
     ["TSM price"] = "TSM 價格",
     ["Scan controls"] = "掃描控制",
     ["Clear remembered inventory"] = "清除已記錄的物品清單",
-    ["Offline inventory is a last-seen snapshot. Log into each character and visit their bank once to update it."] = "離線物品清單顯示上次記錄的狀態。請登入各角色並造訪銀行以更新資料。",
     ["WoW's AddOns settings are unavailable on this client."] = "此用戶端無法使用插件設定。",
     ["Waylaid Ledger - select and copy with Ctrl+C / Cmd+C"] = "Waylaid Ledger－選取後按 Ctrl+C / Cmd+C 複製",
     ["No price"] = "無價格",
@@ -1199,7 +1168,6 @@ addon.Locales.zhTW = {
     ["Purchase"] = "購買",
     ["Delivery"] = "交付",
     ["Total (lowest first)"] = "總計（由低至高）",
-    ["No matching items. For first-time discovery, run /wll scan all at the AH."] = "沒有相符物品。首次探索時，請在拍賣場執行 /wll scan all。",
     [" (%d owned)"] = "（持有 %d 個）",
     ["Not scanned"] = "尚未掃描",
     [" (buy %d)"] = "（購買 %d 個）",
@@ -1238,11 +1206,9 @@ addon.Locales.zhTW = {
     ["Scanning..."] = "掃描中…",
     ["Scan stopped; completed prices were kept."] = "掃描已停止，已完成的價格資料已保留。",
     ["Scan stopped because another auction search started. Scan again when the auction house is idle."] = "已因另一項拍賣搜尋而停止掃描。請在拍賣場閒置時重試。",
-    ["Scan finished: %d materials updated, %d failed."] = "掃描完成：已更新 %d 項材料，失敗 %d 項。",
     ["Full scan did not complete. Retry when the auction house is idle."] = "完整掃描未完成，請在拍賣場閒置時重試。",
     ["Full scan data could not be read: %s"] = "無法讀取完整掃描資料：%s",
     ["Reading full scan: %d / %d auctions"] = "讀取完整掃描：%d／%d 筆拍賣",
-    ["Full scan finished: %d item prices. Delivery requirements learned from game descriptions."] = "完整掃描完成：%d 項物品價格。已從遊戲說明取得交付需求。",
     ["Wait for the full scan to finish or stop it first."] = "請等待完整掃描結束，或先將其停止。",
     ["An auction scan is already running."] = "拍賣掃描已在進行中。",
     ["Full-scan cooldown: using saved prices. /wll scan deep refreshes known delivery items."] = "完整掃描冷卻中，使用已儲存的價格。/wll scan deep 可更新已知交付物品。",
@@ -1261,7 +1227,6 @@ addon.Locales.zhTW = {
     ["Choose an option between 1 and %d."] = "請選擇 1 至 %d 之間的選項。",
     ["Searching all alternatives in Auctionator. Buy only one bundle to fill the crate."] = "正在 Auctionator 搜尋所有替代選項。只需購買一組以裝滿木箱。",
     ["Opened the selected bundle in Auctionator. Review the listings before buying."] = "已在 Auctionator 開啟所選組合。購買前請確認拍賣清單。",
-    ["Use /wll scan bags, hovered, tracked, all, crates, or writs."] = "請使用 /wll scan bags、hovered、tracked、all、crates 或 writs。",
     ["Stop the current scan first."] = "請先停止目前的掃描。",
     ["Choose Auto or Own scans for this category in Settings."] = "請在設定中將此分類設為自動或自行掃描。",
     ["Price source: %s. Options: auto, auctionator, tsm, own."] = "價格來源：%s。選項：auto、auctionator、tsm、own。",
@@ -1339,24 +1304,17 @@ addon.Locales.deDE["Left-click opens the auction list at the AH, or settings els
     "Linksklick öffnet im Auktionshaus die Liste, andernorts die Einstellungen."
 addon.Locales.deDE["Hold Shift for details when disabled."] = "Wenn deaktiviert, Shift für Details halten."
 addon.Locales.deDE["Scan on auction-house open"] = "Beim Öffnen des Auktionshauses scannen"
-addon.Locales.deDE["Scan missing or stale crate prices on AH open, using Auto or Own scans."] =
-    "Fehlende oder alte Kistenpreise beim Öffnen mit Auto oder Eigenen Scans aktualisieren."
 addon.Locales.deDE["Auto and Own scan missing prices in the open list."] =
     "Auto und Eigene Scans suchen fehlende Preise in der geöffneten Liste."
 addon.Locales.deDE["Remember inventory"] = "Inventar speichern"
-addon.Locales.deDE["Remember inventory for bag and tracked scans. Prices do not subtract owned items."] =
-    "Inventar für Taschen- und erfasste Scans speichern. Eigene Gegenstände werden nicht vom Preis abgezogen."
 addon.Locales.deDE["Include visited banks"] = "Besuchte Banken einbeziehen"
 addon.Locales.deDE["Include remembered characters"] = "Gespeicherte Charaktere einbeziehen"
-addon.Locales.deDE["Refresh and Stop are in the auction list. Advanced tools: /wll help"] =
-    "Aktualisieren und Stopp sind in der Auktionsliste. Weitere Werkzeuge: /wll help"
 addon.Locales.deDE["Auctions %d/%d"] = "Auktionen %d/%d"
 addon.Locales.deDE["Items %d/%d"] = "Artikel %d/%d"
 addon.Locales.deDE["Finishing full scan"] = "Vollscan wird abgeschlossen"
 addon.Locales.deDE["Full scan: waiting"] = "Vollscan: Warten"
 addon.Locales.deDE["Shared scan: waiting"] = "Geteilter Scan: Warten"
 addon.Locales.deDE["Left-click: auction list"] = "Linksklick: Auktionsliste"
-addon.Locales.deDE["Left-click: settings"] = "Linksklick: Einstellungen"
 addon.Locales.deDE["Right-click: settings"] = "Rechtsklick: Einstellungen"
 addon.Locales.deDE["Refresh prices"] = "Preise aktualisieren"
 addon.Locales.deDE["Stop Waylaid's scan or snapshot processing; keep saved prices. Other addons' scans continue."] =
@@ -1365,8 +1323,6 @@ addon.Locales.deDE["Request one full auction-house snapshot to update both lists
     "Einen vollständigen Auktionshaus-Datensatz für beide Listen anfordern. Der Suchfilter ändert nur die angezeigten Zeilen."
 addon.Locales.deDE["Scan purchases and delivery goods for the filtered list."] =
     "Kauf- und Lieferwaren der gefilterten Liste scannen."
-addon.Locales.deDE["Loaded. /wll opens the auction list at the AH, or settings elsewhere."] =
-    "Geladen. /wll öffnet im Auktionshaus die Liste, andernorts die Einstellungen."
 
 addon.Locales.frFR["Prices"] = "Prix"
 addon.Locales.frFR["Display"] = "Affichage"
@@ -1385,24 +1341,17 @@ addon.Locales.frFR["Left-click opens the auction list at the AH, or settings els
     "Un clic gauche ouvre la liste à l’hôtel des ventes, ou les options ailleurs."
 addon.Locales.frFR["Hold Shift for details when disabled."] = "Si désactivé, maintenez Maj pour les détails."
 addon.Locales.frFR["Scan on auction-house open"] = "Analyser à l’ouverture des enchères"
-addon.Locales.frFR["Scan missing or stale crate prices on AH open, using Auto or Own scans."] =
-    "Analyse les prix manquants ou anciens des caisses à l’ouverture, en mode Auto ou Mes analyses."
 addon.Locales.frFR["Auto and Own scan missing prices in the open list."] =
     "Auto et Mes analyses recherchent les prix manquants dans la liste ouverte."
 addon.Locales.frFR["Remember inventory"] = "Mémoriser l’inventaire"
-addon.Locales.frFR["Remember inventory for bag and tracked scans. Prices do not subtract owned items."] =
-    "Mémorise l’inventaire pour les analyses des sacs et objets suivis. Les prix ne déduisent pas les objets possédés."
 addon.Locales.frFR["Include visited banks"] = "Inclure les banques visitées"
 addon.Locales.frFR["Include remembered characters"] = "Inclure les personnages mémorisés"
-addon.Locales.frFR["Refresh and Stop are in the auction list. Advanced tools: /wll help"] =
-    "Actualiser et Arrêter sont dans la liste des enchères. Outils avancés : /wll help"
 addon.Locales.frFR["Auctions %d/%d"] = "Enchères %d/%d"
 addon.Locales.frFR["Items %d/%d"] = "Objets %d/%d"
 addon.Locales.frFR["Finishing full scan"] = "Fin de l’analyse complète"
 addon.Locales.frFR["Full scan: waiting"] = "Analyse complète : attente"
 addon.Locales.frFR["Shared scan: waiting"] = "Analyse partagée : attente"
 addon.Locales.frFR["Left-click: auction list"] = "Clic gauche : liste des enchères"
-addon.Locales.frFR["Left-click: settings"] = "Clic gauche : options"
 addon.Locales.frFR["Right-click: settings"] = "Clic droit : options"
 addon.Locales.frFR["Refresh prices"] = "Actualiser les prix"
 addon.Locales.frFR["Stop Waylaid's scan or snapshot processing; keep saved prices. Other addons' scans continue."] =
@@ -1411,8 +1360,6 @@ addon.Locales.frFR["Request one full auction-house snapshot to update both lists
     "Demande un instantané complet des enchères pour les deux listes. Le filtre ne change que les lignes affichées."
 addon.Locales.frFR["Scan purchases and delivery goods for the filtered list."] =
     "Analyse les achats et livraisons de la liste filtrée."
-addon.Locales.frFR["Loaded. /wll opens the auction list at the AH, or settings elsewhere."] =
-    "Chargé. /wll ouvre la liste aux enchères, ou les options ailleurs."
 
 addon.Locales.esES["Prices"] = "Precios"
 addon.Locales.esES["Display"] = "Aspecto"
@@ -1432,24 +1379,17 @@ addon.Locales.esES["Left-click opens the auction list at the AH, or settings els
 addon.Locales.esES["Hold Shift for details when disabled."] =
     "Si está desactivado, mantén Mayús para ver los detalles."
 addon.Locales.esES["Scan on auction-house open"] = "Analizar al abrir la subasta"
-addon.Locales.esES["Scan missing or stale crate prices on AH open, using Auto or Own scans."] =
-    "Analiza precios de cajas ausentes o antiguos al abrir, con Auto o Análisis propios."
 addon.Locales.esES["Auto and Own scan missing prices in the open list."] =
     "Auto y Análisis propios buscan precios ausentes en la lista abierta."
 addon.Locales.esES["Remember inventory"] = "Recordar inventario"
-addon.Locales.esES["Remember inventory for bag and tracked scans. Prices do not subtract owned items."] =
-    "Recuerda el inventario para analizar bolsas y objetos registrados. Los precios no descuentan objetos propios."
 addon.Locales.esES["Include visited banks"] = "Incluir bancos visitados"
 addon.Locales.esES["Include remembered characters"] = "Incluir personajes registrados"
-addon.Locales.esES["Refresh and Stop are in the auction list. Advanced tools: /wll help"] =
-    "Actualizar y Detener están en la lista de subastas. Herramientas avanzadas: /wll help"
 addon.Locales.esES["Auctions %d/%d"] = "Subastas %d/%d"
 addon.Locales.esES["Items %d/%d"] = "Objetos %d/%d"
 addon.Locales.esES["Finishing full scan"] = "Finalizando análisis completo"
 addon.Locales.esES["Full scan: waiting"] = "Análisis completo: esperando"
 addon.Locales.esES["Shared scan: waiting"] = "Análisis compartido: esperando"
 addon.Locales.esES["Left-click: auction list"] = "Clic izquierdo: lista de subastas"
-addon.Locales.esES["Left-click: settings"] = "Clic izquierdo: opciones"
 addon.Locales.esES["Right-click: settings"] = "Clic derecho: opciones"
 addon.Locales.esES["Refresh prices"] = "Actualizar precios"
 addon.Locales.esES["Stop Waylaid's scan or snapshot processing; keep saved prices. Other addons' scans continue."] =
@@ -1458,8 +1398,6 @@ addon.Locales.esES["Request one full auction-house snapshot to update both lists
     "Solicita una instantánea completa de la subasta para ambas listas. El filtro solo cambia las filas mostradas."
 addon.Locales.esES["Scan purchases and delivery goods for the filtered list."] =
     "Analiza compras y entregas de la lista filtrada."
-addon.Locales.esES["Loaded. /wll opens the auction list at the AH, or settings elsewhere."] =
-    "Cargado. /wll abre la lista en la subasta, o las opciones fuera de ella."
 
 addon.Locales.ptBR["Prices"] = "Preços"
 addon.Locales.ptBR["Display"] = "Exibição"
@@ -1478,24 +1416,17 @@ addon.Locales.ptBR["Left-click opens the auction list at the AH, or settings els
     "Clique esquerdo abre a lista na casa de leilões, ou as configurações fora dela."
 addon.Locales.ptBR["Hold Shift for details when disabled."] = "Quando desativado, segure Shift para ver detalhes."
 addon.Locales.ptBR["Scan on auction-house open"] = "Buscar ao abrir a casa de leilões"
-addon.Locales.ptBR["Scan missing or stale crate prices on AH open, using Auto or Own scans."] =
-    "Busca preços de caixas ausentes ou antigos ao abrir, com Auto ou Buscas próprias."
 addon.Locales.ptBR["Auto and Own scan missing prices in the open list."] =
     "Auto e Buscas próprias buscam preços ausentes na lista aberta."
 addon.Locales.ptBR["Remember inventory"] = "Lembrar inventário"
-addon.Locales.ptBR["Remember inventory for bag and tracked scans. Prices do not subtract owned items."] =
-    "Lembra o inventário para buscas de bolsas e itens registrados. Os preços não descontam itens possuídos."
 addon.Locales.ptBR["Include visited banks"] = "Incluir bancos visitados"
 addon.Locales.ptBR["Include remembered characters"] = "Incluir personagens registrados"
-addon.Locales.ptBR["Refresh and Stop are in the auction list. Advanced tools: /wll help"] =
-    "Atualizar e Parar ficam na lista de leilões. Ferramentas avançadas: /wll help"
 addon.Locales.ptBR["Auctions %d/%d"] = "Leilões %d/%d"
 addon.Locales.ptBR["Items %d/%d"] = "Itens %d/%d"
 addon.Locales.ptBR["Finishing full scan"] = "Concluindo busca completa"
 addon.Locales.ptBR["Full scan: waiting"] = "Busca completa: aguardando"
 addon.Locales.ptBR["Shared scan: waiting"] = "Busca compartilhada: aguardando"
 addon.Locales.ptBR["Left-click: auction list"] = "Clique esquerdo: lista de leilões"
-addon.Locales.ptBR["Left-click: settings"] = "Clique esquerdo: configurações"
 addon.Locales.ptBR["Right-click: settings"] = "Clique direito: configurações"
 addon.Locales.ptBR["Refresh prices"] = "Atualizar preços"
 addon.Locales.ptBR["Stop Waylaid's scan or snapshot processing; keep saved prices. Other addons' scans continue."] =
@@ -1504,8 +1435,6 @@ addon.Locales.ptBR["Request one full auction-house snapshot to update both lists
     "Solicita uma captura completa da casa de leilões para as duas listas. O filtro altera apenas as linhas exibidas."
 addon.Locales.ptBR["Scan purchases and delivery goods for the filtered list."] =
     "Busca compras e itens de entrega da lista filtrada."
-addon.Locales.ptBR["Loaded. /wll opens the auction list at the AH, or settings elsewhere."] =
-    "Carregado. /wll abre a lista na casa de leilões, ou as configurações fora dela."
 
 addon.Locales.ruRU["Prices"] = "Цены"
 addon.Locales.ruRU["Display"] = "Отображение"
@@ -1525,24 +1454,17 @@ addon.Locales.ruRU["Left-click opens the auction list at the AH, or settings els
 addon.Locales.ruRU["Hold Shift for details when disabled."] =
     "Если отключено, удерживайте Shift для подробностей."
 addon.Locales.ruRU["Scan on auction-house open"] = "Сканировать при открытии аукциона"
-addon.Locales.ruRU["Scan missing or stale crate prices on AH open, using Auto or Own scans."] =
-    "При открытии обновляет отсутствующие и устаревшие цены ящиков в режиме Авто или Свои сканирования."
 addon.Locales.ruRU["Auto and Own scan missing prices in the open list."] =
     "Авто и Свои сканирования ищут отсутствующие цены в открытом списке."
 addon.Locales.ruRU["Remember inventory"] = "Запоминать инвентарь"
-addon.Locales.ruRU["Remember inventory for bag and tracked scans. Prices do not subtract owned items."] =
-    "Запоминает инвентарь для сканирования сумок и учтённых предметов. Имеющиеся предметы не вычитаются из цены."
 addon.Locales.ruRU["Include visited banks"] = "Учитывать посещённые банки"
 addon.Locales.ruRU["Include remembered characters"] = "Учитывать сохранённых персонажей"
-addon.Locales.ruRU["Refresh and Stop are in the auction list. Advanced tools: /wll help"] =
-    "Обновление и остановка доступны в списке аукциона. Дополнительные команды: /wll help"
 addon.Locales.ruRU["Auctions %d/%d"] = "Лоты %d/%d"
 addon.Locales.ruRU["Items %d/%d"] = "Предметы %d/%d"
 addon.Locales.ruRU["Finishing full scan"] = "Завершение полного сканирования"
 addon.Locales.ruRU["Full scan: waiting"] = "Полное сканирование: ожидание"
 addon.Locales.ruRU["Shared scan: waiting"] = "Общее сканирование: ожидание"
 addon.Locales.ruRU["Left-click: auction list"] = "Левая кнопка: список аукциона"
-addon.Locales.ruRU["Left-click: settings"] = "Левая кнопка: настройки"
 addon.Locales.ruRU["Right-click: settings"] = "Правая кнопка: настройки"
 addon.Locales.ruRU["Refresh prices"] = "Обновить цены"
 addon.Locales.ruRU["Stop Waylaid's scan or snapshot processing; keep saved prices. Other addons' scans continue."] =
@@ -1551,8 +1473,6 @@ addon.Locales.ruRU["Request one full auction-house snapshot to update both lists
     "Запрашивает полный снимок аукциона для обоих списков. Фильтр меняет только отображаемые строки."
 addon.Locales.ruRU["Scan purchases and delivery goods for the filtered list."] =
     "Сканирует покупки и товары для доставки из отфильтрованного списка."
-addon.Locales.ruRU["Loaded. /wll opens the auction list at the AH, or settings elsewhere."] =
-    "Загружено. /wll открывает список на аукционе или настройки вне аукциона."
 
 addon.Locales.koKR["Prices"] = "가격"
 addon.Locales.koKR["Display"] = "표시"
@@ -1572,24 +1492,17 @@ addon.Locales.koKR["Left-click opens the auction list at the AH, or settings els
 addon.Locales.koKR["Hold Shift for details when disabled."] =
     "비활성화 시 Shift를 누르면 자세한 정보를 표시합니다."
 addon.Locales.koKR["Scan on auction-house open"] = "경매장을 열 때 검색"
-addon.Locales.koKR["Scan missing or stale crate prices on AH open, using Auto or Own scans."] =
-    "자동 또는 자체 검색으로 경매장을 열 때 없거나 오래된 상자 가격을 검색합니다."
 addon.Locales.koKR["Auto and Own scan missing prices in the open list."] =
     "자동과 자체 검색은 열린 목록에서 없는 가격을 검색합니다."
 addon.Locales.koKR["Remember inventory"] = "소지품 기록"
-addon.Locales.koKR["Remember inventory for bag and tracked scans. Prices do not subtract owned items."] =
-    "가방 및 기록된 물품 검색을 위해 소지품을 기록합니다. 가격에서 보유 물품은 차감하지 않습니다."
 addon.Locales.koKR["Include visited banks"] = "방문한 은행 포함"
 addon.Locales.koKR["Include remembered characters"] = "기록된 캐릭터 포함"
-addon.Locales.koKR["Refresh and Stop are in the auction list. Advanced tools: /wll help"] =
-    "경매 목록에서 새로고침 및 중지가 가능합니다. 고급 도구: /wll help"
 addon.Locales.koKR["Auctions %d/%d"] = "경매 %d/%d"
 addon.Locales.koKR["Items %d/%d"] = "물품 %d/%d"
 addon.Locales.koKR["Finishing full scan"] = "전체 검색 마무리 중"
 addon.Locales.koKR["Full scan: waiting"] = "전체 검색: 대기 중"
 addon.Locales.koKR["Shared scan: waiting"] = "공유 검색: 대기 중"
 addon.Locales.koKR["Left-click: auction list"] = "왼쪽 클릭: 경매 목록"
-addon.Locales.koKR["Left-click: settings"] = "왼쪽 클릭: 설정"
 addon.Locales.koKR["Right-click: settings"] = "오른쪽 클릭: 설정"
 addon.Locales.koKR["Refresh prices"] = "가격 새로고침"
 addon.Locales.koKR["Stop Waylaid's scan or snapshot processing; keep saved prices. Other addons' scans continue."] =
@@ -1598,8 +1511,6 @@ addon.Locales.koKR["Request one full auction-house snapshot to update both lists
     "두 목록을 갱신할 전체 경매장 스냅샷을 요청합니다. 검색 필터는 표시되는 행만 변경합니다."
 addon.Locales.koKR["Scan purchases and delivery goods for the filtered list."] =
     "필터링한 목록의 구매 및 납품 물품을 검색합니다."
-addon.Locales.koKR["Loaded. /wll opens the auction list at the AH, or settings elsewhere."] =
-    "로드됨. /wll은 경매장에서 목록을, 그 외에는 설정을 엽니다."
 
 addon.Locales.zhTW["Prices"] = "價格"
 addon.Locales.zhTW["Display"] = "顯示"
@@ -1617,24 +1528,17 @@ addon.Locales.zhTW["Left-click opens the auction list at the AH, or settings els
     "左鍵在拍賣場開啟清單，在其他地方開啟設定。"
 addon.Locales.zhTW["Hold Shift for details when disabled."] = "停用時按住 Shift 查看詳細資訊。"
 addon.Locales.zhTW["Scan on auction-house open"] = "開啟拍賣場時掃描"
-addon.Locales.zhTW["Scan missing or stale crate prices on AH open, using Auto or Own scans."] =
-    "以自動或自行掃描在開啟拍賣場時更新缺少或過時的箱子價格。"
 addon.Locales.zhTW["Auto and Own scan missing prices in the open list."] =
     "自動與自行掃描會搜尋目前清單中缺少的價格。"
 addon.Locales.zhTW["Remember inventory"] = "記錄物品欄"
-addon.Locales.zhTW["Remember inventory for bag and tracked scans. Prices do not subtract owned items."] =
-    "記錄物品欄以掃描背包與追蹤物品。價格不會扣除已擁有的物品。"
 addon.Locales.zhTW["Include visited banks"] = "包含已造訪的銀行"
 addon.Locales.zhTW["Include remembered characters"] = "包含已記錄的角色"
-addon.Locales.zhTW["Refresh and Stop are in the auction list. Advanced tools: /wll help"] =
-    "拍賣清單中提供重新整理與停止功能。進階工具：/wll help"
 addon.Locales.zhTW["Auctions %d/%d"] = "拍賣 %d/%d"
 addon.Locales.zhTW["Items %d/%d"] = "物品 %d/%d"
 addon.Locales.zhTW["Finishing full scan"] = "正在完成完整掃描"
 addon.Locales.zhTW["Full scan: waiting"] = "完整掃描：等待中"
 addon.Locales.zhTW["Shared scan: waiting"] = "共用掃描：等待中"
 addon.Locales.zhTW["Left-click: auction list"] = "左鍵：拍賣清單"
-addon.Locales.zhTW["Left-click: settings"] = "左鍵：設定"
 addon.Locales.zhTW["Right-click: settings"] = "右鍵：設定"
 addon.Locales.zhTW["Refresh prices"] = "重新整理價格"
 addon.Locales.zhTW["Stop Waylaid's scan or snapshot processing; keep saved prices. Other addons' scans continue."] =
@@ -1643,8 +1547,6 @@ addon.Locales.zhTW["Request one full auction-house snapshot to update both lists
     "要求完整拍賣場快照以更新兩個清單。搜尋篩選只會改變顯示的列。"
 addon.Locales.zhTW["Scan purchases and delivery goods for the filtered list."] =
     "掃描篩選清單中的購買與交付物品。"
-addon.Locales.zhTW["Loaded. /wll opens the auction list at the AH, or settings elsewhere."] =
-    "已載入。/wll 在拍賣場開啟清單，在其他地方開啟設定。"
 addon.Locales.esMX["Prices"] = addon.Locales.esES["Prices"]
 addon.Locales.esMX["Display"] = addon.Locales.esES["Display"]
 addon.Locales.esMX["Automatic scans"] = addon.Locales.esES["Automatic scans"]
@@ -1663,24 +1565,17 @@ addon.Locales.esMX["Left-click opens the auction list at the AH, or settings els
 addon.Locales.esMX["Hold Shift for details when disabled."] =
     addon.Locales.esES["Hold Shift for details when disabled."]
 addon.Locales.esMX["Scan on auction-house open"] = addon.Locales.esES["Scan on auction-house open"]
-addon.Locales.esMX["Scan missing or stale crate prices on AH open, using Auto or Own scans."] =
-    addon.Locales.esES["Scan missing or stale crate prices on AH open, using Auto or Own scans."]
 addon.Locales.esMX["Auto and Own scan missing prices in the open list."] =
     addon.Locales.esES["Auto and Own scan missing prices in the open list."]
 addon.Locales.esMX["Remember inventory"] = addon.Locales.esES["Remember inventory"]
-addon.Locales.esMX["Remember inventory for bag and tracked scans. Prices do not subtract owned items."] =
-    addon.Locales.esES["Remember inventory for bag and tracked scans. Prices do not subtract owned items."]
 addon.Locales.esMX["Include visited banks"] = addon.Locales.esES["Include visited banks"]
 addon.Locales.esMX["Include remembered characters"] = addon.Locales.esES["Include remembered characters"]
-addon.Locales.esMX["Refresh and Stop are in the auction list. Advanced tools: /wll help"] =
-    addon.Locales.esES["Refresh and Stop are in the auction list. Advanced tools: /wll help"]
 addon.Locales.esMX["Auctions %d/%d"] = addon.Locales.esES["Auctions %d/%d"]
 addon.Locales.esMX["Items %d/%d"] = addon.Locales.esES["Items %d/%d"]
 addon.Locales.esMX["Finishing full scan"] = addon.Locales.esES["Finishing full scan"]
 addon.Locales.esMX["Full scan: waiting"] = addon.Locales.esES["Full scan: waiting"]
 addon.Locales.esMX["Shared scan: waiting"] = addon.Locales.esES["Shared scan: waiting"]
 addon.Locales.esMX["Left-click: auction list"] = addon.Locales.esES["Left-click: auction list"]
-addon.Locales.esMX["Left-click: settings"] = addon.Locales.esES["Left-click: settings"]
 addon.Locales.esMX["Right-click: settings"] = addon.Locales.esES["Right-click: settings"]
 addon.Locales.esMX["Refresh prices"] = addon.Locales.esES["Refresh prices"]
 addon.Locales.esMX["Stop Waylaid's scan or snapshot processing; keep saved prices. Other addons' scans continue."] =
@@ -1689,49 +1584,31 @@ addon.Locales.esMX["Request one full auction-house snapshot to update both lists
     addon.Locales.esES["Request one full auction-house snapshot to update both lists. The search filter only changes the displayed rows."]
 addon.Locales.esMX["Scan purchases and delivery goods for the filtered list."] =
     addon.Locales.esES["Scan purchases and delivery goods for the filtered list."]
-addon.Locales.esMX["Loaded. /wll opens the auction list at the AH, or settings elsewhere."] =
-    addon.Locales.esES["Loaded. /wll opens the auction list at the AH, or settings elsewhere."]
 
 -- External scans are observed only for status; tab switches never query the AH.
 addon.Locales.deDE["Another addon is scanning."] = "Ein anderes Addon scannt."
 addon.Locales.deDE["Descriptions %d/%d"] = "Beschreibungen %d/%d"
-addon.Locales.deDE["Switching tabs uses saved prices. Click Refresh to update prices."] =
-    "Tabwechsel verwenden gespeicherte Preise. Zum Aktualisieren der Preise auf Aktualisieren klicken."
 addon.Locales.deDE["Auctionator: %d%%"] = "Auctionator: %d%%"
 addon.Locales.frFR["Another addon is scanning."] = "Un autre addon analyse les enchères."
 addon.Locales.frFR["Descriptions %d/%d"] = "Descriptions %d/%d"
-addon.Locales.frFR["Switching tabs uses saved prices. Click Refresh to update prices."] =
-    "Changer d’onglet utilise les prix enregistrés. Cliquez sur Actualiser pour actualiser les prix."
 addon.Locales.frFR["Auctionator: %d%%"] = "Auctionator: %d%%"
 addon.Locales.esES["Another addon is scanning."] = "Otro addon está escaneando."
 addon.Locales.esES["Descriptions %d/%d"] = "Descripciones %d/%d"
-addon.Locales.esES["Switching tabs uses saved prices. Click Refresh to update prices."] =
-    "Cambiar de pestaña usa precios guardados. Pulsa Actualizar para actualizar los precios."
 addon.Locales.esES["Auctionator: %d%%"] = "Auctionator: %d%%"
 addon.Locales.esMX["Another addon is scanning."] = "Otro addon está escaneando."
 addon.Locales.esMX["Descriptions %d/%d"] = "Descripciones %d/%d"
-addon.Locales.esMX["Switching tabs uses saved prices. Click Refresh to update prices."] =
-    "Cambiar de pestaña usa precios guardados. Pulsa Actualizar para actualizar los precios."
 addon.Locales.esMX["Auctionator: %d%%"] = "Auctionator: %d%%"
 addon.Locales.ptBR["Another addon is scanning."] = "Outro addon está escaneando."
 addon.Locales.ptBR["Descriptions %d/%d"] = "Descrições %d/%d"
-addon.Locales.ptBR["Switching tabs uses saved prices. Click Refresh to update prices."] =
-    "Trocar de aba usa preços salvos. Clique em Atualizar para atualizar os preços."
 addon.Locales.ptBR["Auctionator: %d%%"] = "Auctionator: %d%%"
 addon.Locales.ruRU["Another addon is scanning."] = "Другой аддон сканирует аукцион."
 addon.Locales.ruRU["Descriptions %d/%d"] = "Описания %d/%d"
-addon.Locales.ruRU["Switching tabs uses saved prices. Click Refresh to update prices."] =
-    "При смене вкладок используются сохранённые цены. Нажмите «Обновить» для обновления цен."
 addon.Locales.ruRU["Auctionator: %d%%"] = "Auctionator: %d%%"
 addon.Locales.koKR["Another addon is scanning."] = "다른 애드온이 검색 중입니다."
 addon.Locales.koKR["Descriptions %d/%d"] = "설명 %d/%d"
-addon.Locales.koKR["Switching tabs uses saved prices. Click Refresh to update prices."] =
-    "탭 전환 시 저장된 가격을 사용합니다. 가격을 갱신하려면 새로고침을 누르세요."
 addon.Locales.koKR["Auctionator: %d%%"] = "Auctionator: %d%%"
 addon.Locales.zhTW["Another addon is scanning."] = "其他插件正在掃描。"
 addon.Locales.zhTW["Descriptions %d/%d"] = "說明 %d/%d"
-addon.Locales.zhTW["Switching tabs uses saved prices. Click Refresh to update prices."] =
-    "切換分頁會使用已儲存的價格。按重新整理即可更新價格。"
 addon.Locales.zhTW["Auctionator: %d%%"] = "Auctionator: %d%%"
 
 -- Provider refresh and the shared full-scan limit.
@@ -1935,3 +1812,161 @@ addon.Locales.esMX["Left-click opens the lists anywhere. Right-click opens setti
     addon.Locales.esES["Left-click opens the lists anywhere. Right-click opens settings."]
 addon.Locales.esMX["Saved prices. Visit the auction house for current prices and purchases."] =
     addon.Locales.esES["Saved prices. Visit the auction house for current prices and purchases."]
+
+-- Current browsing, settings and scan guidance (1.0.1).
+addon.Locales.deDE["Left-click: saved crate and writ lists"] = "Linksklick: gespeicherte Kisten- und Auftragslisten"
+addon.Locales.deDE["Loaded. /wll opens crate and writ lists. /wll settings opens settings."] =
+    "Geladen. /wll öffnet Kisten- und Auftragslisten. /wll settings öffnet die Einstellungen."
+addon.Locales.deDE["No matching items. Clear or change the search."] =
+    "Keine passenden Artikel. Suche löschen oder ändern."
+addon.Locales.deDE["Scan finished: %d items updated, %d failed."] =
+    "Scan beendet: %d Artikel aktualisiert, %d fehlgeschlagen."
+addon.Locales.deDE["Use /wll scan bags, hovered, tracked, all, crates, writs, or deep."] =
+    "Verwende /wll scan bags, hovered, tracked, all, crates, writs oder deep."
+addon.Locales.deDE["Full scan finished: %d item prices."] = "Vollständiger Scan beendet: %d Artikelpreise."
+addon.Locales.deDE["Scan on AH open with Own scans, or Auto without an available price provider. May start a full scan."] =
+    "Beim Öffnen mit Eigenen Scans scannen, oder mit Auto ohne verfügbaren Preisanbieter. Kann einen vollständigen Scan starten."
+addon.Locales.deDE["Lists use saved prices. Refresh reloads prices; scanning requires the AH."] =
+    "Listen nutzen gespeicherte Preise. Aktualisieren lädt Preise neu; Scans benötigen das Auktionshaus."
+addon.Locales.deDE["Refresh is in each list; Stop appears during Waylaid scans. Advanced tools: /wll help"] =
+    "Aktualisieren ist in jeder Liste; Stopp erscheint bei Waylaid-Scans. Weitere Werkzeuge: /wll help"
+addon.Locales.deDE["Remember bags and visited banks across characters. Prices do not subtract owned items."] =
+    "Taschen und besuchte Banken mehrerer Charaktere speichern. Eigene Gegenstände werden nicht vom Preis abgezogen."
+addon.Locales.deDE["Offline inventory is last seen. Log into characters and revisit banks to refresh it."] =
+    "Offline-Inventar ist der zuletzt erfasste Stand. Zum Aktualisieren einloggen und Banken erneut besuchen."
+addon.Locales.frFR["Left-click: saved crate and writ lists"] =
+    "Clic gauche : listes de caisses et commandes enregistrées"
+addon.Locales.frFR["Loaded. /wll opens crate and writ lists. /wll settings opens settings."] =
+    "Chargé. /wll ouvre les listes de caisses et commandes. /wll settings ouvre les options."
+addon.Locales.frFR["No matching items. Clear or change the search."] =
+    "Aucun objet correspondant. Effacez ou modifiez la recherche."
+addon.Locales.frFR["Scan finished: %d items updated, %d failed."] =
+    "Analyse terminée : %d objets mis à jour, %d échecs."
+addon.Locales.frFR["Use /wll scan bags, hovered, tracked, all, crates, writs, or deep."] =
+    "Utilisez /wll scan bags, hovered, tracked, all, crates, writs ou deep."
+addon.Locales.frFR["Full scan finished: %d item prices."] = "Analyse complète terminée : %d prix d’objets."
+addon.Locales.frFR["Scan on AH open with Own scans, or Auto without an available price provider. May start a full scan."] =
+    "Analyse à l’ouverture avec Mes analyses, ou Auto sans source de prix disponible. Peut lancer une analyse complète."
+addon.Locales.frFR["Lists use saved prices. Refresh reloads prices; scanning requires the AH."] =
+    "Les listes utilisent les prix enregistrés. Actualiser recharge les prix ; les analyses nécessitent l’hôtel des ventes."
+addon.Locales.frFR["Refresh is in each list; Stop appears during Waylaid scans. Advanced tools: /wll help"] =
+    "Actualiser est dans chaque liste ; Arrêter apparaît pendant les analyses Waylaid. Outils avancés : /wll help"
+addon.Locales.frFR["Remember bags and visited banks across characters. Prices do not subtract owned items."] =
+    "Mémorise les sacs et banques visitées des personnages. Les objets possédés ne sont pas déduits des prix."
+addon.Locales.frFR["Offline inventory is last seen. Log into characters and revisit banks to refresh it."] =
+    "L’inventaire hors ligne est le dernier observé. Connectez les personnages et revisitez les banques pour l’actualiser."
+addon.Locales.esES["Left-click: saved crate and writ lists"] = "Clic izquierdo: listas guardadas de cajones y encargos"
+addon.Locales.esES["Loaded. /wll opens crate and writ lists. /wll settings opens settings."] =
+    "Cargado. /wll abre las listas de cajones y encargos. /wll settings abre las opciones."
+addon.Locales.esES["No matching items. Clear or change the search."] =
+    "No hay objetos coincidentes. Borra o cambia la búsqueda."
+addon.Locales.esES["Scan finished: %d items updated, %d failed."] =
+    "Análisis terminado: %d objetos actualizados, %d fallidos."
+addon.Locales.esES["Use /wll scan bags, hovered, tracked, all, crates, writs, or deep."] =
+    "Usa /wll scan bags, hovered, tracked, all, crates, writs o deep."
+addon.Locales.esES["Full scan finished: %d item prices."] = "Análisis completo terminado: %d precios de objetos."
+addon.Locales.esES["Scan on AH open with Own scans, or Auto without an available price provider. May start a full scan."] =
+    "Analiza al abrir la casa de subastas con Análisis propios, o Auto sin una fuente de precios disponible. Puede iniciar un análisis completo."
+addon.Locales.esES["Lists use saved prices. Refresh reloads prices; scanning requires the AH."] =
+    "Las listas usan precios guardados. Actualizar recarga los precios; analizar requiere la casa de subastas."
+addon.Locales.esES["Refresh is in each list; Stop appears during Waylaid scans. Advanced tools: /wll help"] =
+    "Actualizar está en cada lista; Detener aparece durante los análisis de Waylaid. Herramientas avanzadas: /wll help"
+addon.Locales.esES["Remember bags and visited banks across characters. Prices do not subtract owned items."] =
+    "Recuerda las bolsas y los bancos visitados de tus personajes. Los precios no descuentan los objetos que ya tienes."
+addon.Locales.esES["Offline inventory is last seen. Log into characters and revisit banks to refresh it."] =
+    "El inventario sin conexión es el último registrado. Entra con tus personajes y vuelve a visitar los bancos para actualizarlo."
+addon.Locales.ptBR["Left-click: saved crate and writ lists"] = "Clique esquerdo: listas salvas de caixotes e ordens"
+addon.Locales.ptBR["Loaded. /wll opens crate and writ lists. /wll settings opens settings."] =
+    "Carregado. /wll abre listas de caixotes e ordens. /wll settings abre as configurações."
+addon.Locales.ptBR["No matching items. Clear or change the search."] =
+    "Nenhum item correspondente. Limpe ou altere a busca."
+addon.Locales.ptBR["Scan finished: %d items updated, %d failed."] = "Busca concluída: %d itens atualizados, %d falhas."
+addon.Locales.ptBR["Use /wll scan bags, hovered, tracked, all, crates, writs, or deep."] =
+    "Use /wll scan bags, hovered, tracked, all, crates, writs ou deep."
+addon.Locales.ptBR["Full scan finished: %d item prices."] = "Busca completa concluída: %d preços de itens."
+addon.Locales.ptBR["Scan on AH open with Own scans, or Auto without an available price provider. May start a full scan."] =
+    "Busca ao abrir a casa de leilões com Buscas próprias, ou Auto sem fonte de preços disponível. Pode iniciar uma busca completa."
+addon.Locales.ptBR["Lists use saved prices. Refresh reloads prices; scanning requires the AH."] =
+    "As listas usam preços salvos. Atualizar recarrega os preços; buscas exigem a casa de leilões."
+addon.Locales.ptBR["Refresh is in each list; Stop appears during Waylaid scans. Advanced tools: /wll help"] =
+    "Atualizar fica em cada lista; Parar aparece durante buscas do Waylaid. Ferramentas avançadas: /wll help"
+addon.Locales.ptBR["Remember bags and visited banks across characters. Prices do not subtract owned items."] =
+    "Memoriza bolsas e bancos visitados dos personagens. Os preços não descontam itens possuídos."
+addon.Locales.ptBR["Offline inventory is last seen. Log into characters and revisit banks to refresh it."] =
+    "O inventário offline é o último registrado. Entre nos personagens e visite os bancos novamente para atualizá-lo."
+addon.Locales.ruRU["Left-click: saved crate and writ lists"] =
+    "Левая кнопка: сохранённые списки ящиков и заказов"
+addon.Locales.ruRU["Loaded. /wll opens crate and writ lists. /wll settings opens settings."] =
+    "Загружено. /wll открывает списки ящиков и заказов. /wll settings открывает настройки."
+addon.Locales.ruRU["No matching items. Clear or change the search."] =
+    "Совпадений нет. Очистите или измените поиск."
+addon.Locales.ruRU["Scan finished: %d items updated, %d failed."] =
+    "Сканирование завершено: обновлено предметов — %d, ошибок — %d."
+addon.Locales.ruRU["Use /wll scan bags, hovered, tracked, all, crates, writs, or deep."] =
+    "Используйте /wll scan bags, hovered, tracked, all, crates, writs или deep."
+addon.Locales.ruRU["Full scan finished: %d item prices."] =
+    "Полное сканирование завершено: %d цен предметов."
+addon.Locales.ruRU["Scan on AH open with Own scans, or Auto without an available price provider. May start a full scan."] =
+    "Сканировать при открытии аукциона с источником «Свои сканирования» или «Авто» без доступного поставщика цен. Возможно полное сканирование."
+addon.Locales.ruRU["Lists use saved prices. Refresh reloads prices; scanning requires the AH."] =
+    "Списки используют сохранённые цены. «Обновить» загружает цены заново; для сканирования нужен аукцион."
+addon.Locales.ruRU["Refresh is in each list; Stop appears during Waylaid scans. Advanced tools: /wll help"] =
+    "«Обновить» есть в каждом списке; «Стоп» появляется при сканировании Waylaid. Дополнительные команды: /wll help"
+addon.Locales.ruRU["Remember bags and visited banks across characters. Prices do not subtract owned items."] =
+    "Запоминать сумки и посещённые банки персонажей. Имеющиеся предметы не вычитаются из стоимости."
+addon.Locales.ruRU["Offline inventory is last seen. Log into characters and revisit banks to refresh it."] =
+    "Офлайн-инвентарь показывает последние данные. Зайдите за персонажей и снова посетите банки для обновления."
+addon.Locales.koKR["Left-click: saved crate and writ lists"] = "왼쪽 클릭: 저장된 상자 및 의뢰 목록"
+addon.Locales.koKR["Loaded. /wll opens crate and writ lists. /wll settings opens settings."] =
+    "로드되었습니다. /wll: 상자 및 의뢰 목록. /wll settings: 설정."
+addon.Locales.koKR["No matching items. Clear or change the search."] =
+    "일치하는 아이템이 없습니다. 검색어를 지우거나 변경하세요."
+addon.Locales.koKR["Scan finished: %d items updated, %d failed."] =
+    "검색 완료: 아이템 %d개 갱신, %d개 실패."
+addon.Locales.koKR["Use /wll scan bags, hovered, tracked, all, crates, writs, or deep."] =
+    "/wll scan bags, hovered, tracked, all, crates, writs 또는 deep을 사용하세요."
+addon.Locales.koKR["Full scan finished: %d item prices."] = "전체 검색 완료: 아이템 가격 %d개."
+addon.Locales.koKR["Scan on AH open with Own scans, or Auto without an available price provider. May start a full scan."] =
+    "자체 검색 또는 가격 제공 애드온이 없는 자동 모드에서 경매장을 열 때 검색합니다. 전체 검색을 시작할 수 있습니다."
+addon.Locales.koKR["Lists use saved prices. Refresh reloads prices; scanning requires the AH."] =
+    "목록은 저장된 가격을 사용합니다. 새로고침으로 가격을 다시 불러오며, 검색은 경매장에서만 가능합니다."
+addon.Locales.koKR["Refresh is in each list; Stop appears during Waylaid scans. Advanced tools: /wll help"] =
+    "각 목록에 새로고침이 있으며 Waylaid 검색 중에는 중지가 표시됩니다. 고급 도구: /wll help"
+addon.Locales.koKR["Remember bags and visited banks across characters. Prices do not subtract owned items."] =
+    "캐릭터의 가방과 방문한 은행을 기억합니다. 가격에서 보유 아이템은 차감하지 않습니다."
+addon.Locales.koKR["Offline inventory is last seen. Log into characters and revisit banks to refresh it."] =
+    "오프라인 소지품은 마지막 기록입니다. 캐릭터에 접속하고 은행을 다시 방문하여 갱신하세요."
+addon.Locales.zhTW["Left-click: saved crate and writ lists"] = "左鍵：已儲存的箱子與委託清單"
+addon.Locales.zhTW["Loaded. /wll opens crate and writ lists. /wll settings opens settings."] =
+    "已載入。/wll 開啟箱子與委託清單，/wll settings 開啟設定。"
+addon.Locales.zhTW["No matching items. Clear or change the search."] =
+    "沒有相符物品。請清除或變更搜尋條件。"
+addon.Locales.zhTW["Scan finished: %d items updated, %d failed."] =
+    "掃描完成：已更新 %d 項物品，%d 項失敗。"
+addon.Locales.zhTW["Use /wll scan bags, hovered, tracked, all, crates, writs, or deep."] =
+    "請使用 /wll scan bags、hovered、tracked、all、crates、writs 或 deep。"
+addon.Locales.zhTW["Full scan finished: %d item prices."] = "完整掃描完成：%d 項物品價格。"
+addon.Locales.zhTW["Scan on AH open with Own scans, or Auto without an available price provider. May start a full scan."] =
+    "使用自行掃描，或自動模式且無可用價格來源時，在開啟拍賣場時掃描。可能啟動完整掃描。"
+addon.Locales.zhTW["Lists use saved prices. Refresh reloads prices; scanning requires the AH."] =
+    "清單使用已儲存價格。重新整理會重新載入價格；掃描需要在拍賣場進行。"
+addon.Locales.zhTW["Refresh is in each list; Stop appears during Waylaid scans. Advanced tools: /wll help"] =
+    "每個清單都有重新整理，Waylaid 掃描時顯示停止。進階工具：/wll help"
+addon.Locales.zhTW["Remember bags and visited banks across characters. Prices do not subtract owned items."] =
+    "記住各角色的背包與已造訪銀行。價格不會扣除已擁有物品。"
+addon.Locales.zhTW["Offline inventory is last seen. Log into characters and revisit banks to refresh it."] =
+    "離線物品為上次記錄。請登入角色並再次造訪銀行以更新。"
+addon.Locales.deDE["Wait for the other addon's scan to finish before refreshing prices."] =
+    "Warte, bis der Scan des anderen Addons beendet ist, bevor du Preise aktualisierst."
+addon.Locales.frFR["Wait for the other addon's scan to finish before refreshing prices."] =
+    "Attendez la fin de l’analyse de l’autre addon avant d’actualiser les prix."
+addon.Locales.esES["Wait for the other addon's scan to finish before refreshing prices."] =
+    "Espera a que termine el análisis del otro addon antes de actualizar los precios."
+addon.Locales.ptBR["Wait for the other addon's scan to finish before refreshing prices."] =
+    "Aguarde a busca do outro addon terminar antes de atualizar os preços."
+addon.Locales.ruRU["Wait for the other addon's scan to finish before refreshing prices."] =
+    "Дождитесь завершения сканирования другого аддона, прежде чем обновлять цены."
+addon.Locales.koKR["Wait for the other addon's scan to finish before refreshing prices."] =
+    "가격을 새로고침하기 전에 다른 애드온의 검색이 끝날 때까지 기다리세요."
+addon.Locales.zhTW["Wait for the other addon's scan to finish before refreshing prices."] =
+    "請等待其他插件掃描完成後再重新整理價格。"

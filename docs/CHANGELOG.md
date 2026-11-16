@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+- Correct the minimap and login hints: left-click or `/wll` opens saved lists away from the auction house; settings remain on right-click.
+- Clarify Refresh/Stop hints, search-empty guidance, scan-on-open behavior, inventory snapshots and scan completion messages.
+- Update affected translations, command help and the player guide to match current browsing, sorting and scanning behavior.
+
 ## 1.0.0
 
 - Left-click the minimap button or use `/wll` to browse crates and writs with saved prices away from the auction house. Right-click still opens settings.

@@ -340,6 +340,7 @@ function Browse.Create(host, kind, cachedOwner)
     view.summary = text(host, "GameFontDisableSmall")
     view.summary:SetPoint("TOPLEFT", 215, -13)
     local refresh = CreateFrame("Button", nil, host, "UIPanelButtonTemplate")
+    refresh:SetMotionScriptsWhileDisabled(true)
     refresh:SetSize(75, 22)
     refresh:SetPoint("TOPRIGHT", -100, -8)
     addon.Localization.ButtonText(refresh, L["Refresh"])
@@ -364,8 +365,14 @@ function Browse.Create(host, kind, cachedOwner)
             return
         end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        local _, busy = Browse.ScanStatus()
-        GameTooltip:AddLine(not view.cached and busy and L["Stop scan"] or L["Refresh prices"], 1, 0.82, 0)
+        local _, busy, external = Browse.ScanStatus()
+        local title = L["Refresh prices"]
+        if not view.cached and external then
+            title = L["Another addon is scanning."]
+        elseif not view.cached and busy then
+            title = L["Stop scan"]
+        end
+        GameTooltip:AddLine(title, 1, 0.82, 0)
         if view.cached then
             GameTooltip:AddLine(
                 L["Saved prices. Visit the auction house for current prices and purchases."],
@@ -374,6 +381,8 @@ function Browse.Create(host, kind, cachedOwner)
                 1,
                 true
             )
+        elseif external then
+            GameTooltip:AddLine(L["Wait for the other addon's scan to finish before refreshing prices."], 1, 1, 1, true)
         elseif busy then
             GameTooltip:AddLine(
                 L["Stop Waylaid's scan or snapshot processing; keep saved prices. Other addons' scans continue."],
@@ -463,7 +472,7 @@ function Browse.Create(host, kind, cachedOwner)
     ScrollUtil.InitScrollBoxListWithScrollBar(view.scroll, view.scrollBar, list)
     view.empty = text(view.inset, "GameFontDisable")
     view.empty:SetPoint("TOPLEFT", 18, -55)
-    view.empty:SetText(L["No matching items. For first-time discovery, run /wll scan all at the AH."])
+    view.empty:SetText(L["No matching items. Clear or change the search."])
     view.empty:Hide()
     host:SetScript("OnSizeChanged", function()
         Browse.Layout(view)

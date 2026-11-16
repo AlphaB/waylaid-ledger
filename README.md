@@ -1,11 +1,11 @@
 # Waylaid Ledger
 
-A standalone World of Warcraft: Forever addon that scans the auction house for
-Waylaid Crate materials and adds the cost of every filling option to crate
-item tooltips. The lowest known filling cost is highlighted in green for all price sources,
+A standalone World of Warcraft: Forever addon for comparing crate and writ
+purchase and delivery costs. Browse saved prices anywhere, scan and shop at the
+auction house, and compare crate filling options in item tooltips. The lowest known filling cost is highlighted in green for all price sources,
 including cached prices. Auctionator and TSM are optional price providers. Own scans support both crate and writ costs.
 
-Version **1.0.0** · Forever **1.60.1 / interface 16001** · No addon dependencies.
+Version **1.0.1** · Forever **1.60.1 / interface 16001** · No addon dependencies.
 
 In Auto mode, Auctionator or TSM prices prevent an extra Ledger scan when opening
 the auction house, even if Scan on open is enabled. Own scans and explicit scan
@@ -23,11 +23,13 @@ commands remain available.
    inside another nested `WaylaidLedger` folder. The install ZIP contains only
    the addon and its licenses; developer sources live in this repository.
 3. Restart the game, enable **Waylaid Ledger** in the AddOns menu, and log in.
-4. The complete fallback crate/writ lists are available immediately. Refresh at the AH
-   for current prices; saved prices or optional Auctionator/TSM estimates work away from the AH.
+4. The complete fallback crate/writ lists are available immediately. Scan at the AH
+   for current prices, or scan in your selected price provider. Saved prices and
+   optional Auctionator/TSM estimates work away from the AH.
 5. Visit an auctioneer and select **Waylaid**, then its internal **Craftsman's Writs** or
    **Waylaid Crates** tab. Each list shows
-   its catalog in order of **purchase + delivery** cost. Click a row to open
+   its catalog in order of **cost per reputation or Favor**, including purchase
+   and delivery costs. Click a column header to choose another sort order. Click a row to open
    Auctionator Shopping when available, or a built-in basket with one writ/crate
    and its complete delivery bundle.
    Left-click the minimap button (or use `/wll`) to browse your last used list
@@ -69,8 +71,9 @@ Up returns to the category tabs; left/right moves between Search, Refresh/Stop
 and Settings. Up/down on the outer Waylaid tab enters the selected page. From a
 list row, left returns to Search and right goes to Settings.
 
-With a controller, Down from Search, Refresh/Stop or Settings selects the first
-visible list row without moving the list. Up/down then selects adjacent entries;
+With a controller, Down from Search, Refresh/Stop or Settings selects a sort
+header. Down from a header enters the first visible list row without moving the
+list. Up/down then selects adjacent entries;
 the list scrolls when needed to reveal the next selection. Right-stick scrolling
 is enabled only while the list has focus. Focusing search, tabs or other controls
 disables list scrolling. Scrollbar arrows and the thumb remain mouse controls.
@@ -113,14 +116,14 @@ own purchase price is not included. Existing inventory is not deducted.
   in settings. Source and age appear inline only in this detailed view; the
   footer legends stay removed. Auctionator age is in days; TSM age is unknown.
 
-Commodity costs consume the cheapest price tiers until the required count is
+Detailed own commodity scans consume the cheapest price tiers until the required count is
 reached. Item-auction costs use an exact minimum-cost subset calculation; a cheap
 unit price on a large stack does not necessarily mean the lowest cash outlay.
 Bids without a buyout and your own auctions are excluded. For commodities, a
 bucket flagged as containing another character's account-owned stock is excluded
 entirely because the API exposes no separate account-owned quantity. This can
 make the estimate conservative when other sellers share that price bucket.
-All prices are **snapshots**, not reserved purchase quotes. External estimates
+All prices are **snapshots**, not reserved purchase quotes. Full-scan and external estimates
 are `required quantity × cached unit price`: they do not establish available
 quantity, account-owned stock filtering, price-tier depth, or whole-stack outlay.
 
@@ -135,17 +138,17 @@ tracking, automatic AH refresh, and tooltip details. Prices use native dropdowns
 with matching source labels and ordering. Dependent controls dim when tracking
 or the selected price source makes them unavailable; saved preferences are retained.
 Drag the minimap button to reposition it. Away from the AH, left-click or `/wll`
-opens this settings page. Right-click always opens settings.
+opens the saved crate/writ lists. Right-click always opens settings.
 At the AH, only **one Waylaid tab** occupies the addon tab row. Writs and
 Waylaid Crates use internal top tabs, leaving more room for Auctionator and
 other auction addons. Each category keeps its own search and scroll position.
-The original scan/shopping popup has been removed. Use the auction lists for
-Refresh, Stop and shopping. Inventory snapshots and diagnostics are in Settings;
+The original scan/shopping popup has been removed. Use either browser for Refresh; scanning, Stop and shopping are available at
+the AH. Inventory snapshots and diagnostics are in Settings;
 `/wll controls` remains an alias for settings.
 
 Bag snapshots update on login and inventory changes. Character/shared bank
 snapshots update while the bank is open. Log into each alt and visit its bank
-once to seed the data. Offline characters show **last-seen** counts; WoW cannot
+to update the saved data; revisit banks after their contents change. Offline characters show **last-seen** counts; WoW cannot
 read their changing inventories live. Only known crate/writ and delivery-item counts are stored.
 Snapshots are restricted to the same region/realm/faction/project; shared-bank
 items are counted once. `/wll inventory` shows snapshot timestamps. Settings can
@@ -165,27 +168,28 @@ auction rows, and cancels any pending own automatic scan for that AH visit.
 
 Enable **Scan on auction-house open** in `/wll settings`,
 or type **`/wll scanopen on`** (`off` disables it). This option is **off by default**
-and survives reloads. It is separate from tracked-inventory refresh.
+and survives reloads. The legacy tracked-refresh preference does not schedule scans.
 
-With crate price source Auto or Own, it waits two seconds after the AH opens,
-then scans missing, failed, or stale materials across the full **96-item crate
-catalog**, without needing our tab or inventory tracking. Fresh snapshots are
-reused. Closing or switching away from our panels does not cancel this opening
-scan; **Stop**, AH closure, disabling the option, or a competing query during an
-active scan cancels it. Pending opening work waits until observed searches and
-page requests have been quiet for two seconds, so the initial Blizzard browse
-query does not suppress it. An interrupted active scan stays paused until a
-manual scan or the next AH visit.
+With crate price source **Own**, or **Auto without an available provider**, it
+waits for two seconds of quiet after the AH opens. In the default market profile,
+Auto skips its own opening scan when Auctionator or TSM can supply prices.
 
-This is Waylaid Ledger's own crate-material scan, not an Auctionator full scan.
-Writ goods and writ/crate purchase prices continue to use Auctionator/TSM caches.
-It does not run in forced Auctionator or TSM mode, and performs no queries away
-from the auction house.
+On Forever, the first opening scan for a market, or one with pending delivery
+discovery, requests a full AH snapshot. Otherwise it scans missing, failed or
+stale crate-material prices and reuses fresh snapshots. The setting does not
+require an open Waylaid tab or inventory tracking. It does not automatically
+refresh every writ or purchase price on each AH visit.
+
+Closing or switching tabs does not cancel the opening scan. Stop, AH closure,
+disabling the option, or a competing query during an active scan cancels it.
+Pending work waits for other searches to settle. An interrupted scan stays
+paused until a manual scan or the next AH visit. Forced Auctionator/TSM modes
+never start this own scan, and there are no auction queries away from the AH.
 
 ## Ranked auction lists
 
-Inside the Waylaid auction tab, **Craftsman's Writs** lists known identified writs,
-and **Waylaid Crates** lists
+In the auction tab and saved-price browser, **Craftsman's Writs** lists known
+identified writs, and **Waylaid Crates** lists
 known identified crates. Columns show the purchase price of one writ/crate, the
 full delivery cost, their sum, and **cost per reputation** (writs) or **cost per
 Merchant's Favor** (crates), with the base reward below that cost. Rows sort by
@@ -197,7 +201,7 @@ age markers; detailed provenance remains available on hover.
 Click any column header to sort by item name, purchase price, delivery cost,
 total cost, or cost per reputation/Favor. Click it again to reverse the order;
 the active header shows a native arrow image independent of font glyphs. Missing numeric values stay at the bottom in
-both directions. Each table keeps its selection through filtering, Refresh and
+both directions. Each table keeps its chosen sort order through filtering, Refresh and
 tab changes during the session. Reloading starts both tables at lowest cost per
 reputation/Favor again.
 
@@ -227,7 +231,7 @@ quotes include that actual outlay.
 
 The list uses Blizzard's native auction-style ScrollBox and scrollbar, framed
 column headers, compact striped rows, and recycled visible item buttons.
-Search filters item names and required goods. **Refresh** follows the category’s
+Search filters item names and required goods. **At the AH, Refresh** follows the category’s
 price source: Auto with an available provider, Auctionator, or TSM reloads provider
 quotes; Own, custom profiles, or no available provider requests one full
 auction-house snapshot for both lists on Forever. Provider refresh does not start
@@ -257,7 +261,8 @@ The inactive follow-up switch is no longer shown in settings on Forever.
 
 TSM's released public API exposes prices/groups but no scan-start function. The
 advanced command `/wll tsmexport [writs|crates|all]` copies
-an item-list import for the current filtered scope. Import it in TSM and manually
+an item-list import for the selected AH list’s filtered scope. The standalone
+browser’s filter does not change advanced scan/export commands. Import it in TSM and manually
 run that group's Shopping scan. TSM controls import/group membership choices and
 its own pricing databases; a group scan does not guarantee a DBMarket update.
 We do not call internal TSM modules or alter TSM SavedVariables.
@@ -300,7 +305,8 @@ In **Auto**, each material uses:
 1. A fresh own scan, including an observed shortage or no listings.
 2. An Auctionator estimate not known to be from an earlier day.
 3. A TSM estimate using `DBMinBuyout` by default.
-4. An older Auctionator estimate in gray, if no usable alternative exists.
+4. An older Auctionator estimate, if no usable alternative exists; the lowest
+   known filling cost still highlights green.
 5. The old own snapshot or an unknown result if neither addon has data.
 
 A forced source uses only that provider. For example, selecting TSM does not
@@ -332,30 +338,33 @@ See [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) for the reviewed API contracts.
 
 ## Commands
 
-On Forever, the `scan` scope commands and `refresh` use a full-house snapshot.
-Clients without replication support use the listed per-item scopes instead.
+On Forever, `scan bags/hovered/tracked/crates/writs/all` requests a full-house
+snapshot; the scope names select items only on clients without replication.
+The `refresh` command reloads provider prices when that source is available,
+otherwise it requests an own full snapshot. These commands require the AH.
 Use `/wll scan deep` for detailed stock/stack checks across all catalogued items.
 
 | Command | Action |
 | --- | --- |
-| `/wll` | At AH: last used list tab; elsewhere: settings |
+| `/wll` | Toggle the last used list at the AH, or the saved-price browser elsewhere |
 | `/wll controls` | Alias for the official settings page |
-| `/wll scan bags` | Scan purchases and goods for recognized crates/writs in equipped bags |
-| `/wll scan hovered` | Scan the last recognized crate you hovered |
-| `/wll scan tracked` | Scan purchases and goods for remembered bag/bank/alt crates and writs |
+| `/wll scan bags` | Full snapshot on Forever; otherwise scan contracts and goods in equipped bags |
+| `/wll scan hovered` | Full snapshot on Forever; otherwise scan the last recognized crate/writ hovered |
+| `/wll scan tracked` | Full snapshot on Forever; otherwise scan remembered bag/bank/alt contracts and goods |
 | `/wll settings` | Configure inventory, refresh, minimap, details, and writs |
 | `/wll inventory` | Show last-seen inventory snapshot timestamps |
 | `/wll minimap on` | Show button (`off` hides it) |
 | `/wll tracking on` | Capture bag inventory (`off` disables it) |
 | `/wll banks on` | Include visited banks (`off` excludes them) |
 | `/wll alts on` | Include remembered alts (`off` excludes them) |
-| `/wll scanopen on` | Auto-scan missing/stale crate prices on AH open (`off` disables it) |
+| `/wll scanopen on` | Enable the opening scan with Own, or Auto without a provider (`off` disables it) |
 | `/wll autoscan on` | Legacy preference; no longer starts scans on tab changes |
 | `/wll details on` | Always show tooltip details (`off` uses Shift) |
 | `/wll writsource auto` | Writ prices: auto, own, auctionator, tsm, or off |
-| `/wll scan all` | Scan all 424 unique catalogued items |
-| `/wll scan writs` | Scan 300 writ purchase/delivery IDs |
-| `/wll scan crates` | Scan 126 crate purchase/delivery IDs |
+| `/wll scan all` | Request a full AH snapshot; per-item fallback covers all catalogued items |
+| `/wll scan deep` | Detailed stock/stack scan of all known purchases and delivery goods |
+| `/wll scan writs` | Full snapshot on Forever; otherwise scan writ purchases and delivery goods |
+| `/wll scan crates` | Full snapshot on Forever; otherwise scan crate purchases and delivery goods |
 | `/wll refresh writs` | Reload provider prices, or request an own scan according to the writ price source |
 | `/wll auctionscan writs` | Start only the scoped Auctionator Shopping search |
 | `/wll tsmexport writs` | Copy a scoped TSM group import; scan it manually in TSM |
@@ -366,10 +375,10 @@ Use `/wll scan deep` for detailed stock/stack checks across all catalogued items
 | `/wll source own` | Use only our scan snapshots |
 | `/wll tsmkey DBMinBuyout` | TSM minimum buyout estimates (default) |
 | `/wll tsmkey DBMarket` | TSM historical market-value estimates |
-| `/wll search` | Search every alternative for the last hovered crate in Auctionator |
-| `/wll shop` | Shop the lowest known filling option in Auctionator |
+| `/wll search` | Search every alternative for the last hovered crate, using Auctionator or the built-in basket |
+| `/wll shop` | Shop the lowest known filling option using Auctionator or the built-in basket |
 | `/wll shop 2` | Shop option 2 for the last hovered crate |
-| `/wll stop` | Stop; keep completed material snapshots |
+| `/wll stop` | Stop Waylaid’s scan; keep completed item prices |
 | `/wll report` | Open a selectable, copyable diagnostic report |
 | `/wll debug on` / `/wll debug off` | Enable/disable timestamped chat diagnostics (bare `debug` toggles) |
 | `/wll inspect 248707` | Copy the client's own tooltip text for that item |
@@ -399,7 +408,7 @@ Please start with a small test:
    Check one purchase + delivery total and click it: Auctionator should open
    Shopping with one writ/crate and the full delivery quantity.
    Check the minimap button and settings dropdowns. Away from the AH, left-click
-   should open settings without a scan popup. During a full scan, check that
+   should open saved crate/writ lists; right-click should open settings. During a full scan, check that
    progress uses auction counts and returns to priced/item counts afterward.
    If using Auctionator, repeat with its full scan and verify its percentage, stable rows, and no own scan on tab switches.
    After Auctionator finishes, click Refresh and check that prices reload without

@@ -1,6 +1,6 @@
 local addonName, addon = ...
 local L = addon.L
-addon.version = "1.0.0"
+addon.version = "1.0.1"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -615,7 +615,7 @@ function addon:StartScan(scope)
     elseif scope == "bags" then
         contracts = self.Catalog.BagContracts()
     else
-        self:Print(L["Use /wll scan bags, hovered, tracked, all, crates, or writs."])
+        self:Print(L["Use /wll scan bags, hovered, tracked, all, crates, writs, or deep."])
         return false
     end
     local items = self.Catalog.ScanItems(contracts)
@@ -910,13 +910,13 @@ function addon:Command(text)
         end
     else
         self:Print(
-            "/wll - auction list/settings | scan bags/hovered/crates/writs/all | source auto/auctionator/tsm/own | tsmkey DBMinBuyout/DBMarket"
+            "/wll - browse crates/writs | settings | scan bags/hovered/tracked/crates/writs/all/deep | source auto/auctionator/tsm/own | tsmkey DBMinBuyout/DBMarket"
         )
         self:Print(
             "search | shop [option number] | stop | report | debug [on|off] | inspect [item ID] | market <name> | clear"
         )
         self:Print(
-            "writsource auto/own/auctionator/tsm/off | refresh [crates/writs/all] | auctionscan [scope] | tsmexport [scope] | settings | controls | inventory | minimap/tracking/banks/alts/autoscan/scanopen/details on/off | scan tracked"
+            "writsource auto/own/auctionator/tsm/off | refresh [crates/writs] | auctionscan [scope] | tsmexport [scope] | settings | controls | inventory | minimap/tracking/banks/alts/scanopen/details on/off | auctionatorfollowup on/off"
         )
     end
     self.UI.Update()
@@ -1084,7 +1084,7 @@ local function initialize()
     end
     addon:Log("Loaded on interface " .. tostring(select(4, GetBuildInfo())))
     addon.initialized = true
-    addon:Print(L["Loaded. /wll opens the auction list at the AH, or settings elsewhere."])
+    addon:Print(L["Loaded. /wll opens crate and writ lists. /wll settings opens settings."])
 end
 
 frame:RegisterEvent("ADDON_LOADED")
