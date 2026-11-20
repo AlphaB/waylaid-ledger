@@ -482,7 +482,7 @@ function UI.ToggleSettings()
     end
 end
 
-function UI.ShowReport(text, title)
+function UI.ShowReport(text, title, returnView)
     if not UI.report then
         local frame = CreateFrame("Frame", "WaylaidLedgerReportFrame", UIParent, "BasicFrameTemplateWithInset")
         frame:SetSize(640, 440)
@@ -503,15 +503,34 @@ function UI.ShowReport(text, title)
             frame:Hide()
         end)
         scroll:SetScrollChild(edit)
+        frame.SmartNavigationCloseHandler = function()
+            frame:Hide()
+            return true
+        end
         UI.report, UI.reportEdit = frame, edit
         frame:Hide()
         addon.Navigation.RegisterWindow(frame, { scroll = scroll, target = edit })
+        frame:HookScript("OnHide", function()
+            edit:ClearFocus()
+            local view = UI.reportReturnView
+            UI.reportReturnView = nil
+            if view then
+                addon.Navigation.EnterView(view, view.tripButton)
+            end
+        end)
+        UI.reportScroll = scroll
     end
     UI.report.TitleText:SetText(title or L["Waylaid Ledger - select and copy with Ctrl+C / Cmd+C"])
+    UI.reportReturnView = returnView
     UI.reportEdit:SetText(text)
+    UI.reportScroll:SetVerticalScroll(0)
     UI.report:Show()
     addon.Navigation.Focus(UI.report)
     addon.Navigation.RefreshWindow(UI.report)
-    UI.reportEdit:SetFocus()
-    UI.reportEdit:HighlightText()
+    if returnView then
+        UI.reportEdit:ClearFocus()
+    else
+        UI.reportEdit:SetFocus()
+        UI.reportEdit:HighlightText()
+    end
 end

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0
+
+- Plan one-stop writ trips on your current continent.
+- See the delivery order, estimated time and additional time per writ, reputation, and what to buy after accounting for items in your bags.
+
 ## 1.1.1
 
 - Hide writs already delivered today by default in both browsers. Select Show delivered to include them.
