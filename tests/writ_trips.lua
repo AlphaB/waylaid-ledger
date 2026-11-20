@@ -208,6 +208,50 @@ test("trip recommendations use known local flight stops and skip completed writs
     equal(unpriced.cost, nil)
     equal(unpriced.effective, nil)
     assert(Trips.Describe(unpriced):find("260x Crafted Solid Shot · No price", 1, true))
+
+    local oldRead, oldName, oldAuctionator, oldOpen =
+        addon.Inventory.ReadContainers, addon.Catalog.SearchName, Auctionator, addon.scanner.open
+    local exported
+    Auctionator = {
+        API = {
+            v1 = {
+                MultiSearchAdvanced = function(_, terms)
+                    exported = terms
+                end,
+            },
+        },
+    }
+    addon.Inventory.ReadContainers = function()
+        return { [264086] = 1, [4852] = 1, [8069] = 7, [264049] = 1 }
+    end
+    addon.Catalog.SearchName = function(id)
+        return tostring(id)
+    end
+    addon.scanner:SetOpen(false)
+    addon.TripPlanner.Open(nil, limited, "")
+    equal(state.send:IsEnabled(), false)
+    addon.scanner:SetOpen(true)
+    addon.TripPlanner.UpdateShopping()
+    equal(state.send:IsEnabled(), true)
+    state.rows[1]:SetChecked(true)
+    state.rows[1].scripts.OnClick(state.rows[1])
+    state.rows[2]:SetChecked(true)
+    state.rows[2].scripts.OnClick(state.rows[2])
+    state.send.scripts.OnClick()
+    equal(state.window:IsShown(), false)
+    local amounts = {}
+    for _, term in ipairs(exported) do
+        equal(term.isExact, true)
+        equal(amounts[term.searchString], nil)
+        amounts[term.searchString] = term.quantity
+    end
+    equal(amounts["8069"], 253)
+    equal(amounts["264049"], nil)
+    equal(amounts["264086"], nil)
+    equal(amounts["4852"], nil)
+    equal(amounts["264056"], 1)
+    addon.Inventory.ReadContainers, addon.Catalog.SearchName, Auctionator = oldRead, oldName, oldAuctionator
+    addon.scanner:SetOpen(oldOpen)
     C_Map, C_TaxiMap, CreateVector2D, Enum, C_QuestLog = oldMap, oldTaxi, oldVector, oldEnum, oldQuest
     addon.Writs, addon.WritDestinations = oldWrits, oldDestinations
 end)

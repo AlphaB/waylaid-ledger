@@ -553,6 +553,14 @@ function Trips.Describe(plan)
     return table.concat(lines, "\n")
 end
 
+function Trips.ReadBags()
+    local bags = {}
+    for id = 0, NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS or 4 do
+        bags[#bags + 1] = id
+    end
+    return addon.Inventory.ReadContainers(bags)
+end
+
 function Trips.Open(view)
     if addon.Providers.scan then
         addon.TripPlanner.Open(view, {}, L["Another addon is scanning."])
@@ -561,12 +569,7 @@ function Trips.Open(view)
     local context = Trips.FlightContext()
     local plans, status = {}, L["No discovered flight stops found on your current continent."]
     if context then
-        local bags = {}
-        for id = 0, NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS or 4 do
-            bags[#bags + 1] = id
-        end
-        local goldPerHour = Trips.GoldPerHour()
-        plans = Trips.Build(context, addon.Inventory.ReadContainers(bags), priceReader(), goldPerHour)
+        plans = Trips.Build(context, Trips.ReadBags(), priceReader(), Trips.GoldPerHour())
         status = L["No trips found. Refresh writ prices or try another continent."]
     end
     addon.TripPlanner.Open(view, plans, status)

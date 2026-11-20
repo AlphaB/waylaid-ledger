@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+- Send the selected writ trip to Auctionator with combined quantities based on what is still missing from your bags.
+
 ## 1.4.0
 
 - Choose a flight stop and toggle optional writs directly in the trip planner.
