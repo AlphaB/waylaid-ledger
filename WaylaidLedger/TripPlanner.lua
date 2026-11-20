@@ -28,7 +28,7 @@ end
 
 function Planner.UpdateShopping()
     local state = Planner.state
-    if state and state.window:IsShown() and not state.saved then
+    if state and state.host:IsVisible() and not state.saved then
         state.send:SetEnabled(shoppingBlocker() == nil)
     end
 end
@@ -38,7 +38,7 @@ local function layoutScroll(state, height, resetScroll)
     local scroll = state.scroll
     local position = resetScroll and 0 or scroll:GetVerticalScroll()
     scroll:SetVerticalScroll(math.min(position, math.max(0, height - scroll:GetHeight())))
-    addon.Navigation.RefreshWindow(state.window)
+    addon.Navigation.RefreshTripView(state)
 end
 
 local function update(state, resetScroll)
@@ -51,6 +51,8 @@ local function update(state, resetScroll)
     state.savedButton:SetEnabled(saved ~= nil)
     addon.Localization.ButtonText(state.savedButton, L["Saved trip"])
     state.savedDetails:Hide()
+    state.refresh:Show()
+    state.returns:SetText(plan and Trips.ReturnLabel(plan.coinReturn) or "")
     state.send:SetShown(plan ~= nil)
     state.send:SetEnabled(shoppingBlocker() == nil)
     state.summary:SetText(plan and Trips.Summary(plan) or state.status)
@@ -73,7 +75,7 @@ local function update(state, resetScroll)
         if not row then
             row = CreateFrame("CheckButton", nil, state.content, "UICheckButtonTemplate")
             row:SetSize(26, 26)
-            row.label = font(row, "GameFontHighlightSmall", 30, -4, 308)
+            row.label = font(row, "GameFontHighlightSmall", 30, -4, state.leftWidth - 32)
             row:SetScript("OnClick", function(self)
                 local current = state.plans[state.index]
                 state.selected[current][self.itemID] = self:GetChecked() and true or nil
@@ -85,7 +87,7 @@ local function update(state, resetScroll)
         row:SetChecked(state.selected[trip][row.itemID] == true)
         row.label:SetText(Trips.OptionLabel(addition))
         local height = math.max(44, (row.label:GetStringHeight() or 0) + 12)
-        row:SetHitRectInsets(0, -312, 0, 26 - height)
+        row:SetHitRectInsets(0, 26 - state.leftWidth, 0, 26 - height)
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", state.content, "TOPLEFT", 0, -offset)
         row:Show()
@@ -101,12 +103,16 @@ end
 
 local function updateSaved(state, resetScroll)
     local saved = Trips.Saved()
-    local summary, nextStop, details
+    local summary, nextStop, details, coinReturn, delivered
     if saved then
-        summary, nextStop, details = Trips.SavedRoute(saved)
+        summary, nextStop, details, coinReturn, delivered = Trips.SavedRoute(saved)
     end
     state.summary:SetText(summary or L["No writ trip saved for this character."])
     state.totals:SetText(nextStop or "")
+    state.returns:SetText(
+        saved and (Trips.ReturnLabel(coinReturn) .. "    " .. Trips.ReturnLabel(delivered, true)) or ""
+    )
+    state.refresh:Hide()
     state.note:Hide()
     state.heading:Hide()
     state.empty:Hide()
@@ -128,7 +134,7 @@ end
 function Planner.QuestTurnedIn(questID)
     local changed = Trips.RecordTurnIn(questID)
     local state = Planner.state
-    if changed and state and state.saved and state.window:IsShown() then
+    if changed and state and state.saved and state.host:IsVisible() then
         updateSaved(state)
     end
 end
@@ -152,34 +158,44 @@ local function sendShopping(state)
     local terms, reason = addon.Shopping.BasketTerms(plan.basket)
     if not terms then
         addon:Print(reason)
-    elseif addon:SendBasketToAuctionator(terms) then
-        -- Auctionator now owns the auction tab and controller focus.
-        state.returnView = nil
-        state.window:Hide()
+    else
+        addon:SendBasketToAuctionator(terms)
     end
 end
 
-local function create()
-    local window = CreateFrame("Frame", "WaylaidLedgerTripPlannerFrame", UIParent, "BasicFrameTemplateWithInset")
-    window:SetSize(800, 555)
-    window:SetPoint("CENTER")
-    window:SetFrameStrata("FULLSCREEN_DIALOG")
-    window.TitleText:SetText(L["Writ trips"])
-    window:Hide()
+local function fit(state)
+    local width = math.max(550, state.host:GetWidth() - 51)
+    local left = math.floor(width * 0.45)
+    state.leftWidth = left
+    state.selector:SetWidth(width - 254)
+    state.content:SetWidth(width)
+    for _, label in ipairs({ state.summary, state.totals, state.returns, state.note, state.savedDetails }) do
+        label:SetWidth(width)
+    end
+    state.heading:SetWidth(left)
+    state.empty:SetWidth(left)
+    state.details:ClearAllPoints()
+    state.details:SetPoint("TOPLEFT", state.content, "TOPLEFT", left + 18, 0)
+    state.details:SetWidth(width - left - 18)
+    for _, row in ipairs(state.rows) do
+        row.label:SetWidth(left - 32)
+    end
+end
 
-    local state = { window = window, rows = {}, plans = {}, selected = {}, index = 1 }
-    local close = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
-    close:SetSize(95, 24)
-    close:SetPoint("TOPRIGHT", -16, -34)
-    addon.Localization.ButtonText(close, L["Close"])
-    close:SetScript("OnClick", function()
-        window:Hide()
-    end)
-    state.close = close
-
+function Planner.Create(window, owner)
+    local state = {
+        host = window,
+        owner = owner,
+        cached = owner ~= nil,
+        kind = "trips",
+        rows = {},
+        plans = {},
+        selected = {},
+        index = 1,
+    }
     local send = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
     send:SetSize(245, 24)
-    send:SetPoint("RIGHT", close, "LEFT", -10, 0)
+    send:SetPoint("TOPRIGHT", -16, -8)
     addon.Localization.ButtonText(send, L["Send to Auctionator"])
     send:SetMotionScriptsWhileDisabled(true)
     send:SetScript("OnClick", function()
@@ -207,7 +223,7 @@ local function create()
 
     local selector = CreateFrame("DropdownButton", nil, window, "WowStyle1DropdownTemplate")
     selector:SetSize(365, 25)
-    selector:SetPoint("TOPLEFT", 16, -34)
+    selector:SetPoint("TOPLEFT", 16, -8)
     selector:SetupMenu(function(_, menu)
         for i, trip in ipairs(state.plans) do
             local index = i
@@ -224,7 +240,7 @@ local function create()
     local function action(label, x, callback)
         local control = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
         control:SetSize(155, 24)
-        control:SetPoint("TOPLEFT", x, -65)
+        control:SetPoint("TOPLEFT", x, -38)
         addon.Localization.ButtonText(control, L[label])
         control:SetScript("OnClick", callback)
         return control
@@ -243,7 +259,7 @@ local function create()
                 state.saved = false
                 update(state, true)
             else
-                Trips.Open(state.returnView)
+                Trips.Open(state)
             end
         else
             state.saved = true
@@ -251,11 +267,15 @@ local function create()
         end
     end)
 
-    state.summary = font(window, "GameFontNormal", 16, -101, 752)
-    state.totals = font(window, "GameFontHighlight", 16, -123, 752)
-    state.note = font(window, "GameFontDisableSmall", 16, -146, 752)
+    state.refresh = action("Rebuild trips", 346, function()
+        Trips.Open(state)
+    end)
+    state.summary = font(window, "GameFontNormal", 16, -73, 752)
+    state.totals = font(window, "GameFontHighlight", 16, -93, 752)
+    state.returns = font(window, "GameFontHighlight", 16, -113, 752)
+    state.note = font(window, "GameFontDisableSmall", 16, -133, 752)
     local scroll = CreateFrame("ScrollFrame", nil, window, "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", 16, -172)
+    scroll:SetPoint("TOPLEFT", 16, -159)
     scroll:SetPoint("BOTTOMRIGHT", -35, 16)
     local content = CreateFrame("Frame", nil, scroll)
     content:SetSize(745, 1)
@@ -269,51 +289,54 @@ local function create()
     state.details:SetSpacing(3)
     state.savedDetails = font(content, "GameFontHighlight", 0, 0, 745)
     state.savedDetails:SetSpacing(5)
-
-    addon.Navigation.RegisterStandaloneWindow(window, {
-        target = function()
-            if state.saved or Trips.Saved() and #state.plans == 0 then
-                return state.savedButton
+    state.target = function()
+        if state.saved or (Trips.Saved() and #state.plans == 0) then
+            return state.savedButton
+        end
+        return #state.plans > 0 and selector or state.refresh
+    end
+    fit(state)
+    window:SetScript("OnSizeChanged", function()
+        fit(state)
+        if window:IsVisible() and (state.started or state.saved) then
+            if state.saved then
+                updateSaved(state)
+            else
+                update(state)
             end
-            return #state.plans > 0 and selector or close
-        end,
-        scroll = scroll,
-    })
-    window:HookScript("OnHide", function()
-        local view = state.returnView
-        state.returnView = nil
-        if view then
-            addon.Navigation.EnterView(view, view.tripButton)
         end
     end)
     return state
 end
 
-function Planner.Open(view, plans, status)
-    local state = Planner.state or create()
+function Planner.Open(state, plans, status)
     Planner.state = state
-    state.returnView, state.plans, state.status, state.index = view, plans, status, 1
+    state.plans, state.status, state.index, state.started = plans, status, 1, true
     state.selected, state.saved = {}, false
     for _, trip in ipairs(plans) do
         state.selected[trip] = {}
     end
-    state.selector:SetShown(#plans > 0)
     state.selector:GenerateMenu()
     update(state, true)
-    state.window:Show()
-    addon.Navigation.Focus(state.window)
-    addon.Navigation.RefreshWindow(state.window)
 end
 
-function Planner.OpenSaved()
-    local state = Planner.state or create()
+function Planner.Activate(state, saved)
     Planner.state = state
-    if not state.window:IsShown() then
-        state.plans, state.selected, state.index = {}, {}, 1
+    if saved or state.saved then
+        state.saved = true
+        updateSaved(state, true)
+    elseif
+        not state.started
+        or #state.plans == 0
+        or state.continent ~= Trips.CurrentContinent()
+        or state.pricingKey ~= Trips.PricingKey()
+    then
+        Trips.Open(state)
+    else
+        local owned = Trips.ReadBags()
+        for _, trip in ipairs(state.plans) do
+            trip.owned = owned
+        end
+        update(state)
     end
-    state.saved = true
-    updateSaved(state, true)
-    state.window:Show()
-    addon.Navigation.Focus(state.window)
-    addon.Navigation.RefreshWindow(state.window)
 end

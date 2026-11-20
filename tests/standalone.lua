@@ -744,8 +744,6 @@ test("clicking auction and category tabs hands controller focus into the page an
                 view.deliveredButton.scripts.OnClick(view.deliveredButton)
                 equal(view.showDelivered, false)
                 f.navigate("right")
-                equal(f.current, view.tripButton)
-                f.navigate("right")
             end
             equal(f.current, view.refreshButton)
             f.navigate("right")
@@ -754,8 +752,6 @@ test("clicking auction and category tabs hands controller focus into the page an
             equal(f.current, view.refreshButton)
             f.navigate("left")
             if kind == "writs" then
-                equal(f.current, view.tripButton)
-                f.navigate("left")
                 equal(f.current, view.deliveredButton)
                 f.navigate("left")
             end
@@ -788,6 +784,21 @@ test("clicking auction and category tabs hands controller focus into the page an
             f.navigate("left")
             equal(f.current, view.search)
         end
+        local browser = addon.UI.auctionHost
+        f.select(browser.tabs.crates)
+        f.navigate("right")
+        equal(f.current, browser.tabs.trips, "trip navigation step 1")
+        browser.tabs.trips.scripts.OnClick()
+        local trip = browser.views.trips
+        equal(f.current, trip.refresh, "trip navigation step 2")
+        equal(f.scroll, trip.scroll, "trip navigation step 3")
+        f.navigate("up")
+        equal(f.current, browser.tabs.trips, "trip navigation step 4")
+        f.navigate("left")
+        equal(f.current, browser.tabs.crates, "trip navigation step 5")
+        browser.tabs.crates.scripts.OnClick()
+        equal(f.current, browser.views.crates.search, "trip navigation step 6")
+        equal(f.scroll, nil, "trip navigation step 7")
         addon.UI.auctionHost:Hide()
         equal(outer.overrides.up(), nil)
         equal(outer.overrides.down(), nil)

@@ -1,11 +1,10 @@
 # Writ trips
 
-Open the Craftsman's Writs list in the Auction House or saved-price browser and
-select **Writ trips**. Choose a flight stop from the dropdown, which ranks the
+Open the **Writ trips** tab in the Auction House or saved-price browser. Choose a flight stop from the dropdown, which ranks the
 recommended trips by effective cost per reputation point. Tick or untick any
 optional writ to update the delivery order, shopping list, shopping total,
-estimated time and reputation together. Selections are kept when switching
-flight stops within the planner. Reopening it builds fresh recommendations.
+estimated time, reputation and estimated coin-pouch return together. Selections are kept when switching
+flight stops within the planner. Use **Rebuild trips** to generate fresh suggestions from your current location, bags and saved prices.
 
 In **Settings**, set **Time value (gold/hour)** and select **Apply**. Reopen
 **Writ trips** to see the new ranking. The initial value is 6 gold per hour,
@@ -22,7 +21,8 @@ purchase. Optional writs with incomplete price data show **No price**. Writs
 already delivered by the current character are skipped. Quantities are combined across
 each trip, and only the current character's bags offset purchases. Saved Auction
 House prices can change. Flight fares and coin-pouch returns are outside the
-shopping total.
+shopping total. The separate return estimate combines the published pouch
+ranges for Journeyman and Expert writs with the published Artisan average.
 
 The seed locations come from
 [WritRoute 1.2.0](https://www.curseforge.com/wow/addons/craftsmans-writroute-for-forever/files/9712722)
@@ -71,7 +71,8 @@ saved estimate are included in the search.
 Select **Save trip** once your optional writs are selected. You can then
 send the list to Auctionator or close the planner. **Saved trip** or
 `/wll trip` opens the route anywhere. The next unfinished stop shows its zone
-and coordinates. Turn-ins automatically check off the matching writ in the
+and coordinates. The saved view shows the estimated return for the whole
+trip and the portion for writs checked off. Turn-ins automatically check off the matching writ in the
 saved route, including while the planner is closed.
 
 Each character has one saved trip. The route and recorded turn-ins persist

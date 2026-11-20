@@ -92,39 +92,47 @@ local function pausePanelScan()
     addon:UpdateScheduler()
 end
 
-function UI.SelectBrowserTab(kind, browser)
-    local pages = browser and browser.pages or UI.auctionHosts
-    local tabs = browser and browser.tabs or UI.browserTabs
-    local views = browser and browser.views or addon.BrowseUI.views
-    if not pages or not pages[kind] then
+function UI.SelectBrowserTab(kind, browser, saved)
+    browser = browser or UI.auctionHost
+    if not browser or not browser.pages[kind] then
         return
     end
-    addon.db.browserTab = kind
-    if addon.Trace then
-        addon:Trace("ui.tab", 2, "Selected %s; displaying cached prices (no scan requested)", kind)
+    browser.activeTab = kind
+    if kind ~= "trips" then
+        addon.db.browserTab = kind
     end
     UI.switchingBrowser = true
-    for category, page in pairs(pages) do
+    for category, page in pairs(browser.pages) do
         page:SetShown(category == kind)
         if category == kind then
-            PanelTemplates_SelectTab(tabs[category])
+            PanelTemplates_SelectTab(browser.tabs[category])
         else
-            PanelTemplates_DeselectTab(tabs[category])
+            PanelTemplates_DeselectTab(browser.tabs[category])
         end
     end
     UI.switchingBrowser = false
-    addon.BrowseUI.Refresh(views[kind])
-    addon.Navigation.EnterView(views[kind])
+    local view = browser.views[kind]
+    if kind == "trips" then
+        addon.TripPlanner.Activate(view, saved)
+    else
+        addon.BrowseUI.Refresh(view)
+    end
+    addon.Navigation.EnterView(view)
 end
 
 -- Both containers use exactly the same category controls and list implementation.
 function UI.CreateBrowser(host, cached)
     host.pages, host.tabs, host.views = {}, {}, {}
     local previous
-    for _, kind in ipairs({ "writs", "crates" }) do
+    local categories = addon.TripPlanner and { "writs", "crates", "trips" } or { "writs", "crates" }
+    for _, kind in ipairs(categories) do
         local category = kind
         local tab = CreateFrame("Button", nil, host, "PanelTopTabButtonTemplate")
-        tab:SetText(category == "writs" and L["Craftsman's Writs"] or L["Waylaid Crates"])
+        tab:SetText(
+            category == "trips" and L["Writ trips"]
+                or category == "writs" and L["Craftsman's Writs"]
+                or L["Waylaid Crates"]
+        )
         PanelTemplates_TabResize(tab, 18)
         if previous then
             tab:SetPoint("TOPLEFT", previous, "TOPRIGHT", 3, 0)
@@ -140,7 +148,11 @@ function UI.CreateBrowser(host, cached)
         page:SetPoint("BOTTOMRIGHT")
         page:Hide()
         host.pages[category] = page
-        host.views[category] = addon.BrowseUI.Create(page, category, cached and host or nil)
+        if category == "trips" then
+            host.views[category] = addon.TripPlanner.Create(page, cached and host or nil)
+        else
+            host.views[category] = addon.BrowseUI.Create(page, category, cached and host or nil)
+        end
         host.views[category].tabs = host.tabs
         if not cached and category == "crates" then
             page:SetScript("OnHide", pausePanelScan)
@@ -166,19 +178,34 @@ function UI.OpenCachedBrowser()
             page:SetPoint("BOTTOMRIGHT", -10, 12)
         end
         frame:SetScript("OnShow", function()
-            UI.SelectBrowserTab(frame.pages[addon.db.browserTab] and addon.db.browserTab or "crates", frame)
+            UI.SelectBrowserTab(frame.activeTab == "trips" and "trips" or addon.db.browserTab or "crates", frame)
         end)
         addon.Navigation.RegisterStandaloneWindow(frame, {
             target = function()
-                return frame.views[addon.db.browserTab or "crates"].search
+                local view = frame.views[frame.activeTab or addon.db.browserTab or "crates"]
+                return view.target and view.target() or view.search
             end,
             scroll = function()
-                return frame.views[addon.db.browserTab or "crates"].scroll
+                return frame.views[frame.activeTab or addon.db.browserTab or "crates"].scroll
             end,
         })
     end
     UI.cachedBrowser:Show()
-    addon.Navigation.EnterView(UI.cachedBrowser.views[addon.db.browserTab])
+    local browser = UI.cachedBrowser
+    addon.Navigation.EnterView(browser.views[browser.activeTab or addon.db.browserTab])
+end
+
+function UI.OpenSavedTrip()
+    if addon.scanner.open and AuctionHouseFrame then
+        UI.AttachAuction()
+        if UI.auctionHost then
+            UI.tabLibrary:SetSelected(TAB_ID)
+            UI.SelectBrowserTab("trips", UI.auctionHost, true)
+            return
+        end
+    end
+    UI.OpenCachedBrowser()
+    UI.SelectBrowserTab("trips", UI.cachedBrowser, true)
 end
 
 function UI.AttachAuction()
@@ -199,7 +226,7 @@ function UI.AttachAuction()
     UI.CreateBrowser(host)
     UI.auctionHosts, UI.browserTabs = host.pages, host.tabs
     host:SetScript("OnShow", function()
-        UI.SelectBrowserTab(UI.auctionHosts[addon.db.browserTab] and addon.db.browserTab or "crates")
+        UI.SelectBrowserTab(host.activeTab == "trips" and "trips" or addon.db.browserTab or "crates", host)
     end)
     host:SetScript("OnHide", function()
         pausePanelScan()

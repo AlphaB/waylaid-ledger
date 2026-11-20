@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.0
+
+- Open Writ trips as its own tab in the Auction House and saved-price browser.
+- See the selected route's estimated coin-pouch return and the estimated return from completed writs on a saved trip.
+
 ## 1.5.1
 
 - Drag the title bar to move the writ trip planner, saved-price browser, shopping basket and reports.

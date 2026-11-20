@@ -229,29 +229,29 @@ test("settings and reports can be reopened and reports register right-stick scro
     end)
 end)
 
-test("the empty writ trip planner opens from the browser and restores the trip button on Back", function()
+test("the empty writ trips tab shares the browser controller focus and Back", function()
     fixture(function(f)
         addon.db.browserTab = "writs"
         addon.UI.OpenCachedBrowser()
         local browser = addon.UI.cachedBrowser
-        local view = browser.views.writs
-        view.tripButton.scripts.OnClick()
-        local state = addon.TripPlanner.state
-        equal(f.active, state.window)
-        equal(f.current, state.close)
-        equal(f.scrolls[state.window], state.scroll)
+        local state = browser.views.trips
+        state.started, state.saved = false, false
+        browser.tabs.trips.scripts.OnClick()
+        equal(f.active, browser)
+        equal(f.current, state.refresh)
+        equal(f.scrolls[browser], state.scroll)
         local grip
-        for _, child in ipairs({ state.window:GetChildren() }) do
+        for _, child in ipairs({ browser:GetChildren() }) do
             if child:GetScript("OnDragStart") then
                 grip = child
             end
         end
-        assert(grip and grip:GetScript("OnDragStop"), "trip window has no draggable title bar")
+        assert(grip and grip:GetScript("OnDragStop"), "browser has no draggable title bar")
         local starts, stops = 0, 0
-        state.window.StartMoving = function()
+        browser.StartMoving = function()
             starts = starts + 1
         end
-        state.window.StopMovingOrSizing = function()
+        browser.StopMovingOrSizing = function()
             stops = stops + 1
         end
         grip.scripts.OnDragStart()
@@ -259,11 +259,14 @@ test("the empty writ trip planner opens from the browser and restores the trip b
         equal(starts, 1)
         equal(stops, 1)
         grip.scripts.OnDragStart()
-        equal(state.window.SmartNavigationCloseHandler(), true)
+        equal(browser.SmartNavigationCloseHandler(), true)
         equal(stops, 2)
-        state.window.StartMoving, state.window.StopMovingOrSizing = nil, nil
-        equal(f.active, browser)
-        equal(f.current, view.tripButton)
+        browser.StartMoving, browser.StopMovingOrSizing = nil, nil
+        equal(browser:IsShown(), false)
+        addon.UI.OpenCachedBrowser()
+        equal(f.current, state.refresh)
+        browser.tabs.writs.scripts.OnClick()
+        equal(f.current, browser.views.writs.search)
     end)
 end)
 
@@ -512,7 +515,7 @@ test("Forever source discovers every options action and report editor in its reg
             end
             if kind == "writs" then
                 assert(actions[view.deliveredButton], "delivered filter missing from native discovery")
-                assert(actions[view.tripButton], "writ trips missing from native discovery")
+                assert(actions[browser.tabs.trips], "writ trips tab missing from native discovery")
             end
             for _, header in ipairs(view.headers) do
                 assert(actions[header], "cached sort header missing from native discovery")
@@ -552,19 +555,22 @@ test("Forever source discovers every options action and report editor in its reg
                 return { cost = 100 }
             end,
         }
-        addon.TripPlanner.Open(browser.views.writs, { trip }, "")
-        local planner = addon.TripPlanner.state
-        local plannerActions = inspect(planner.window)
+        addon.UI.SelectBrowserTab("trips", browser)
+        local planner = browser.views.trips
+        addon.TripPlanner.Open(planner, { trip }, "")
+        local plannerActions = inspect(browser)
         assert(plannerActions[planner.send], "trip shopping action missing from native discovery")
         assert(plannerActions[planner.save], "save trip action missing from native discovery")
         assert(plannerActions[planner.savedButton], "saved trip action missing from native discovery")
         assert(plannerActions[planner.selector], "trip selector missing from native discovery")
         assert(plannerActions[planner.rows[1]], "optional writ missing from native discovery")
-        assert(plannerActions[planner.close], "planner close missing from native discovery")
+        assert(plannerActions[browser.tabs.trips], "trip tab missing from native discovery")
+        assert(plannerActions[planner.refresh], "trip refresh missing from native discovery")
         planner.rows[1]:SetChecked(true)
         planner.rows[1].scripts.OnClick(planner.rows[1])
         assert(planner.summary:GetText():find("150 rep", 1, true))
-        planner.window.SmartNavigationCloseHandler()
+        addon.UI.SelectBrowserTab("crates", browser)
+        browser.SmartNavigationCloseHandler()
         -- Every named addon dialog instantiated by the production UI must have
         -- a native focus lifecycle, and every action in it must be discoverable.
         local seen = {}

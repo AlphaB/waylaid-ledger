@@ -173,10 +173,14 @@ test("trip recommendations use known local flight stops and skip completed writs
     equal(both.order[3].recipient.destination.name, "Third")
     assert(Trips.Describe(both):find("250x Crafted Solid Shot", 1, true))
 
-    addon.TripPlanner.Open(nil, plans, "")
-    local state = addon.TripPlanner.state
+    addon.UI.OpenCachedBrowser()
+    local browser = addon.UI.cachedBrowser
+    local state = browser.views.trips
+    addon.UI.SelectBrowserTab("trips", browser)
+    addon.TripPlanner.Open(state, plans, "")
     local first = state.rows[1]
     equal(first:GetChecked(), false)
+    assert(state.returns:GetText():find("1g 22s 0c–2g 25s 0c", 1, true))
     first:SetChecked(true)
     first.scripts.OnClick(first)
     assert(state.summary:GetText():find("400 rep", 1, true))
@@ -192,6 +196,7 @@ test("trip recommendations use known local flight stops and skip completed writs
     state.rows[2].scripts.OnClick(state.rows[2])
     equal(state.summary:GetText(), Trips.Summary(both))
     equal(state.totals:GetText(), Trips.Totals(both))
+    assert(state.returns:GetText():find("1g 94s 0c–3g 60s 0c", 1, true))
     equal(state.details:GetText(), Trips.Describe(both))
     equal(state.savedButton:IsEnabled(), false)
     state.save.scripts.OnClick()
@@ -209,7 +214,7 @@ test("trip recommendations use known local flight stops and skip completed writs
     first.scripts.OnClick(first)
     equal(state.summary:GetText(), Trips.Summary(plan))
     equal(state.details:GetText(), report)
-    state.window:Hide()
+    addon.UI.SelectBrowserTab("crates", browser)
 
     addon.Writs[264056].requirements = { { itemID = 8069, quantity = 10 } }
     local limited = Trips.Build(context, owned, function(id, amount)
@@ -244,7 +249,8 @@ test("trip recommendations use known local flight stops and skip completed writs
         return tostring(id)
     end
     addon.scanner:SetOpen(false)
-    addon.TripPlanner.Open(nil, limited, "")
+    addon.UI.SelectBrowserTab("trips", browser)
+    addon.TripPlanner.Open(state, limited, "")
     equal(state.send:IsEnabled(), false)
     addon.scanner:SetOpen(true)
     addon.TripPlanner.UpdateShopping()
@@ -254,7 +260,7 @@ test("trip recommendations use known local flight stops and skip completed writs
     state.rows[2]:SetChecked(true)
     state.rows[2].scripts.OnClick(state.rows[2])
     state.send.scripts.OnClick()
-    equal(state.window:IsShown(), false)
+    equal(state.host:IsShown(), true)
     local amounts = {}
     for _, term in ipairs(exported) do
         equal(term.isExact, true)
@@ -267,12 +273,13 @@ test("trip recommendations use known local flight stops and skip completed writs
     equal(amounts["4852"], nil)
     equal(amounts["264056"], 1)
     addon.Inventory.ReadContainers, addon.Catalog.SearchName, Auctionator = oldRead, oldName, oldAuctionator
-    addon.scanner:SetOpen(oldOpen)
+    addon.scanner:SetOpen(false)
     local event = host.scripts.OnEvent
     event(host, "QUEST_TURNED_IN", 94286)
     event(host, "QUEST_TURNED_IN", 94250)
     addon:Command("trip")
     assert(state.summary:GetText():find("1/5 writs delivered", 1, true))
+    assert(state.returns:GetText():find("Estimated delivered return · 0g 50s 0c–0g 90s 0c", 1, true))
     local firstStop = Trips.Saved().order[1]
     equal(firstStop.writs[3].itemID, 264086)
     equal(firstStop.writs[3].done, true)
@@ -295,7 +302,9 @@ test("trip recommendations use known local flight stops and skip completed writs
     C_QuestLog = nil
     addon:Command("trip")
     equal(state.totals:GetText(), "Trip complete.")
-    state.window:Hide()
+    addon.UI.SelectBrowserTab("crates", browser)
+    browser:Hide()
+    addon.scanner:SetOpen(oldOpen)
     addon.db.savedWritTrips, addon.Inventory.CurrentID = oldSaved, oldCurrentID
     C_Map, C_TaxiMap, CreateVector2D, Enum, C_QuestLog = oldMap, oldTaxi, oldVector, oldEnum, oldQuest
     addon.Writs, addon.WritDestinations = oldWrits, oldDestinations

@@ -1,6 +1,6 @@
 local addonName, addon = ...
 local L = addon.L
-addon.version = "1.5.1"
+addon.version = "1.6.0"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -816,7 +816,7 @@ function addon:Command(text)
     if command == "" then
         self.UI.Toggle()
     elseif command == "trip" then
-        self.TripPlanner.OpenSaved()
+        self.UI.OpenSavedTrip()
     elseif command == "scan" then
         self:StartScan(rest == "" and "bags" or rest:lower())
     elseif command == "refresh" then

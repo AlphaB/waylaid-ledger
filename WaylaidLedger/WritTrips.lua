@@ -434,13 +434,24 @@ local function evaluate(trip, selected, toggle)
     }
 end
 
+local function addPouch(total, itemID)
+    local low, high = addon.Rewards.CoinPouch(itemID)
+    if low then
+        total.low, total.high = total.low + low, total.high + (high or low)
+    else
+        total.unknown = true
+    end
+end
+
 function Trips.Recalculate(trip, selected)
     local plan = evaluate(trip, selected)
     plan.stop, plan.departure = trip.stop, trip.departure
     plan.departureWalk, plan.flight = trip.departureWalk, trip.flight
     plan.writs = {}
+    plan.coinReturn = { low = 0, high = 0 }
     for _, candidate in ipairs(trip.candidates) do
         if plan.chosen[candidate.itemID] then
+            addPouch(plan.coinReturn, candidate.itemID)
             local recipient = candidate.recipient
             plan.writs[recipient] = plan.writs[recipient] or {}
             table.insert(plan.writs[recipient], candidate.itemID)
@@ -478,6 +489,20 @@ local function money(copper)
     end
     local sign = copper < 0 and "−" or ""
     return sign .. addon.Money(math.ceil(math.abs(copper) - 1e-9))
+end
+
+function Trips.ReturnLabel(coin, delivered)
+    local estimate = L["Reward unknown"]
+    if not coin.unknown then
+        estimate = money(coin.low)
+        if coin.high ~= coin.low then
+            estimate = estimate .. "–" .. money(coin.high)
+        end
+    end
+    return string.format(
+        delivered and L["Estimated delivered return · %s"] or L["Estimated coin return · %s"],
+        estimate
+    )
 end
 
 function Trips.Summary(plan)
@@ -599,6 +624,7 @@ end
 
 function Trips.SavedRoute(saved)
     local lines, total, done, nextStop = {}, 0, 0, nil
+    local coinReturn, delivered = { low = 0, high = 0 }, { low = 0, high = 0 }
     if saved.departure then
         lines[#lines + 1] = string.format(L["Flight · %s to %s"], saved.departure, saved.stop)
         lines[#lines + 1] = ""
@@ -613,8 +639,10 @@ function Trips.SavedRoute(saved)
         for _, writ in ipairs(stop.writs) do
             writ.done = writ.done or (writ.questID and flag and flag(writ.questID) == true) or nil
             total = total + 1
+            addPouch(coinReturn, writ.itemID)
             if writ.done then
                 done = done + 1
+                addPouch(delivered, writ.itemID)
             else
                 nextStop = nextStop or (stop.name .. " · " .. location)
             end
@@ -624,7 +652,9 @@ function Trips.SavedRoute(saved)
     end
     return string.format(L["%s · %d/%d writs delivered"], saved.stop, done, total),
         nextStop and string.format(L["Next stop · %s"], nextStop) or L["Trip complete."],
-        table.concat(lines, "\n")
+        table.concat(lines, "\n"),
+        coinReturn,
+        delivered
 end
 
 function Trips.ReadBags()
@@ -635,7 +665,16 @@ function Trips.ReadBags()
     return addon.Inventory.ReadContainers(bags)
 end
 
+function Trips.CurrentContinent()
+    return C_Map and continentMap(C_Map.GetBestMapForUnit("player"))
+end
+
+function Trips.PricingKey()
+    return table.concat({ addon:MarketKey(), addon.db.writSource, addon.db.tsmKey, Trips.GoldPerHour() }, ":")
+end
+
 function Trips.Open(view)
+    view.continent, view.pricingKey = Trips.CurrentContinent(), Trips.PricingKey()
     if addon.Providers.scan then
         addon.TripPlanner.Open(view, {}, L["Another addon is scanning."])
         return
