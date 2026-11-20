@@ -66,10 +66,14 @@ function Shopping.Entry(kind, itemID)
     local entry =
         { kind = kind, itemID = itemID, name = addon.Catalog.ItemName(itemID), requirements = {}, deliveryRows = {} }
     entry.reward = addon.Rewards.Amount(kind, itemID)
+    entry.completedToday = kind == "writs" and addon.WritPricing.CompletedToday(itemID)
     entry.purchaseQuote = purchaseQuote(kind, itemID)
     if entry.purchaseQuote and entry.purchaseQuote.status == "ok" and not entry.purchaseQuote.error then
         entry.purchase = entry.purchaseQuote.cost
         entry.stale = entry.purchaseQuote.stale or false
+    end
+    if kind == "writs" then
+        entry.discount = addon.WritPricing.Discount(addon:GetMarket(), itemID, entry.purchaseQuote, time())
     end
     if definition.unresolved then
         -- Keep the parser's raw detail on the definition for diagnostics.
@@ -113,6 +117,9 @@ function Shopping.Entry(kind, itemID)
                 function() end
             )[1]
             entry.purchase = entry.purchaseQuote.cost
+            if kind == "writs" then
+                entry.discount = addon.WritPricing.Discount(addon:GetMarket(), itemID, entry.purchaseQuote, time())
+            end
             entry.stale = entry.stale or entry.purchaseQuote.stale
             if entry.delivery then
                 entry.total = entry.purchase + entry.delivery

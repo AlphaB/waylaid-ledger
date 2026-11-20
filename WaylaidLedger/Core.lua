@@ -1,6 +1,6 @@
 local addonName, addon = ...
 local L = addon.L
-addon.version = "1.0.2"
+addon.version = "1.1.0"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -979,6 +979,7 @@ local function initialize()
         end,
     }, {
         saved = function(itemID, snapshot)
+            addon.WritPricing.RecordPrice(addon.scanMarket, itemID, snapshot)
             addon.scanMarket.items[itemID] = snapshot
             addon.scanMarket.failures[itemID] = nil
         end,
@@ -1065,6 +1066,7 @@ local function initialize()
         "ITEM_SEARCH_RESULTS_ADDED",
         "AUCTION_HOUSE_THROTTLED_SYSTEM_READY",
         "PLAYER_LOGIN",
+        "QUEST_TURNED_IN",
         "PLAYER_ENTERING_WORLD",
         "BAG_UPDATE_DELAYED",
         "BANKFRAME_OPENED",
@@ -1135,6 +1137,9 @@ frame:SetScript("OnEvent", function(_, event, argument)
         scanner:Tick()
     elseif event == "PLAYER_REGEN_ENABLED" then
         addon.Navigation.Install()
+    elseif event == "QUEST_TURNED_IN" then
+        addon.UI.Update()
+        addon.Tooltip.Refresh()
     elseif event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
         addon.Inventory.CaptureBags()
         addon.MinimapButton.Create()

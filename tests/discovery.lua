@@ -830,7 +830,12 @@ end)
 test("tooltip hooks reuse supplied descriptions and skip repeated appends", function()
     fixture(function(a)
         local callback = TooltipDataProcessor.callback
-        assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/Tooltip.lua"))("WaylaidLedger", a)
+        for _, name in ipairs({ "Rewards", "WritPricing", "Tooltip" }) do
+            assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/" .. name .. ".lua"))("WaylaidLedger", a)
+        end
+        function a:GetMarket()
+            return {}
+        end
         a.Tooltip.Install()
         local ok, err = pcall(function()
             local reads = 0

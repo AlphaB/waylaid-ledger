@@ -77,6 +77,23 @@ local function appendRows(tooltip, rows, detailed, compare)
     end
 end
 
+function Tooltip.AppendWritInfo(tooltip, itemID, quote)
+    local minimum, maximum = addon.Rewards.CoinPouch(itemID)
+    if minimum then
+        local estimate = maximum and (money(minimum) .. "–" .. money(maximum)) or money(minimum)
+        tooltip:AddDoubleLine(L["Estimated coin pouch"], estimate, 1, 0.82, 0, 1, 1, 1)
+    end
+    if addon.WritPricing.CompletedToday(itemID) then
+        tooltip:AddLine(L["Delivered today"], 1, 0.65, 0.2)
+    end
+    if quote then
+        local discount, median = addon.WritPricing.Discount(addon:GetMarket(), itemID, quote, time())
+        if discount then
+            tooltip:AddDoubleLine(string.format(L["%d%% below usual"], discount), money(median), 0.3, 1, 0.3, 1, 1, 1)
+        end
+    end
+end
+
 function Tooltip.Append(tooltip, itemID, data)
     if addon.Providers and addon.Providers.scan then
         -- The global hook also sees scanning tooltips. Do no pricing, parsing,
@@ -113,9 +130,20 @@ function Tooltip.Append(tooltip, itemID, data)
     end
     addon.lastContractID = itemID
     local definition = writ or addon.Crates[itemID]
-    if definition and definition.unresolved then
+    if writ then
+        local market = addon:GetMarket()
+        local quote = market.writPrices
+            and market.writPrices[itemID]
+            and addon:ResolveRows({ { itemID = itemID, quantity = 1 } }, addon.db.writSource)[1]
         tooltip:AddLine(" ")
-        tooltip:AddLine("Waylaid Ledger", 1, 0.82, 0)
+        tooltip:AddLine(L["Waylaid Ledger - delivery estimate"], 1, 0.82, 0)
+        Tooltip.AppendWritInfo(tooltip, itemID, quote)
+    end
+    if definition and definition.unresolved then
+        if not writ then
+            tooltip:AddLine(" ")
+            tooltip:AddLine("Waylaid Ledger", 1, 0.82, 0)
+        end
         tooltip:AddLine(
             L["Delivery requirements unresolved. Run a full AH scan, then hover this item again."],
             0.75,
@@ -129,8 +157,6 @@ function Tooltip.Append(tooltip, itemID, data)
         addon.lastWritID = itemID
         local rows, total = addon.WritPricing.Rows(itemID)
         local detailed = addon.db.tooltipDetails or (IsShiftKeyDown and IsShiftKeyDown())
-        tooltip:AddLine(" ")
-        tooltip:AddLine(L["Waylaid Ledger - delivery estimate"], 1, 0.82, 0)
         appendRows(tooltip, rows, detailed)
         if #rows > 1 then
             tooltip:AddDoubleLine(

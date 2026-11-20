@@ -23,6 +23,7 @@ local function fixture(action)
     local market = { items = {}, failures = {} }
     local f = { now = 0, wall = 1000, rows = {}, calls = 0, observed = {}, retries = 0 }
     local a = {
+        Writs = {},
         db = { maxAge = 1800, replication = { oldRealm = 1000 } },
         GetMarket = function()
             return market
@@ -45,7 +46,7 @@ local function fixture(action)
             end,
         },
     }
-    for _, name in ipairs({ "Localization", "Locales", "Scanner", "BulkScan", "Pricing" }) do
+    for _, name in ipairs({ "Localization", "Locales", "Scanner", "BulkScan", "Pricing", "WritPricing" }) do
         assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/" .. name .. ".lua"))("WaylaidLedger", a)
     end
     local api = {

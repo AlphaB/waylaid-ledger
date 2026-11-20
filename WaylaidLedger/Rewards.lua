@@ -65,6 +65,18 @@ function Rewards.Amount(kind, itemID)
     end
 end
 
+-- Pouch returns vary. Published loot observations are grouped by writ tier.
+function Rewards.CoinPouch(itemID)
+    local rep = reputation[itemID]
+    if rep == 75 then
+        return 2200, 4500
+    elseif rep == 125 then
+        return 5000, 9000
+    elseif rep == 200 then
+        return 7500
+    end
+end
+
 function Rewards.UnitCost(total, reward)
     if total ~= nil and reward and reward > 0 then
         return total / reward

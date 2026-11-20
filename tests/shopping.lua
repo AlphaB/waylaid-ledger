@@ -620,6 +620,20 @@ test("price refresh keeps row objects until sorting or filtering actually change
         equal(entry.total, 510)
         equal(row.total.text, addon.Money(510))
         equal(view.visibleEntries[1], entry)
+        -- Updating daily status should repaint the existing native row.
+        local oldQuestLog = C_QuestLog
+        C_QuestLog = {
+            IsQuestFlaggedCompleted = function(questID)
+                return questID == 94250
+            end,
+        }
+        addon.BrowseUI.Refresh(view)
+        equal(row.deliveryName.text:match("^Delivered today"), "Delivered today")
+        equal(view.scroll.provider, provider)
+        C_QuestLog = oldQuestLog
+        addon.BrowseUI.Refresh(view)
+        equal(row.deliveryName.text:match("^Delivered today"), nil)
+        equal(view.scroll.provider, provider)
         -- Fresh quote details must also be available after scrolling offscreen.
         view.sortKey = "name"
         addon.BrowseUI.Render(view)

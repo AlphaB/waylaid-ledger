@@ -378,3 +378,12 @@ updates, refreshed prices, manual Own scans, AH closure and reopening. Run every
 live-client/controller step in CONTROLLER.md, including focus during price
 refresh, virtual rows, empty lists, combat recovery and hardware Back/navigation.
 No live WoW, controller hardware or security/taint execution was available here.
+
+### Writ rewards, lockouts and price history (1.1.0)
+
+Live Forever checks are pending. Verify coin-pouch estimates against opened
+rewards, completion on a specific writ before and after the server's daily
+reset and on another character, and a discount against recorded market scans.
+Check the changed row and tooltip text in the Auction House and saved browser
+with mouse and native controller, including recycled rows, search, activation,
+Back and returned focus. Follow the checklist in CONTROLLER.md.

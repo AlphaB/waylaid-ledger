@@ -45,6 +45,9 @@ function Browse.ShowTooltip(row)
     local entry = row.entry
     GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
     GameTooltip:SetItemByID(entry.itemID)
+    if entry.kind == "writs" and GameTooltip.waylaidLedgerItemID ~= entry.itemID then
+        addon.Tooltip.AppendWritInfo(GameTooltip, entry.itemID, entry.purchaseQuote)
+    end
     GameTooltip:AddLine(" ")
     GameTooltip:AddLine(L["Purchase + delivery"], 1, 0.82, 0)
     GameTooltip:AddDoubleLine(L["Purchase (1)"], quoteLabel(entry.purchaseQuote), 1, 1, 1, 1, 1, 1)
@@ -129,7 +132,14 @@ local function initializeRow(view, row, entry)
     addon.Navigation.BindRow(view, row)
     row.stripe:SetColorTexture(0, 0, 0, entry.listIndex % 2 == 0 and 0.22 or 0.06)
     row.name:SetText(entry.name)
-    row.deliveryName:SetText(addon.Shopping.DeliveryLabel(entry))
+    local detail = addon.Shopping.DeliveryLabel(entry)
+    if entry.discount then
+        detail = string.format(L["%d%% below usual"], entry.discount) .. " · " .. detail
+    end
+    if entry.completedToday then
+        detail = L["Delivered today"] .. " · " .. detail
+    end
+    row.deliveryName:SetText(detail)
     row.purchase:SetText(amount(entry.purchase))
     row.delivery:SetText(amount(entry.delivery))
     row.total:SetText(amount(entry.total))

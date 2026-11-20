@@ -48,7 +48,15 @@ local addon = {
 function addon:GetMarket()
     return market
 end
-for _, name in ipairs({ "Localization", "DiscoveryLocales", "Discovery", "Scanner", "BulkScan" }) do
+for _, name in ipairs({
+    "Localization",
+    "DiscoveryLocales",
+    "Discovery",
+    "Scanner",
+    "BulkScan",
+    "Pricing",
+    "WritPricing",
+}) do
     assert(loadfile(PROJECT_ROOT .. "/WaylaidLedger/" .. name .. ".lua"))("WaylaidLedger", addon)
 end
 addon.Discovery.Install()

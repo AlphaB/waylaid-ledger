@@ -121,14 +121,15 @@ test("writ hover is compact, suppresses duplicates and preserves the selected cr
         local oldCrate = addon.lastCrateID
         local tip = CreateFrame("GameTooltip")
         addon.Tooltip.Append(tip, 264050)
-        equal(#tip.lines, 3)
-        equal(tip.lines[3][1], "1x Small Silk Pack")
-        assert(not tip.lines[3][2]:match("~"))
-        assert(not tip.lines[3][2]:match("%[A%]"))
+        equal(#tip.lines, 4)
+        equal(tip.lines[3][1], "Estimated coin pouch")
+        equal(tip.lines[4][1], "1x Small Silk Pack")
+        assert(not tip.lines[4][2]:match("~"))
+        assert(not tip.lines[4][2]:match("%[A%]"))
         equal(addon.lastCrateID, oldCrate)
         equal(addon.lastWritID, 264050)
         addon.Tooltip.Append(tip, 264050)
-        equal(#tip.lines, 3)
+        equal(#tip.lines, 4)
         addon.db.writSource = "off"
         local disabled = CreateFrame("GameTooltip")
         addon.Tooltip.Append(disabled, 264050)
@@ -145,4 +146,48 @@ test("writ source setting persists, rejects invalid sources and is visible in se
     equal(addon.UI.writSourceButton.text, "TSM")
     addon.UI.settings:Hide()
     addon:SetWritSource(oldSource)
+end)
+
+test("daily lockout follows the individual quest for the active character", function()
+    local oldQuestLog = C_QuestLog
+    local completed = { [94250] = true }
+    C_QuestLog = {
+        IsQuestFlaggedCompleted = function(questID)
+            return completed[questID] or false
+        end,
+    }
+    equal(addon.WritPricing.CompletedToday(264050), true)
+    equal(addon.WritPricing.CompletedToday(264037), false)
+    local tip = CreateFrame("GameTooltip")
+    addon.Tooltip.Append(tip, 264050)
+    equal(tip.lines[4][1], "Delivered today")
+    completed = {}
+    equal(addon.WritPricing.CompletedToday(264050), false)
+    C_QuestLog = oldQuestLog
+end)
+
+test("writ deals compare against the median of prior days using the same market and scan type", function()
+    local pricing, market, day = addon.WritPricing, {}, 86400
+    local itemID, now = 264050, 100 * day + 120
+    local function record(daysAgo, copper)
+        pricing.RecordPrice(market, itemID, { kind = "estimate", scannedAt = now - daysAgo * day, unitPrice = copper })
+    end
+    record(15, 400)
+    record(0, 800)
+    record(1, 1000)
+    record(2, 2000)
+    local quote = { source = "replicate", status = "ok", cost = 800, age = 10 }
+    equal(pricing.Discount(market, itemID, quote, now), nil)
+    record(3, 950)
+    record(3, 900)
+    local discount, median = pricing.Discount(market, itemID, quote, now)
+    equal(discount, 20)
+    equal(median, 1000)
+    equal(pricing.Discount({}, itemID, quote, now), nil)
+    quote.cost = 901
+    equal(pricing.Discount(market, itemID, quote, now), nil)
+    quote.cost, quote.stale = 800, true
+    equal(pricing.Discount(market, itemID, quote, now), nil)
+    quote.stale, quote.source = false, "own"
+    equal(pricing.Discount(market, itemID, quote, now), nil)
 end)

@@ -58,8 +58,16 @@ for index = 1, 26 do
     addon.Crates[820000 + index] = { name = "Waylaid Crate: Synthetic " .. index, options = options }
 end
 addon.Writs = {
-    [264050] = { name = "Craftsman's Writ: Small Silk Pack", requirements = { { itemID = 4245, quantity = 1 } } },
-    [264037] = { name = "Craftsman's Writ: Crafted Solid Shot", requirements = { { itemID = 8069, quantity = 200 } } },
+    [264050] = {
+        name = "Craftsman's Writ: Small Silk Pack",
+        questID = 94250,
+        requirements = { { itemID = 4245, quantity = 1 } },
+    },
+    [264037] = {
+        name = "Craftsman's Writ: Crafted Solid Shot",
+        questID = 94237,
+        requirements = { { itemID = 8069, quantity = 200 } },
+    },
 }
 addon.WritMaterialNames = { [4245] = "Small Silk Pack", [8069] = "Crafted Solid Shot" }
 for index = 1, 148 do

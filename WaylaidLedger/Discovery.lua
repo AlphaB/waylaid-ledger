@@ -642,6 +642,8 @@ function Discovery.Install()
         for itemID, definition in pairs(pair[1]) do
             -- Recover known rows invalidated by the discovery-only release.
             if not definition.unresolved or not pair[2][itemID] then
+                local bundled = pair[2][itemID]
+                definition.questID = bundled and bundled.questID or definition.questID
                 pair[2][itemID] = definition
             end
         end
