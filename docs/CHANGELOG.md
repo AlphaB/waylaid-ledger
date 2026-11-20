@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0
+
+- Rank writ trips by effective cost per reputation using an adjustable gold-per-hour value.
+- Show the extra shopping cost, estimated time, and reputation for each optional writ.
+
 ## 1.2.0
 
 - Plan one-stop writ trips on your current continent.

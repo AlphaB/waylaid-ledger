@@ -436,7 +436,8 @@ test("Forever source discovers every options action and report editor in its reg
                 count = count + 1
             end
         end
-        equal(count, 12)
+        equal(count, 13)
+        assert(found[addon.UI.tripTimeValue], "trip time input missing from native focus group")
         smart:SetTargetButtonForFrame(addon.UI.settings, nav.windows[addon.UI.settings].target)
         equal(f.current, addon.UI.crateSourceButton)
         -- Execute native ActivateCategory -> FocusContainer after the real

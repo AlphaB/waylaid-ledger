@@ -109,3 +109,21 @@ test("automatic scan controls reflect price-source dependencies without changing
     addon:SetSource(oldSource)
     addon:SetWritSource(oldWrit)
 end)
+
+test("writ trip time value is adjustable and keeps the last valid saved rate", function()
+    local previous = addon.db.tripGoldPerHour
+    addon.UI.ToggleSettings()
+    local field = addon.UI.tripTimeValue
+    field:SetText("2.5")
+    addon.UI.applyTripTimeValue.scripts.OnClick()
+    equal(addon.db.tripGoldPerHour, 2.5)
+    field:SetText("-1")
+    field.scripts.OnEnterPressed()
+    equal(addon.db.tripGoldPerHour, 2.5)
+    equal(field:GetText(), "2.5")
+    field:SetText("0")
+    field.scripts.OnEnterPressed()
+    equal(addon.db.tripGoldPerHour, 0)
+    addon.db.tripGoldPerHour = previous
+    addon.UI.settings:Hide()
+end)
