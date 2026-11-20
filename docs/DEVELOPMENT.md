@@ -400,3 +400,9 @@ The route scope, model and pending live Forever checks are recorded in
 [WRIT_TRIPS.md](WRIT_TRIPS.md). Lua tests cover shortest walking order, shared
 inventory, missed quotes, the current continent and faction, daily lockouts,
 and report navigation with Back returning to the trip button.
+
+### Writ trip value (1.3.0)
+
+Lua checks cover applying a gold-per-hour value, ranking changes, and optional
+writ estimates at a shared or new recipient. See [WRIT_TRIPS.md](WRIT_TRIPS.md)
+for the score, selection method and pending live verification.

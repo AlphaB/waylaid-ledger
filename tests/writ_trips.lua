@@ -97,12 +97,17 @@ test("trip recommendations use known local flight stops and skip completed writs
         end,
     }
     addon.WritDestinations = {
-        { name = "First", mapID = 100, x = 0.51, y = 0, writs = { 264037, 264050, 264086 } },
+        { name = "First", mapID = 100, x = 0.51, y = 0, writs = { 264037, 264049, 264050, 264086 } },
         { name = "Second", mapID = 100, x = 0.54, y = 0, writs = { 264087 } },
+        { name = "Third", mapID = 100, x = 0.59, y = 0, writs = { 264056 } },
+        { name = "Local", mapID = 100, x = 0.01, y = 0, writs = { 264011 } },
         { name = "Other continent", mapID = 200, x = 0.51, y = 0, writs = { 264088 } },
         { name = "Too far from a flight stop", mapID = 100, x = 0.8, y = 0, writs = { 264089 } },
     }
     addon.Writs = {
+        [264011] = { questID = 94004, requirements = { { itemID = 3391, quantity = 1 } } },
+        [264049] = { questID = 94249, requirements = { { itemID = 8069, quantity = 50 } } },
+        [264056] = { questID = 94256, requirements = { { itemID = 9624, quantity = 1 } } },
         [264037] = { questID = 94237, requirements = { { itemID = 8069, quantity = 200 } } },
         [264050] = { questID = 94250, requirements = { { itemID = 4245, quantity = 1 } } },
         [264086] = { questID = 94286, requirements = { { itemID = 4852, quantity = 1 } } },
@@ -117,10 +122,12 @@ test("trip recommendations use known local flight stops and skip completed writs
     }
     local context = Trips.FlightContext()
     equal(#context.nodes, 2)
-    local plans = Trips.Build(context, { [264086] = 1, [4852] = 1 }, function(_, quantity)
-        return { cost = quantity }
-    end)
-    equal(#plans, 1)
+    local function quote(id, quantity)
+        return { cost = ((id == 264049 or id == 264011) and 1000 or id == 264056 and 5000 or 1) * quantity }
+    end
+    local owned = { [264086] = 1, [4852] = 1 }
+    local plans = Trips.Build(context, owned, quote, 6)
+    equal(#plans, 2)
     local plan = plans[1]
     equal(plan.stop.name, "Landing")
     equal(plan.departure.name, "Departure")
@@ -129,13 +136,35 @@ test("trip recommendations use known local flight stops and skip completed writs
     equal(plan.cost, 203)
     equal(plan.order[1].recipient.destination.name, "First")
     equal(plan.order[2].recipient.destination.name, "Second")
-    equal(#plan.order[1].recipient.writs, 2)
+    equal(#plan.writs[plan.order[1].recipient], 2)
     assert(math.abs(plan.seconds - 220) < 1e-9)
-    local report = Trips.Describe(plans)
+    equal(#plan.additions, 2)
+    equal(plan.additions[1].candidate.itemID, 264049)
+    equal(plan.additions[1].candidate.reward, 75)
+    equal(plan.additions[1].cost, 1050)
+    equal(plan.additions[1].seconds, 10)
+    equal(plan.additions[2].candidate.itemID, 264056)
+    equal(plan.additions[2].cost, 5001)
+    assert(math.abs(plan.additions[2].seconds - 60) < 1e-9)
+    local faster = Trips.Build(context, owned, quote, 100)
+    equal(faster[1].stop.name, "Departure")
+    local report = Trips.Describe(plans, 6)
     assert(report:find("325 rep", 1, true))
     assert(report:find("adds 10 sec", 1, true))
     assert(report:find("adds 40 sec", 1, true))
     assert(report:find("200x Crafted Solid Shot", 1, true))
+    assert(report:find("Effective cost per rep", 1, true))
+    assert(report:find("extra cost 0g 10s 50c · +10 sec · +75 rep", 1, true))
     C_Map, C_TaxiMap, CreateVector2D, Enum, C_QuestLog = oldMap, oldTaxi, oldVector, oldEnum, oldQuest
     addon.Writs, addon.WritDestinations = oldWrits, oldDestinations
+end)
+
+test("effective reputation cost prices time in copper using the player's hourly rate", function()
+    equal(Trips.EffectiveCost(30000, 300, 250, 6), 140)
+    equal(Trips.EffectiveCost(20000, 1200, 250, 6), 160)
+    equal(Trips.EffectiveCost(20000, 1200, 250, 0), 80)
+    equal(Trips.ParseGoldPerHour("6,5"), 6.5)
+    equal(Trips.ParseGoldPerHour("0"), 0)
+    equal(Trips.ParseGoldPerHour("-2"), nil)
+    equal(Trips.ParseGoldPerHour("1e99"), nil)
 end)

@@ -437,6 +437,29 @@ function UI.RegisterSettings()
         270,
         "GameFontDisableSmall"
     )
+    label(frame, "Time value (gold/hour)", 320, -232, 145)
+    local timeValue = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
+    timeValue:SetSize(66, 22)
+    timeValue:SetPoint("TOPLEFT", 475, -225)
+    timeValue:SetAutoFocus(false)
+    timeValue:SetMaxLetters(12)
+    UI.tripTimeValue = timeValue
+    local function applyTimeValue()
+        local value = addon.WritTrips.ParseGoldPerHour(timeValue:GetText())
+        if value then
+            addon.db.tripGoldPerHour = value
+        else
+            addon:Print(L["Enter a gold-per-hour value from 0 to 1,000,000."])
+        end
+        timeValue:SetText(tostring(addon.WritTrips.GoldPerHour()))
+        timeValue:ClearFocus()
+    end
+    timeValue:SetScript("OnEnterPressed", applyTimeValue)
+    timeValue:SetScript("OnEscapePressed", function(self)
+        self:SetText(tostring(addon.WritTrips.GoldPerHour()))
+        self:ClearFocus()
+    end)
+    UI.applyTripTimeValue = button(frame, "Apply", 550, -225, 56, applyTimeValue)
     label(frame, "Tools", 320, -262, 270, "GameFontNormal")
     button(frame, "Inventory snapshots", 320, -290, 270, function()
         UI.ShowReport(addon.Inventory.Report())
@@ -458,7 +481,10 @@ function UI.RegisterSettings()
         570,
         "GameFontDisableSmall"
     )
-    frame:SetScript("OnShow", UI.UpdateSettings)
+    frame:SetScript("OnShow", function()
+        timeValue:SetText(tostring(addon.WritTrips.GoldPerHour()))
+        UI.UpdateSettings()
+    end)
     -- Native SettingsPanel enters its standard list, not custom canvases.
     -- Own a separate native scope and close the parent panel on Back.
     frame.SmartNavigationCloseHandler = function()
