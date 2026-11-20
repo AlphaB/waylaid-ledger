@@ -1,6 +1,6 @@
 local addonName, addon = ...
 local L = addon.L
-addon.version = "1.4.0"
+addon.version = "1.4.1"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -412,6 +412,16 @@ function addon:Shop(allOptions, optionIndex)
     return true
 end
 
+function addon:SendBasketToAuctionator(terms)
+    self:StopScan(L["Stopped to hand the complete basket to Auctionator."])
+    self.NativeShopping.Close()
+    local ok, errorMessage = self.Providers.Search(terms, nil, true)
+    if not ok then
+        self:Print(errorMessage)
+    end
+    return ok
+end
+
 function addon:ShopEntry(kind, itemID)
     if not self.scanner.open then
         self:Print(L["Open the auction house to shop."])
@@ -443,11 +453,7 @@ function addon:ShopEntry(kind, itemID)
         self:Print(reason)
         return false
     end
-    self:StopScan(L["Stopped to hand the complete basket to Auctionator."])
-    self.NativeShopping.Close()
-    local ok, errorMessage = self.Providers.Search(terms, "Waylaid Ledger - basket - " .. itemID, true)
-    if not ok then
-        self:Print(errorMessage)
+    if not self:SendBasketToAuctionator(terms) then
         return false
     end
     self.lastBasket = entry

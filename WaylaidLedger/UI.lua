@@ -16,6 +16,9 @@ local SOURCE_ORDER = { "auto", "own", "auctionator", "tsm" }
 local SOURCE_LABELS = { auto = "Auto", own = "Own scans", auctionator = "Auctionator", tsm = "TSM", off = "Off" }
 
 function UI.Update(refreshBrowse)
+    if addon.TripPlanner then
+        addon.TripPlanner.UpdateShopping()
+    end
     if addon.Providers and addon.Providers.scan then
         UI.UpdateSettings() -- Explicit settings changes still apply if the page is visible.
         return -- Completion refreshes once; progress has its own status-only path.

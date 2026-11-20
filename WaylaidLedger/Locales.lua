@@ -2277,3 +2277,22 @@ for locale, labels in pairs(plannerLabels) do
     dictionary["No optional writs for this trip."] = labels[2]
     dictionary["Shopping total · %s"] = labels[3]
 end
+
+local tripShoppingLabels = {
+    deDE = { "An Auctionator senden", "Suche nach den Gegenständen und Mengen, die in deinen Taschen noch fehlen." },
+    frFR = { "Envoyer à Auctionator", "Rechercher les objets et les quantités qui manquent dans vos sacs." },
+    esES = { "Enviar a Auctionator", "Busca los objetos y las cantidades que faltan en tus bolsas." },
+    ptBR = { "Enviar ao Auctionator", "Procure os itens e as quantidades que ainda faltam nas suas bolsas." },
+    ruRU = {
+        "Отправить в Auctionator",
+        "Поиск предметов в количестве, которого не хватает в сумках.",
+    },
+    koKR = { "Auctionator로 보내기", "가방에 아직 부족한 아이템과 수량을 검색합니다." },
+    zhTW = { "傳送到 Auctionator", "搜尋背包仍缺少的物品與數量。" },
+}
+tripShoppingLabels.esMX = tripShoppingLabels.esES
+for locale, labels in pairs(tripShoppingLabels) do
+    local dictionary = addon.Locales[locale]
+    dictionary["Send to Auctionator"] = labels[1]
+    dictionary["Search for the items and quantities still missing from your bags."] = labels[2]
+end

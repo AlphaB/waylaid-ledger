@@ -534,6 +534,7 @@ test("Forever source discovers every options action and report editor in its reg
         addon.TripPlanner.Open(browser.views.writs, { trip }, "")
         local planner = addon.TripPlanner.state
         local plannerActions = inspect(planner.window)
+        assert(plannerActions[planner.send], "trip shopping action missing from native discovery")
         assert(plannerActions[planner.selector], "trip selector missing from native discovery")
         assert(plannerActions[planner.rows[1]], "optional writ missing from native discovery")
         assert(plannerActions[planner.close], "planner close missing from native discovery")

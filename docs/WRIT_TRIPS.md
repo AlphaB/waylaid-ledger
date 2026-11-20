@@ -61,6 +61,11 @@ When a selected quantity has no quote, the missing item shows **No price** and
 the shopping total and effective cost stay unknown. The route, time and
 reputation still update.
 
+At the Auction House, **Send to Auctionator** rereads your bags and opens
+Auctionator Shopping with the missing quantities for the currently selected
+trip. A compatible Auctionator install is required. Items still missing a
+saved estimate are included in the search.
+
 ## Live verification
 
 Pending in Forever. Compare mapped destinations and the discovered flight
@@ -71,3 +76,6 @@ with mouse and native controller, scrolling, Back and focus return in both
 browsers. Verify the gold-per-hour
 field with mouse, keyboard and controller, including decimal input, applying a
 change and reopening the planner.
+
+Live verification is also pending for the Auctionator handoff, combined
+quantities after a bag change, and controller focus on the Shopping tab.

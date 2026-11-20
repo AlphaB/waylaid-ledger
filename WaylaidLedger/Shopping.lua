@@ -211,6 +211,10 @@ function Shopping.Terms(entry)
     if not requirements then
         return nil, reason
     end
+    return Shopping.BasketTerms(requirements)
+end
+
+function Shopping.BasketTerms(requirements)
     local terms = {}
     for _, requirement in ipairs(requirements) do
         local name = addon.Catalog.SearchName(requirement.itemID)

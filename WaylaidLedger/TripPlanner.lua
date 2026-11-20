@@ -14,9 +14,30 @@ local function font(parent, template, x, y, width)
     return label
 end
 
+local function shoppingBlocker()
+    if not addon.scanner.open then
+        return L["Open the auction house to shop."]
+    end
+    if not addon.Providers.ShoppingAvailable(true) then
+        return L["Auctionator's shopping API is unavailable. Install/enable a compatible Auctionator release."]
+    end
+    if addon.Providers.scan then
+        return L["Another addon is scanning."]
+    end
+end
+
+function Planner.UpdateShopping()
+    local state = Planner.state
+    if state and state.window:IsShown() then
+        state.send:SetEnabled(shoppingBlocker() == nil)
+    end
+end
+
 local function update(state, resetScroll)
     local trip = state.plans[state.index]
     local plan = trip and Trips.Recalculate(trip, state.selected[trip])
+    state.send:SetShown(plan ~= nil)
+    state.send:SetEnabled(shoppingBlocker() == nil)
     state.summary:SetText(plan and Trips.Summary(plan) or state.status)
     state.totals:SetText(plan and Trips.Totals(plan) or "")
     state.note:SetShown(plan ~= nil)
@@ -64,6 +85,33 @@ local function update(state, resetScroll)
     local position = resetScroll and 0 or scroll:GetVerticalScroll()
     scroll:SetVerticalScroll(math.min(position, math.max(0, height - scroll:GetHeight())))
     addon.Navigation.RefreshWindow(state.window)
+    return plan
+end
+
+local function sendShopping(state)
+    local blocked = shoppingBlocker()
+    if blocked then
+        addon:Print(blocked)
+        return
+    end
+    local trip = state.plans[state.index]
+    if not trip then
+        return
+    end
+    trip.owned = Trips.ReadBags()
+    local plan = update(state)
+    if #plan.basket == 0 then
+        addon:Print(L["You have everything in your bags."])
+        return
+    end
+    local terms, reason = addon.Shopping.BasketTerms(plan.basket)
+    if not terms then
+        addon:Print(reason)
+    elseif addon:SendBasketToAuctionator(terms) then
+        -- Auctionator now owns the auction tab and controller focus.
+        state.returnView = nil
+        state.window:Hide()
+    end
 end
 
 local function create()
@@ -89,6 +137,34 @@ local function create()
         return true
     end
     state.close = close
+
+    local send = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
+    send:SetSize(245, 24)
+    send:SetPoint("RIGHT", close, "LEFT", -10, 0)
+    addon.Localization.ButtonText(send, L["Send to Auctionator"])
+    send:SetMotionScriptsWhileDisabled(true)
+    send:SetScript("OnClick", function()
+        sendShopping(state)
+    end)
+    send:SetScript("OnEnter", function(self)
+        if GameTooltip then
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:AddLine(
+                shoppingBlocker() or L["Search for the items and quantities still missing from your bags."],
+                1,
+                1,
+                1,
+                true
+            )
+            GameTooltip:Show()
+        end
+    end)
+    send:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+    state.send = send
 
     local selector = CreateFrame("DropdownButton", nil, window, "WowStyle1DropdownTemplate")
     selector:SetSize(365, 25)
