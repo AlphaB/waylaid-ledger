@@ -1970,3 +1970,24 @@ addon.Locales.koKR["Wait for the other addon's scan to finish before refreshing 
     "가격을 새로고침하기 전에 다른 애드온의 검색이 끝날 때까지 기다리세요."
 addon.Locales.zhTW["Wait for the other addon's scan to finish before refreshing prices."] =
     "請等待其他插件掃描完成後再重新整理價格。"
+
+local writLabels = {
+    deDE = { "Geschätzter Münzbeutel", "Heute abgegeben", "%d%% unter dem üblichen Preis" },
+    frFR = { "Bourse estimée", "Livré aujourd’hui", "%d%% sous le prix habituel" },
+    esES = { "Bolsa de monedas estimada", "Entregado hoy", "%d%% por debajo de lo habitual" },
+    ptBR = { "Bolsa de moedas estimada", "Entregue hoje", "%d%% abaixo do preço habitual" },
+    ruRU = {
+        "Примерно в кошельке",
+        "Сдано сегодня",
+        "На %d%% дешевле обычного",
+    },
+    koKR = { "예상 동전 주머니 보상", "오늘 납품 완료", "평소보다 %d%% 저렴" },
+    zhTW = { "錢袋預估金額", "今日已交付", "比平常便宜 %d%%" },
+}
+writLabels.esMX = writLabels.esES
+for locale, labels in pairs(writLabels) do
+    local dictionary = addon.Locales[locale]
+    dictionary["Estimated coin pouch"] = labels[1]
+    dictionary["Delivered today"] = labels[2]
+    dictionary["%d%% below usual"] = labels[3]
+end

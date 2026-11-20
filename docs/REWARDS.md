@@ -83,3 +83,20 @@ better value, processed/raw crates, all eight Artisan rewards at 30 Favor,
 unknown future rewards, missing prices,
 fractional-copper order, ties, displayed rewards and localized control coverage.
 Live-client reward and layout verification remains outstanding.
+
+## Writ coin pouches, daily deliveries and prices
+
+The writ tooltip shows a tier estimate for the variable Coin Pouch reward.
+[Wowhead's loot observations](https://www.wowhead.com/forever/guide/professions/craftsmans-writs-overview-recipes-rewards)
+and the [writ reward table](https://conquestcapped.com/guides/wow-forever/wow-forever-craftsmans-writs/#craftsman-s-writ-rewards-and-the-daily-limit)
+report tier-level figures. Journeyman estimates are 22–45 silver, Expert
+50–90 silver and Artisan about 75 silver. Per-order payouts are unverified.
+
+Each named writ quest can be delivered once per character per daily reset.
+The browser and tooltip read the current character's quest completion flag.
+
+A deal is a fresh writ purchase quote at least 10% below the median of earlier
+scan days in the past 14 days. Comparison requires at least three earlier days
+with prices for that item, market and scan type. The addon keeps the latest
+positive observation per UTC day. Full-scan unit estimates and targeted
+buyable-lot prices have independent histories.

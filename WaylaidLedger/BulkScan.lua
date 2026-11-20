@@ -138,6 +138,8 @@ function BulkScan.Install(scanner)
             for itemID in pairs(scope) do
                 local price = job.prices[itemID]
                 if price then
+                    local snapshot = { kind = "estimate", unitPrice = price, scannedAt = job.at }
+                    addon.WritPricing.RecordPrice(job.market, itemID, snapshot)
                     local previous = job.market.items[itemID]
                     if
                         not previous
@@ -146,7 +148,7 @@ function BulkScan.Install(scanner)
                         or job.at - previous.scannedAt > addon.db.maxAge
                         or job.market.failures[itemID]
                     then
-                        job.market.items[itemID] = { kind = "estimate", unitPrice = price, scannedAt = job.at }
+                        job.market.items[itemID] = snapshot
                         job.market.failures[itemID] = nil
                     end
                     count = count + 1

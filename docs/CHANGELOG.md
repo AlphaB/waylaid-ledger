@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.0
+
+- See estimated coin-pouch rewards and which writs your character already delivered today.
+- Spot writs priced at least 10% below their usual price after collecting enough scans.
+
 ## 1.0.2
 
 - Put download, installation and update instructions first in the README.
