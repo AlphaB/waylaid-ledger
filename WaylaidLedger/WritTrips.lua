@@ -144,27 +144,41 @@ function Trips.FlightContext()
     end
 end
 
--- Price the cumulative shopping quantities after subtracting bags once.
--- Reject an addition whose missing goods cannot be priced at that quantity.
-function Trips.AddWrit(plan, writ, owned, quote)
+local function requiredItems(writ)
     local requests = addon.Shopping.Requirements(writ)
     if not requests then
         return false
     end
-    local additions, prices = {}, {}
+    local additions = {}
     for _, item in ipairs(requests) do
         additions[item.itemID] = (additions[item.itemID] or 0) + item.quantity
     end
+    return additions
+end
+
+local function missingItem(itemID, required, owned, quote)
+    local missing = required - (owned[itemID] or 0)
+    if missing > 0 then
+        local price = quote(itemID, missing)
+        return { itemID = itemID, quantity = missing, cost = price and price.cost or nil, stale = price and price.stale }
+    end
+end
+
+-- A recommendation needs prices for all purchases. In the planner, a player
+-- can still inspect an unpriced basket without presenting a partial total.
+function Trips.AddWrit(plan, writ, owned, quote)
+    local additions = requiredItems(writ)
+    if not additions then
+        return false
+    end
+    local prices = {}
     for itemID, quantity in pairs(additions) do
         local required = (plan.required[itemID] or 0) + quantity
-        local missing = math.max(0, required - (owned[itemID] or 0))
-        if missing > 0 then
-            local price = quote(itemID, missing)
-            if not price then
-                return false
-            end
-            prices[itemID] = { itemID = itemID, quantity = missing, cost = price.cost, stale = price.stale }
+        local item = missingItem(itemID, required, owned, quote)
+        if item and not item.cost then
+            return false
         end
+        prices[itemID] = item
     end
     for itemID, quantity in pairs(additions) do
         plan.required[itemID] = (plan.required[itemID] or 0) + quantity
@@ -207,6 +221,9 @@ local function priceReader()
         local byQuantity = byItem[itemID] or {}
         byItem[itemID] = byQuantity
         if byQuantity[quantity] == nil then
+            if addon.Providers.scan then
+                return false
+            end
             local price = addon:ResolveRows({ { itemID = itemID, quantity = quantity } }, source)[1]
             byQuantity[quantity] = price and price.status == "ok" and not price.error and price or false
         end
@@ -303,27 +320,23 @@ local function recommend(candidates, walk, travel, owned, quote, goldPerHour)
                     count = plan.count,
                     rep = plan.rep,
                     cost = 0,
-                    localTime = localTime,
                     seconds = travel + localTime,
                     mask = mask,
                     required = copy(plan.required),
                     basket = copy(plan.basket),
                 }
-                local addition = {
-                    candidate = candidate,
-                    seconds = trial.seconds - plan.seconds,
-                    effective = math.huge,
-                }
+                local addition = { candidate = candidate, effective = math.huge }
                 if Trips.AddWrit(trial, candidate, owned, quote) then
                     for _, item in pairs(trial.basket) do
                         trial.cost = trial.cost + item.cost
-                        trial.stale = trial.stale or item.stale
                     end
                     trial.effective = Trips.EffectiveCost(trial.cost, trial.seconds, trial.rep, goldPerHour)
-                    addition.cost = trial.cost - plan.cost
-                    addition.stale = trial.stale
-                    addition.effective =
-                        Trips.EffectiveCost(addition.cost, addition.seconds, candidate.reward, goldPerHour)
+                    addition.effective = Trips.EffectiveCost(
+                        trial.cost - plan.cost,
+                        trial.seconds - plan.seconds,
+                        candidate.reward,
+                        goldPerHour
+                    )
                     if not best or better(trial, best) then
                         best = trial
                         trial.candidate = candidate
@@ -339,9 +352,6 @@ local function recommend(candidates, walk, travel, owned, quote, goldPerHour)
                         or (a.effective == b.effective and a.candidate.itemID < b.candidate.itemID)
                 end)
                 plan.additions = additions
-                for _, addition in ipairs(additions) do
-                    plan.stale = plan.stale or addition.stale
-                end
                 return plan
             end
             return
@@ -365,15 +375,8 @@ function Trips.Build(context, owned, quote, goldPerHour)
         local plan = recommend(candidates, walk, departureWalk + flight, owned, quote, goldPerHour)
         if plan then
             plan.stop, plan.departure, plan.departureWalk, plan.flight = stop, departure, departureWalk, flight
-            plan.order = walk(plan.mask).order
-            plan.writs = {}
-            for _, candidate in ipairs(candidates) do
-                if plan.chosen[candidate.itemID] then
-                    local recipient = candidate.recipient
-                    plan.writs[recipient] = plan.writs[recipient] or {}
-                    table.insert(plan.writs[recipient], candidate.itemID)
-                end
-            end
+            plan.candidates, plan.walk, plan.owned, plan.quote, plan.goldPerHour =
+                candidates, walk, owned, quote, goldPerHour
             plans[#plans + 1] = plan
         end
     end
@@ -388,6 +391,79 @@ function Trips.Build(context, owned, quote, goldPerHour)
     return plans
 end
 
+local function evaluate(trip, selected, toggle)
+    local count, rep, mask = trip.count, trip.rep, trip.mask
+    local chosen, required = copy(trip.chosen), copy(trip.required)
+    for _, option in ipairs(trip.additions) do
+        local candidate = option.candidate
+        local id = candidate.itemID
+        if (selected[id] == true) ~= (id == toggle) then
+            chosen[id] = candidate
+            count, rep = count + 1, rep + candidate.reward
+            if not contains(mask, candidate.flag) then
+                mask = mask + candidate.flag
+            end
+            for itemID, quantity in pairs(requiredItems(candidate)) do
+                required[itemID] = (required[itemID] or 0) + quantity
+            end
+        end
+    end
+    local basket, total, stale = {}, 0, false
+    for itemID, quantity in pairs(required) do
+        local item = missingItem(itemID, quantity, trip.owned, trip.quote)
+        if item then
+            basket[#basket + 1] = item
+            total = total and item.cost and total + item.cost
+            stale = stale or item.stale
+        end
+    end
+    local walk = trip.walk(mask)
+    local localTime = walk.seconds + count * HAND_IN_SECONDS
+    local seconds = trip.departureWalk + trip.flight + localTime
+    return {
+        count = count,
+        rep = rep,
+        cost = total,
+        stale = stale,
+        basket = basket,
+        chosen = chosen,
+        localTime = localTime,
+        seconds = seconds,
+        order = walk.order,
+        effective = total and Trips.EffectiveCost(total, seconds, rep, trip.goldPerHour),
+    }
+end
+
+function Trips.Recalculate(trip, selected)
+    local plan = evaluate(trip, selected)
+    plan.stop, plan.departure = trip.stop, trip.departure
+    plan.departureWalk, plan.flight = trip.departureWalk, trip.flight
+    plan.writs = {}
+    for _, candidate in ipairs(trip.candidates) do
+        if plan.chosen[candidate.itemID] then
+            local recipient = candidate.recipient
+            plan.writs[recipient] = plan.writs[recipient] or {}
+            table.insert(plan.writs[recipient], candidate.itemID)
+        end
+    end
+    table.sort(plan.basket, function(a, b)
+        return a.itemID < b.itemID
+    end)
+    plan.additions = {}
+    for index, option in ipairs(trip.additions) do
+        local candidate = option.candidate
+        local alternative = evaluate(trip, selected, candidate.itemID)
+        local sign = selected[candidate.itemID] and -1 or 1
+        plan.additions[index] = {
+            candidate = candidate,
+            seconds = sign * (alternative.seconds - plan.seconds),
+            cost = plan.cost and alternative.cost and sign * (alternative.cost - plan.cost),
+        }
+        plan.stale = plan.stale or alternative.stale
+    end
+    return plan
+end
+
 local function duration(seconds)
     local rounded = math.ceil(seconds - 1e-9)
     if rounded < 60 then
@@ -396,111 +472,102 @@ local function duration(seconds)
     return string.format(L["%d min %d sec"], math.floor(rounded / 60), rounded % 60)
 end
 
-function Trips.Describe(plans, goldPerHour)
-    local lines = {
-        L["Trips are ranked by effective cost per rep, including the value of your time. Check terrain and flight connections."],
-        string.format(L["Time value · %s per hour"], addon.Money(math.floor(goldPerHour * 10000 + 0.5))),
-        L["Uses saved prices and your bags. Flight fares are separate."],
-        L["Add-on estimates compare each writ with the suggested trip on its own."],
-    }
-    for _, plan in ipairs(plans) do
-        lines[#lines + 1] = ""
+local function money(copper)
+    if copper == nil then
+        return L["No price"]
+    end
+    local sign = copper < 0 and "−" or ""
+    return sign .. addon.Money(math.ceil(math.abs(copper) - 1e-9))
+end
+
+function Trips.Summary(plan)
+    return string.format(
+        L["%s · %d writs · %d rep · about %s"],
+        plan.stop.name,
+        plan.count,
+        plan.rep,
+        duration(plan.seconds)
+    )
+end
+
+function Trips.Totals(plan)
+    return string.format(L["Shopping total · %s"], money(plan.cost))
+        .. "    "
+        .. string.format(L["Effective cost per rep · %s"], money(plan.effective))
+end
+
+function Trips.OptionLabel(addition)
+    local candidate = addition.candidate
+    return string.format(
+        L["%s at %s · extra cost %s · +%s · +%d rep"],
+        addon.Catalog.ItemName(candidate.itemID),
+        candidate.recipient.destination.name,
+        money(addition.cost),
+        duration(addition.seconds),
+        candidate.reward
+    )
+end
+
+function Trips.Describe(plan)
+    local lines = {}
+    if plan.flight > 0 then
         lines[#lines + 1] = string.format(
-            L["%s · %d writs · %d rep · about %s"],
-            plan.stop.name,
-            plan.count,
-            plan.rep,
-            duration(plan.seconds)
+            L["Run %s to %s, then fly about %s to %s."],
+            duration(plan.departureWalk),
+            plan.departure.name,
+            duration(plan.flight),
+            plan.stop.name
         )
+    end
+    lines[#lines + 1] = string.format(L["Deliveries on foot and hand-ins · %s"], duration(plan.localTime))
+    for i, step in ipairs(plan.order) do
+        local dest = step.recipient.destination
+        local zone = C_Map.GetMapInfo(dest.mapID)
+        lines[#lines + 1] = string.format(
+            L["%d. %s · %s %s · %s on foot"],
+            i,
+            dest.name,
+            zone and zone.name or plan.stop.name,
+            string.format("%.1f, %.1f", 100 * dest.x, 100 * dest.y),
+            duration(step.leg)
+        )
+        local writs = plan.writs[step.recipient]
+        for _, id in ipairs(writs) do
+            local extra = HAND_IN_SECONDS + (#writs == 1 and step.extra or 0)
+            local added = plan.count == 1 and plan.seconds or extra
+            lines[#lines + 1] = "    " .. string.format(L["%s · adds %s"], addon.Catalog.ItemName(id), duration(added))
+        end
+    end
+    lines[#lines + 1] = ""
+    lines[#lines + 1] = string.format(L["What to buy · %s"], money(plan.cost))
+    if plan.stale then
+        lines[#lines + 1] = L["Some saved prices are old."]
+    end
+    if #plan.basket == 0 then
+        lines[#lines + 1] = L["You have everything in your bags."]
+    end
+    for _, item in ipairs(plan.basket) do
         lines[#lines + 1] =
-            string.format(L["Effective cost per rep · %s"], addon.Money(math.ceil(plan.effective - 1e-9)))
-        if plan.flight > 0 then
-            lines[#lines + 1] = string.format(
-                L["Run %s to %s, then fly about %s to %s."],
-                duration(plan.departureWalk),
-                plan.departure.name,
-                duration(plan.flight),
-                plan.stop.name
-            )
-        end
-        lines[#lines + 1] = string.format(L["Deliveries on foot and hand-ins · %s"], duration(plan.localTime))
-        for i, step in ipairs(plan.order) do
-            local dest = step.recipient.destination
-            local zone = C_Map.GetMapInfo(dest.mapID)
-            lines[#lines + 1] = string.format(
-                L["%d. %s · %s %s · %s on foot"],
-                i,
-                dest.name,
-                zone and zone.name or plan.stop.name,
-                string.format("%.1f, %.1f", 100 * dest.x, 100 * dest.y),
-                duration(step.leg)
-            )
-            local writs = plan.writs[step.recipient]
-            for _, id in ipairs(writs) do
-                local extra = HAND_IN_SECONDS + (#writs == 1 and step.extra or 0)
-                local added = plan.count == 1 and plan.seconds or extra
-                lines[#lines + 1] = "    "
-                    .. string.format(L["%s · adds %s"], addon.Catalog.ItemName(id), duration(added))
-            end
-        end
-        lines[#lines + 1] = string.format(L["What to buy · %s"], addon.Money(plan.cost))
-        if plan.stale then
-            lines[#lines + 1] = L["Some saved prices are old."]
-        end
-        local items = {}
-        for _, item in pairs(plan.basket) do
-            items[#items + 1] = item
-        end
-        table.sort(items, function(a, b)
-            return a.itemID < b.itemID
-        end)
-        if #items == 0 then
-            lines[#lines + 1] = L["You have everything in your bags."]
-        end
-        for _, item in ipairs(items) do
-            lines[#lines + 1] = string.format(
-                "    %dx %s · %s",
-                item.quantity,
-                addon.Catalog.ItemName(item.itemID),
-                addon.Money(item.cost)
-            )
-        end
-        if #plan.additions > 0 then
-            lines[#lines + 1] = L["Optional writs"]
-            for _, addition in ipairs(plan.additions) do
-                local candidate = addition.candidate
-                local price = addition.cost and addon.Money(addition.cost) or L["No price"]
-                lines[#lines + 1] = "    "
-                    .. string.format(
-                        L["%s at %s · extra cost %s · +%s · +%d rep"],
-                        addon.Catalog.ItemName(candidate.itemID),
-                        candidate.recipient.destination.name,
-                        price,
-                        duration(addition.seconds),
-                        candidate.reward
-                    )
-            end
-        end
+            string.format("    %dx %s · %s", item.quantity, addon.Catalog.ItemName(item.itemID), money(item.cost))
     end
     return table.concat(lines, "\n")
 end
 
 function Trips.Open(view)
     if addon.Providers.scan then
-        addon.UI.ShowReport(L["Another addon is scanning."], L["Writ trips"], view)
+        addon.TripPlanner.Open(view, {}, L["Another addon is scanning."])
         return
     end
     local context = Trips.FlightContext()
-    local report = L["No discovered flight stops found on your current continent."]
+    local plans, status = {}, L["No discovered flight stops found on your current continent."]
     if context then
         local bags = {}
         for id = 0, NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS or 4 do
             bags[#bags + 1] = id
         end
         local goldPerHour = Trips.GoldPerHour()
-        local plans = Trips.Build(context, addon.Inventory.ReadContainers(bags), priceReader(), goldPerHour)
-        report = #plans > 0 and Trips.Describe(plans, goldPerHour)
-            or L["No trips found. Refresh writ prices or try another continent."]
+        plans = Trips.Build(context, addon.Inventory.ReadContainers(bags), priceReader(), goldPerHour)
+        status = L["No trips found. Refresh writ prices or try another continent."]
     end
-    addon.UI.ShowReport(report, L["Writ trips"], view)
+    addon.TripPlanner.Open(view, plans, status)
 end
