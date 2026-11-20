@@ -393,3 +393,10 @@ Back and returned focus. Follow the checklist in CONTROLLER.md.
 Live Forever checks are pending for toggling the filter with mouse and native
 controller in both browsers, including a search that only matches delivered
 writs, list scrolling, Back and return focus.
+
+### Writ trips (1.2.0)
+
+The route scope, model and pending live Forever checks are recorded in
+[WRIT_TRIPS.md](WRIT_TRIPS.md). Lua tests cover shortest walking order, shared
+inventory, missed quotes, the current continent and faction, daily lockouts,
+and report navigation with Back returning to the trip button.

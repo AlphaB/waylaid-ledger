@@ -229,6 +229,22 @@ test("settings and reports can be reopened and reports register right-stick scro
     end)
 end)
 
+test("writ trip reports open from the cached browser and restore the trip button on Back", function()
+    fixture(function(f)
+        addon.db.browserTab = "writs"
+        addon.UI.OpenCachedBrowser()
+        local browser = addon.UI.cachedBrowser
+        local view = browser.views.writs
+        view.tripButton.scripts.OnClick()
+        equal(f.active, addon.UI.report)
+        equal(f.current, addon.UI.reportEdit)
+        equal(f.scrolls[addon.UI.report], addon.UI.reportEdit:GetParent())
+        equal(addon.UI.report.SmartNavigationCloseHandler(), true)
+        equal(f.active, browser)
+        equal(f.current, view.tripButton)
+    end)
+end)
+
 test("late controller activation restores visible windows in show order and preserves other native focus", function()
     fixture(function(f, nav)
         f.enabled = false
@@ -473,6 +489,7 @@ test("Forever source discovers every options action and report editor in its reg
             end
             if kind == "writs" then
                 assert(actions[view.deliveredButton], "delivered filter missing from native discovery")
+                assert(actions[view.tripButton], "writ trips missing from native discovery")
             end
             for _, header in ipairs(view.headers) do
                 assert(actions[header], "cached sort header missing from native discovery")

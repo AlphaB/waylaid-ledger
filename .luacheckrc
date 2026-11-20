@@ -9,7 +9,7 @@ exclude_files = { "WaylaidLedger/Libs/**" }
 -- in production so accidental global assignments still fail lint.
 local wowGlobals = {
     "AuctionHouseFrame", "AuctionHouseFrameDisplayMode", "AuctionHouseFrameMixin", "AuctionHouseSearchContext", "Auctionator",
-    "C_Timer", "C_AuctionHouse", "C_Bank", "C_Container", "C_Item", "C_QuestLog", "C_TooltipInfo",
+    "C_Timer", "C_AuctionHouse", "C_Bank", "C_Container", "C_Item", "C_Map", "C_QuestLog", "C_TaxiMap", "C_TooltipInfo", "CreateVector2D",
     "ChatFontNormal", "CreateDataProvider", "CreateFrame", "CreateScrollBoxListLinearView",
     "DEFAULT_CHAT_FRAME", "Enum", "GameTooltip", "GetBuildInfo", "GetCurrentRegion",
     "GetCursorPosition", "GetItemInfoInstant", "GetLocale", "GetMoneyString",

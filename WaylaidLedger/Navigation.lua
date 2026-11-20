@@ -189,6 +189,7 @@ function Nav.BindView(view)
     -- Actionable headers sit between the page controls and the virtual list.
     link(view.search, directions.DOWN, view.headers[1])
     link(view.deliveredButton, directions.DOWN, view.headers[2])
+    link(view.tripButton, directions.DOWN, view.headers[3])
     link(view.refreshButton, directions.DOWN, view.headers[4])
     link(view.settingsButton, directions.DOWN, view.headers[5])
     for index, header in ipairs(view.headers) do
@@ -199,6 +200,7 @@ function Nav.BindView(view)
             directions.UP,
             index == 1 and view.search
                 or (index == 2 and view.deliveredButton)
+                or (index == 3 and view.tripButton)
                 or (index == 5 and view.settingsButton or view.refreshButton)
         )
     end
@@ -220,22 +222,25 @@ function Nav.BindView(view)
     end
     link(view.search, directions.LEFT)
     link(view.deliveredButton, directions.UP, category or auctionTab)
+    link(view.tripButton, directions.UP, category or auctionTab)
     link(view.search, directions.RIGHT, view.deliveredButton or view.refreshButton)
     link(view.deliveredButton, directions.LEFT, view.search)
-    link(view.deliveredButton, directions.RIGHT, view.refreshButton)
-    link(view.refreshButton, directions.LEFT, view.deliveredButton or view.search)
+    link(view.deliveredButton, directions.RIGHT, view.tripButton or view.refreshButton)
+    link(view.tripButton, directions.LEFT, view.deliveredButton)
+    link(view.tripButton, directions.RIGHT, view.refreshButton)
+    link(view.refreshButton, directions.LEFT, view.tripButton or view.search)
     link(view.refreshButton, directions.RIGHT, view.settingsButton)
     link(view.settingsButton, directions.LEFT, view.refreshButton)
     link(view.settingsButton, directions.RIGHT)
 end
 
-function Nav.RefreshView(view, previous, enterPage)
+function Nav.RefreshView(view, previous, initialTarget)
     if not available() or not view.host:IsVisible() then
         return
     end
     local target
-    if enterPage then
-        target = view.search
+    if initialTarget then
+        target = initialTarget
     elseif previous then
         for index, entry in ipairs(view.visibleEntries) do
             if entry.itemID == previous.itemID then
@@ -259,12 +264,12 @@ function Nav.RefreshView(view, previous, enterPage)
     Nav.UpdateAuctionScroll()
 end
 
-function Nav.EnterView(view)
+function Nav.EnterView(view, target)
     if not available() or not view.host:IsVisible() then
         return
     end
     Nav.Focus(view.owner or AuctionHouseFrame)
-    Nav.RefreshView(view, nil, true)
+    Nav.RefreshView(view, nil, target or view.search)
 end
 
 function Nav.LeaveAuction()

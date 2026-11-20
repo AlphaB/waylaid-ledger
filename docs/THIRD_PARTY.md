@@ -15,3 +15,8 @@ The fallback contains factual item IDs, names and delivery quantities from the
 0.7.0 catalog, originally checked against Wowhead Forever on 2026-11-15. See
 [CATALOG.md](CATALOG.md) for provenance. In-game descriptions can update it.
 No downloaded web pages, importer or game artwork is distributed.
+
+- **WritRoute 1.2.0**. The initial named writ recipients and map positions are
+  adapted from its MIT-licensed dataset. The license is bundled beside the
+  libraries as `WaylaidLedger/Libs/WritRoute-LICENSE.txt`.
+  [Upstream](https://www.curseforge.com/wow/addons/craftsmans-writroute-for-forever).

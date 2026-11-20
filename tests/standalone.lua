@@ -744,6 +744,8 @@ test("clicking auction and category tabs hands controller focus into the page an
                 view.deliveredButton.scripts.OnClick(view.deliveredButton)
                 equal(view.showDelivered, false)
                 f.navigate("right")
+                equal(f.current, view.tripButton)
+                f.navigate("right")
             end
             equal(f.current, view.refreshButton)
             f.navigate("right")
@@ -752,6 +754,8 @@ test("clicking auction and category tabs hands controller focus into the page an
             equal(f.current, view.refreshButton)
             f.navigate("left")
             if kind == "writs" then
+                equal(f.current, view.tripButton)
+                f.navigate("left")
                 equal(f.current, view.deliveredButton)
                 f.navigate("left")
             end
