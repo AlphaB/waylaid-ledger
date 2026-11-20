@@ -154,12 +154,6 @@ function UI.OpenCachedBrowser()
         frame:Hide()
         frame:SetSize(1000, 600)
         frame:SetPoint("CENTER")
-        frame:SetClampedToScreen(true)
-        frame:SetMovable(true)
-        frame:EnableMouse(true)
-        frame:RegisterForDrag("LeftButton")
-        frame:SetScript("OnDragStart", frame.StartMoving)
-        frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
         frame.TitleText:SetText(L["Waylaid Ledger - saved prices"])
         UI.cachedBrowser = frame
         UI.CreateBrowser(frame, true)
@@ -174,12 +168,7 @@ function UI.OpenCachedBrowser()
         frame:SetScript("OnShow", function()
             UI.SelectBrowserTab(frame.pages[addon.db.browserTab] and addon.db.browserTab or "crates", frame)
         end)
-        frame.SmartNavigationCloseHandler = function()
-            frame:Hide()
-            return true
-        end
-        tinsert(UISpecialFrames, "WaylaidLedgerBrowserFrame")
-        addon.Navigation.RegisterWindow(frame, {
+        addon.Navigation.RegisterStandaloneWindow(frame, {
             target = function()
                 return frame.views[addon.db.browserTab or "crates"].search
             end,
@@ -518,8 +507,6 @@ function UI.ShowReport(text, title)
         frame:SetPoint("CENTER")
         frame:SetFrameStrata("FULLSCREEN_DIALOG")
         frame.TitleText:SetText(L["Waylaid Ledger - select and copy with Ctrl+C / Cmd+C"])
-        frame:SetClampedToScreen(true)
-        tinsert(UISpecialFrames, "WaylaidLedgerReportFrame")
         local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
         scroll:SetPoint("TOPLEFT", 15, -38)
         scroll:SetPoint("BOTTOMRIGHT", -35, 15)
@@ -532,13 +519,9 @@ function UI.ShowReport(text, title)
             frame:Hide()
         end)
         scroll:SetScrollChild(edit)
-        frame.SmartNavigationCloseHandler = function()
-            frame:Hide()
-            return true
-        end
         UI.report, UI.reportEdit = frame, edit
         frame:Hide()
-        addon.Navigation.RegisterWindow(frame, { scroll = scroll, target = edit })
+        addon.Navigation.RegisterStandaloneWindow(frame, { scroll = scroll, target = edit })
         frame:HookScript("OnHide", function()
             edit:ClearFocus()
         end)

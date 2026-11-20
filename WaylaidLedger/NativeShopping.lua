@@ -137,10 +137,8 @@ function Native.Show(requirements, alternatives)
         frame:Hide()
         frame:SetWidth(340)
         frame:SetPoint("TOPLEFT", AuctionHouseFrame, "TOPRIGHT", 6, 0)
-        frame:SetClampedToScreen(true)
         frame:SetFrameStrata("DIALOG")
         frame.TitleText:SetText(L["Waylaid shopping basket"])
-        tinsert(UISpecialFrames, "WaylaidLedgerBasketFrame")
         Native.frame, Native.buttons = frame, {}
         frame:HookScript("OnHide", function()
             Native.pendingQuantity = nil
@@ -150,7 +148,7 @@ function Native.Show(requirements, alternatives)
         Native.note:SetWidth(310)
         Native.note:SetJustifyH("LEFT")
         Native.note:SetWordWrap(true)
-        addon.Navigation.RegisterWindow(frame, {
+        addon.Navigation.RegisterStandaloneWindow(frame, {
             target = function()
                 return Native.buttons[1]
             end,

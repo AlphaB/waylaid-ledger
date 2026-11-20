@@ -486,6 +486,9 @@ end
 function methods:SetParent(parent)
     self.parent = parent
 end
+function methods:GetName()
+    return rawget(self, "name")
+end
 function methods:GetParent()
     return rawget(self, "parent")
 end

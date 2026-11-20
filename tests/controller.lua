@@ -240,7 +240,28 @@ test("the empty writ trip planner opens from the browser and restores the trip b
         equal(f.active, state.window)
         equal(f.current, state.close)
         equal(f.scrolls[state.window], state.scroll)
+        local grip
+        for _, child in ipairs({ state.window:GetChildren() }) do
+            if child:GetScript("OnDragStart") then
+                grip = child
+            end
+        end
+        assert(grip and grip:GetScript("OnDragStop"), "trip window has no draggable title bar")
+        local starts, stops = 0, 0
+        state.window.StartMoving = function()
+            starts = starts + 1
+        end
+        state.window.StopMovingOrSizing = function()
+            stops = stops + 1
+        end
+        grip.scripts.OnDragStart()
+        grip.scripts.OnDragStop()
+        equal(starts, 1)
+        equal(stops, 1)
+        grip.scripts.OnDragStart()
         equal(state.window.SmartNavigationCloseHandler(), true)
+        equal(stops, 2)
+        state.window.StartMoving, state.window.StopMovingOrSizing = nil, nil
         equal(f.active, browser)
         equal(f.current, view.tripButton)
     end)
@@ -560,6 +581,16 @@ test("Forever source discovers every options action and report editor in its reg
                 -- instance; inspect the original production instance only.
                 seen[name] = true
                 assert(nav.windows[frame], name .. " has no controller registration")
+                local hasGrip
+                for _, child in ipairs({ frame:GetChildren() }) do
+                    hasGrip = hasGrip or child:GetScript("OnDragStart") and child:GetScript("OnDragStop")
+                end
+                assert(hasGrip and frame.SmartNavigationCloseHandler, name .. " lacks standalone window controls")
+                local escapeCloses
+                for _, specialFrame in ipairs(UISpecialFrames) do
+                    escapeCloses = escapeCloses or specialFrame == name
+                end
+                assert(escapeCloses, name .. " is missing Escape-to-close support")
                 local actions = inspect(frame)
                 local function checkChildren(parent)
                     for _, child in ipairs({ parent:GetChildren() }) do

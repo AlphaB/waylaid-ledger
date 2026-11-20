@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.1
+
+- Drag the title bar to move the writ trip planner, saved-price browser, shopping basket and reports.
+- Use Escape or native controller Back to close each standalone window.
+
 ## 1.5.0
 
 - Save a selected writ trip per character and reopen it from the planner or with `/wll trip`.

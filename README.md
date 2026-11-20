@@ -6,12 +6,12 @@ Merchant's Favor, compare crate options in tooltips, and shop for the goods you 
 
 **[Download the latest release](https://github.com/AlphaB/waylaid-ledger/releases/latest)**
 
-Version **1.5.0** · For **WoW Forever** · No other addons required.
+Version **1.5.1** · For **WoW Forever** · No other addons required.
 
 ## Install
 
 1. Open the **[latest release](https://github.com/AlphaB/waylaid-ledger/releases/latest)**.
-   Under **Assets**, download **`WaylaidLedger-1.5.0.zip`** (or the newer version
+   Under **Assets**, download **`WaylaidLedger-1.5.1.zip`** (or the newer version
    shown there). Choose the WaylaidLedger ZIP, **not “Source code”**.
 2. **Close WoW** and extract the ZIP. Inside is a folder named **`WaylaidLedger`**.
 3. Find your **Forever game folder**. In Battle.net, select Forever and use
@@ -73,6 +73,8 @@ in writs.
 - **Browse anywhere:** left-click the minimap button or type **`/wll`**. Away from
   an auctioneer, you can search, sort and view saved prices; return to the auction
   house to scan or buy.
+- **Move a window:** drag the title bar of the saved-price browser, writ trip
+  planner, shopping basket or report. Press Escape or controller Back to close.
 - **Compare value:** lists start with the lowest cost per reputation (writs) or
   Merchant's Favor (crates), including both purchase and delivery. Click a column
   heading to change the sort order; click it again to reverse it.
