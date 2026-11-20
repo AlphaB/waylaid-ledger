@@ -164,10 +164,8 @@ local function create()
     window:SetSize(800, 555)
     window:SetPoint("CENTER")
     window:SetFrameStrata("FULLSCREEN_DIALOG")
-    window:SetClampedToScreen(true)
     window.TitleText:SetText(L["Writ trips"])
     window:Hide()
-    tinsert(UISpecialFrames, "WaylaidLedgerTripPlannerFrame")
 
     local state = { window = window, rows = {}, plans = {}, selected = {}, index = 1 }
     local close = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
@@ -177,10 +175,6 @@ local function create()
     close:SetScript("OnClick", function()
         window:Hide()
     end)
-    window.SmartNavigationCloseHandler = function()
-        window:Hide()
-        return true
-    end
     state.close = close
 
     local send = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
@@ -276,7 +270,7 @@ local function create()
     state.savedDetails = font(content, "GameFontHighlight", 0, 0, 745)
     state.savedDetails:SetSpacing(5)
 
-    addon.Navigation.RegisterWindow(window, {
+    addon.Navigation.RegisterStandaloneWindow(window, {
         target = function()
             if state.saved or Trips.Saved() and #state.plans == 0 then
                 return state.savedButton

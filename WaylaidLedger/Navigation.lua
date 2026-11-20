@@ -123,6 +123,40 @@ function Nav.RegisterWindow(frame, options)
     end)
 end
 
+-- Standalone addon windows share title-bar dragging and the same close path
+-- for Escape and native controller Back. Embedded panels keep their host.
+function Nav.RegisterStandaloneWindow(frame, options)
+    frame:SetClampedToScreen(true)
+    frame:SetMovable(true)
+    frame:EnableMouse(true)
+    local grip = CreateFrame("Frame", nil, frame)
+    grip:SetPoint("TOPLEFT", 4, -3)
+    grip:SetPoint("TOPRIGHT", -35, -3)
+    grip:SetHeight(23)
+    grip:EnableMouse(true)
+    grip:RegisterForDrag("LeftButton")
+    Nav.Ignore(grip)
+    local moving
+    local function stop()
+        if moving then
+            frame:StopMovingOrSizing()
+            moving = false
+        end
+    end
+    grip:SetScript("OnDragStart", function()
+        frame:StartMoving()
+        moving = true
+    end)
+    grip:SetScript("OnDragStop", stop)
+    frame:HookScript("OnHide", stop)
+    tinsert(UISpecialFrames, frame:GetName())
+    frame.SmartNavigationCloseHandler = function()
+        frame:Hide()
+        return true
+    end
+    Nav.RegisterWindow(frame, options)
+end
+
 function Nav.CurrentEntry(view)
     if not available() then
         return

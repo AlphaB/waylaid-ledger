@@ -422,3 +422,10 @@ dispatch through QUEST_TURNED_IN, backfill from quest flags, next-stop
 progress and isolation by character. The planner's Save trip and Saved trip
 controls are covered by native discovery. See [WRIT_TRIPS.md](WRIT_TRIPS.md)
 for pending live checks.
+
+### Standalone window controls (1.5.1)
+
+Verify title-bar dragging, keeping windows on screen, clicking and scrolling
+the content, Escape, and native controller focus and Back in the saved-price
+browser, trip planner, shopping basket, and report window. Check return focus
+from both trip views. This remains unverified in the live Forever client.
