@@ -6,12 +6,12 @@ Merchant's Favor, compare crate options in tooltips, and shop for the goods you 
 
 **[Download the latest release](https://github.com/AlphaB/waylaid-ledger/releases/latest)**
 
-Version **1.1.0** · For **WoW Forever** · No other addons required.
+Version **1.1.1** · For **WoW Forever** · No other addons required.
 
 ## Install
 
 1. Open the **[latest release](https://github.com/AlphaB/waylaid-ledger/releases/latest)**.
-   Under **Assets**, download **`WaylaidLedger-1.1.0.zip`** (or the newer version
+   Under **Assets**, download **`WaylaidLedger-1.1.1.zip`** (or the newer version
    shown there). Choose the WaylaidLedger ZIP, **not “Source code”**.
 2. **Close WoW** and extract the ZIP. Inside is a folder named **`WaylaidLedger`**.
 3. Find your **Forever game folder**. In Battle.net, select Forever and use
@@ -51,9 +51,9 @@ Full auction-house scans share a **15-minute cooldown**. If a scan is unavailabl
 use saved prices and try again later. Prices remain available after leaving the
 auction house or restarting the game.
 
-Writ tooltips show estimated coin-pouch rewards. The writ list marks orders
-your character delivered today and prices at least 10% below their usual price
-after you collect scans on three earlier days.
+Writ tooltips show estimated coin-pouch rewards. The writ list hides orders
+your character delivered today. Select **Show delivered** to include them.
+Prices at least 10% below usual are flagged after you collect scans on three earlier days.
 
 ## Everyday use
 

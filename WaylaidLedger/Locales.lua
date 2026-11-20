@@ -1991,3 +1991,48 @@ for locale, labels in pairs(writLabels) do
     dictionary["Delivered today"] = labels[2]
     dictionary["%d%% below usual"] = labels[3]
 end
+
+local deliveredFilters = {
+    deDE = {
+        "Abgegebene zeigen",
+        "Abgegebene ausblenden",
+        "Passende Aufträge wurden heute abgegeben. Wähle „Abgegebene zeigen“.",
+    },
+    frFR = {
+        "Afficher les livrés",
+        "Masquer les livrés",
+        "Les commandes correspondantes ont été livrées aujourd’hui. Sélectionnez « Afficher les livrés ».",
+    },
+    esES = {
+        "Mostrar entregados",
+        "Ocultar entregados",
+        "Los encargos coincidentes ya se entregaron hoy. Selecciona «Mostrar entregados».",
+    },
+    ptBR = {
+        "Mostrar entregues",
+        "Ocultar entregues",
+        "Os pedidos encontrados foram entregues hoje. Selecione «Mostrar entregues».",
+    },
+    ruRU = {
+        "Показать сданные",
+        "Скрыть сданные",
+        "Найденные заказы уже сданы сегодня. Выберите «Показать сданные».",
+    },
+    koKR = {
+        "납품 완료 표시",
+        "납품 완료 숨기기",
+        "일치하는 주문은 오늘 납품했습니다. 납품 완료 표시를 선택하세요.",
+    },
+    zhTW = {
+        "顯示已交付",
+        "隱藏已交付",
+        "符合條件的委託今天已交付。請選擇「顯示已交付」。",
+    },
+}
+deliveredFilters.esMX = deliveredFilters.esES
+for locale, labels in pairs(deliveredFilters) do
+    local dictionary = addon.Locales[locale]
+    dictionary["Show delivered"] = labels[1]
+    dictionary["Hide delivered"] = labels[2]
+    dictionary["Matching writs were delivered today. Select Show delivered to see them."] = labels[3]
+end
