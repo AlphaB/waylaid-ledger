@@ -28,14 +28,29 @@ end
 
 function Planner.UpdateShopping()
     local state = Planner.state
-    if state and state.window:IsShown() then
+    if state and state.window:IsShown() and not state.saved then
         state.send:SetEnabled(shoppingBlocker() == nil)
     end
+end
+
+local function layoutScroll(state, height, resetScroll)
+    state.content:SetHeight(height)
+    local scroll = state.scroll
+    local position = resetScroll and 0 or scroll:GetVerticalScroll()
+    scroll:SetVerticalScroll(math.min(position, math.max(0, height - scroll:GetHeight())))
+    addon.Navigation.RefreshWindow(state.window)
 end
 
 local function update(state, resetScroll)
     local trip = state.plans[state.index]
     local plan = trip and Trips.Recalculate(trip, state.selected[trip])
+    state.selector:SetShown(plan ~= nil)
+    state.save:SetShown(plan ~= nil)
+    local saved = Trips.Saved()
+    addon.Localization.ButtonText(state.save, saved and L["Replace saved trip"] or L["Save trip"])
+    state.savedButton:SetEnabled(saved ~= nil)
+    addon.Localization.ButtonText(state.savedButton, L["Saved trip"])
+    state.savedDetails:Hide()
     state.send:SetShown(plan ~= nil)
     state.send:SetEnabled(shoppingBlocker() == nil)
     state.summary:SetText(plan and Trips.Summary(plan) or state.status)
@@ -80,12 +95,42 @@ local function update(state, resetScroll)
         state.rows[index]:Hide()
     end
     local height = math.max(offset, (state.details:GetStringHeight() or 0) + 30)
-    state.content:SetHeight(height)
-    local scroll = state.scroll
-    local position = resetScroll and 0 or scroll:GetVerticalScroll()
-    scroll:SetVerticalScroll(math.min(position, math.max(0, height - scroll:GetHeight())))
-    addon.Navigation.RefreshWindow(state.window)
+    layoutScroll(state, height, resetScroll)
     return plan
+end
+
+local function updateSaved(state, resetScroll)
+    local saved = Trips.Saved()
+    local summary, nextStop, details
+    if saved then
+        summary, nextStop, details = Trips.SavedRoute(saved)
+    end
+    state.summary:SetText(summary or L["No writ trip saved for this character."])
+    state.totals:SetText(nextStop or "")
+    state.note:Hide()
+    state.heading:Hide()
+    state.empty:Hide()
+    state.details:SetText("")
+    state.savedDetails:SetText(details or "")
+    state.savedDetails:Show()
+    state.selector:Hide()
+    state.send:Hide()
+    state.save:Hide()
+    state.savedButton:SetEnabled(true)
+    addon.Localization.ButtonText(state.savedButton, L["Plan trips"])
+    for _, row in ipairs(state.rows) do
+        row:Hide()
+    end
+    local height = (state.savedDetails:GetStringHeight() or 0) + 30
+    layoutScroll(state, height, resetScroll)
+end
+
+function Planner.QuestTurnedIn(questID)
+    local changed = Trips.RecordTurnIn(questID)
+    local state = Planner.state
+    if changed and state and state.saved and state.window:IsShown() then
+        updateSaved(state)
+    end
 end
 
 local function sendShopping(state)
@@ -182,11 +227,41 @@ local function create()
     end)
     state.selector = selector
 
-    state.summary = font(window, "GameFontNormal", 16, -72, 752)
-    state.totals = font(window, "GameFontHighlight", 16, -94, 752)
-    state.note = font(window, "GameFontDisableSmall", 16, -117, 752)
+    local function action(label, x, callback)
+        local control = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
+        control:SetSize(155, 24)
+        control:SetPoint("TOPLEFT", x, -65)
+        addon.Localization.ButtonText(control, L[label])
+        control:SetScript("OnClick", callback)
+        return control
+    end
+    state.save = action("Save trip", 16, function()
+        local plan = update(state)
+        if plan and Trips.Save(plan) then
+            state.savedButton:SetEnabled(true)
+            addon.Localization.ButtonText(state.save, L["Replace saved trip"])
+            addon:Print(L["Trip saved. Open it with /wll trip."])
+        end
+    end)
+    state.savedButton = action("Saved trip", 181, function()
+        if state.saved then
+            if #state.plans > 0 then
+                state.saved = false
+                update(state, true)
+            else
+                Trips.Open(state.returnView)
+            end
+        else
+            state.saved = true
+            updateSaved(state, true)
+        end
+    end)
+
+    state.summary = font(window, "GameFontNormal", 16, -101, 752)
+    state.totals = font(window, "GameFontHighlight", 16, -123, 752)
+    state.note = font(window, "GameFontDisableSmall", 16, -146, 752)
     local scroll = CreateFrame("ScrollFrame", nil, window, "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", 16, -142)
+    scroll:SetPoint("TOPLEFT", 16, -172)
     scroll:SetPoint("BOTTOMRIGHT", -35, 16)
     local content = CreateFrame("Frame", nil, scroll)
     content:SetSize(745, 1)
@@ -198,9 +273,14 @@ local function create()
     state.empty:SetText(L["No optional writs for this trip."])
     state.details = font(content, "GameFontHighlightSmall", 365, 0, 380)
     state.details:SetSpacing(3)
+    state.savedDetails = font(content, "GameFontHighlight", 0, 0, 745)
+    state.savedDetails:SetSpacing(5)
 
     addon.Navigation.RegisterWindow(window, {
         target = function()
+            if state.saved or Trips.Saved() and #state.plans == 0 then
+                return state.savedButton
+            end
             return #state.plans > 0 and selector or close
         end,
         scroll = scroll,
@@ -219,13 +299,26 @@ function Planner.Open(view, plans, status)
     local state = Planner.state or create()
     Planner.state = state
     state.returnView, state.plans, state.status, state.index = view, plans, status, 1
-    state.selected = {}
+    state.selected, state.saved = {}, false
     for _, trip in ipairs(plans) do
         state.selected[trip] = {}
     end
     state.selector:SetShown(#plans > 0)
     state.selector:GenerateMenu()
     update(state, true)
+    state.window:Show()
+    addon.Navigation.Focus(state.window)
+    addon.Navigation.RefreshWindow(state.window)
+end
+
+function Planner.OpenSaved()
+    local state = Planner.state or create()
+    Planner.state = state
+    if not state.window:IsShown() then
+        state.plans, state.selected, state.index = {}, {}, 1
+    end
+    state.saved = true
+    updateSaved(state, true)
     state.window:Show()
     addon.Navigation.Focus(state.window)
     addon.Navigation.RefreshWindow(state.window)

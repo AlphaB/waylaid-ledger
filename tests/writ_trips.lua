@@ -1,4 +1,4 @@
-local addon, test, equal = ...
+local addon, test, equal, host = ...
 local Trips = addon.WritTrips
 
 test("the shortest open delivery order can beat taking the nearest recipient first", function()
@@ -38,6 +38,12 @@ end)
 test("trip recommendations use known local flight stops and skip completed writs", function()
     local oldMap, oldTaxi, oldVector, oldEnum, oldQuest = C_Map, C_TaxiMap, CreateVector2D, Enum, C_QuestLog
     local oldWrits, oldDestinations = addon.Writs, addon.WritDestinations
+    local oldSaved, oldCurrentID = addon.db.savedWritTrips, addon.Inventory.CurrentID
+    local character = "saved-trip-test"
+    addon.db.savedWritTrips = nil
+    addon.Inventory.CurrentID = function()
+        return character
+    end
     CreateVector2D = function(x, y)
         return {
             GetXY = function()
@@ -187,6 +193,16 @@ test("trip recommendations use known local flight stops and skip completed writs
     equal(state.summary:GetText(), Trips.Summary(both))
     equal(state.totals:GetText(), Trips.Totals(both))
     equal(state.details:GetText(), Trips.Describe(both))
+    equal(state.savedButton:IsEnabled(), false)
+    state.save.scripts.OnClick()
+    equal(state.savedButton:IsEnabled(), true)
+    state.savedButton.scripts.OnClick()
+    equal(state.saved, true)
+    assert(state.summary:GetText():find("0/5 writs delivered", 1, true))
+    assert(state.totals:GetText():find("First · Test Zone 51.0, 0.0", 1, true))
+    state.savedButton.scripts.OnClick()
+    equal(state.saved, false)
+    equal(state.details:GetText(), Trips.Describe(both))
     state.rows[2]:SetChecked(false)
     state.rows[2].scripts.OnClick(state.rows[2])
     first:SetChecked(false)
@@ -252,6 +268,35 @@ test("trip recommendations use known local flight stops and skip completed writs
     equal(amounts["264056"], 1)
     addon.Inventory.ReadContainers, addon.Catalog.SearchName, Auctionator = oldRead, oldName, oldAuctionator
     addon.scanner:SetOpen(oldOpen)
+    local event = host.scripts.OnEvent
+    event(host, "QUEST_TURNED_IN", 94286)
+    event(host, "QUEST_TURNED_IN", 94250)
+    addon:Command("trip")
+    assert(state.summary:GetText():find("1/5 writs delivered", 1, true))
+    local firstStop = Trips.Saved().order[1]
+    equal(firstStop.writs[3].itemID, 264086)
+    equal(firstStop.writs[3].done, true)
+    event(host, "QUEST_TURNED_IN", 94237)
+    event(host, "QUEST_TURNED_IN", 94249)
+    assert(state.summary:GetText():find("3/5 writs delivered", 1, true))
+    assert(state.totals:GetText():find("Second", 1, true))
+    C_QuestLog.IsQuestFlaggedCompleted = function(id)
+        return id == 94287
+    end
+    addon:Command("trip")
+    assert(state.summary:GetText():find("4/5 writs delivered", 1, true))
+    assert(state.totals:GetText():find("Third", 1, true))
+    event(host, "QUEST_TURNED_IN", 94256)
+    equal(state.totals:GetText(), "Trip complete.")
+    character = "another-character"
+    addon:Command("trip")
+    equal(state.summary:GetText(), "No writ trip saved for this character.")
+    character = "saved-trip-test"
+    C_QuestLog = nil
+    addon:Command("trip")
+    equal(state.totals:GetText(), "Trip complete.")
+    state.window:Hide()
+    addon.db.savedWritTrips, addon.Inventory.CurrentID = oldSaved, oldCurrentID
     C_Map, C_TaxiMap, CreateVector2D, Enum, C_QuestLog = oldMap, oldTaxi, oldVector, oldEnum, oldQuest
     addon.Writs, addon.WritDestinations = oldWrits, oldDestinations
 end)

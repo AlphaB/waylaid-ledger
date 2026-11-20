@@ -553,6 +553,80 @@ function Trips.Describe(plan)
     return table.concat(lines, "\n")
 end
 
+function Trips.Saved()
+    local character = addon.Inventory.CurrentID()
+    local records = addon.db.savedWritTrips
+    return character and type(records) == "table" and records[character] or nil
+end
+
+function Trips.Save(plan)
+    local character = addon.Inventory.CurrentID()
+    if not character then
+        return false
+    end
+    local saved = { stop = plan.stop.name, order = {} }
+    if plan.flight > 0 then
+        saved.departure = plan.departure.name
+    end
+    for _, step in ipairs(plan.order) do
+        local dest = step.recipient.destination
+        local stop = { name = dest.name, mapID = dest.mapID, x = dest.x, y = dest.y, writs = {} }
+        for _, itemID in ipairs(plan.writs[step.recipient]) do
+            stop.writs[#stop.writs + 1] = { itemID = itemID, questID = addon.Writs[itemID].questID }
+        end
+        saved.order[#saved.order + 1] = stop
+    end
+    if type(addon.db.savedWritTrips) ~= "table" then
+        addon.db.savedWritTrips = {}
+    end
+    addon.db.savedWritTrips[character] = saved
+    return true
+end
+
+function Trips.RecordTurnIn(questID)
+    local saved = questID and Trips.Saved()
+    if saved then
+        for _, stop in ipairs(saved.order) do
+            for _, writ in ipairs(stop.writs) do
+                if writ.questID == questID and not writ.done then
+                    writ.done = true
+                    return true
+                end
+            end
+        end
+    end
+end
+
+function Trips.SavedRoute(saved)
+    local lines, total, done, nextStop = {}, 0, 0, nil
+    if saved.departure then
+        lines[#lines + 1] = string.format(L["Flight · %s to %s"], saved.departure, saved.stop)
+        lines[#lines + 1] = ""
+    end
+    local flag = C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted
+    for i, stop in ipairs(saved.order) do
+        local zone = C_Map and C_Map.GetMapInfo(stop.mapID)
+        local location = (zone and zone.name or saved.stop)
+            .. " "
+            .. string.format("%.1f, %.1f", 100 * stop.x, 100 * stop.y)
+        lines[#lines + 1] = string.format(L["%d. %s · %s"], i, stop.name, location)
+        for _, writ in ipairs(stop.writs) do
+            writ.done = writ.done or (writ.questID and flag and flag(writ.questID) == true) or nil
+            total = total + 1
+            if writ.done then
+                done = done + 1
+            else
+                nextStop = nextStop or (stop.name .. " · " .. location)
+            end
+            lines[#lines + 1] = (writ.done and "    [x] " or "    [ ] ") .. addon.Catalog.ItemName(writ.itemID)
+        end
+        lines[#lines + 1] = ""
+    end
+    return string.format(L["%s · %d/%d writs delivered"], saved.stop, done, total),
+        nextStop and string.format(L["Next stop · %s"], nextStop) or L["Trip complete."],
+        table.concat(lines, "\n")
+end
+
 function Trips.ReadBags()
     local bags = {}
     for id = 0, NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS or 4 do

@@ -66,6 +66,18 @@ Auctionator Shopping with the missing quantities for the currently selected
 trip. A compatible Auctionator install is required. Items still missing a
 saved estimate are included in the search.
 
+## Save and follow a trip
+
+Select **Save trip** once your optional writs are selected. You can then
+send the list to Auctionator or close the planner. **Saved trip** or
+`/wll trip` opens the route anywhere. The next unfinished stop shows its zone
+and coordinates. Turn-ins automatically check off the matching writ in the
+saved route, including while the planner is closed.
+
+Each character has one saved trip. The route and recorded turn-ins persist
+through reloads and daily resets. **Replace saved trip** saves the current
+selection in its place.
+
 ## Live verification
 
 Pending in Forever. Compare mapped destinations and the discovered flight
@@ -79,3 +91,5 @@ change and reopening the planner.
 
 Live verification is also pending for the Auctionator handoff, combined
 quantities after a bag change, and controller focus on the Shopping tab.
+For saved trips, verify saving, reopening after shopping and after reload,
+and an actual turn-in updating the next stop with mouse and controller.

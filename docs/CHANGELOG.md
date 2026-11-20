@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.0
+
+- Save a selected writ trip per character and reopen it from the planner or with `/wll trip`.
+- Follow the ordered stops and coordinates, with completed writs checked off automatically.
+
 ## 1.4.1
 
 - Send the selected writ trip to Auctionator with combined quantities based on what is still missing from your bags.
