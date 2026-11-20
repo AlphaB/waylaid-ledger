@@ -387,3 +387,9 @@ reset and on another character, and a discount against recorded market scans.
 Check the changed row and tooltip text in the Auction House and saved browser
 with mouse and native controller, including recycled rows, search, activation,
 Back and returned focus. Follow the checklist in CONTROLLER.md.
+
+### Delivered writ filter (1.1.1)
+
+Live Forever checks are pending for toggling the filter with mouse and native
+controller in both browsers, including a search that only matches delivered
+writs, list scrolling, Back and return focus.

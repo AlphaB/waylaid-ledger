@@ -736,12 +736,25 @@ test("clicking auction and category tabs hands controller focus into the page an
             equal(f.scroll, nil)
             local offset = view.scroll.offset
             f.navigate("right")
+            if kind == "writs" then
+                equal(f.current, view.deliveredButton)
+                view.deliveredButton.scripts.OnClick(view.deliveredButton)
+                equal(view.showDelivered, true)
+                equal(f.current, view.deliveredButton)
+                view.deliveredButton.scripts.OnClick(view.deliveredButton)
+                equal(view.showDelivered, false)
+                f.navigate("right")
+            end
             equal(f.current, view.refreshButton)
             f.navigate("right")
             equal(f.current, view.settingsButton)
             f.navigate("left")
             equal(f.current, view.refreshButton)
             f.navigate("left")
+            if kind == "writs" then
+                equal(f.current, view.deliveredButton)
+                f.navigate("left")
+            end
             equal(f.current, view.search)
             equal(view.scroll.offset, offset)
             f.navigate("up")

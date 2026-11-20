@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- Hide writs already delivered today by default in both browsers. Select Show delivered to include them.
+
 ## 1.1.0
 
 - See estimated coin-pouch rewards and which writs your character already delivered today.

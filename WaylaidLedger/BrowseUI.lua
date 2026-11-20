@@ -159,7 +159,7 @@ end
 function Browse.Layout(view)
     local width = math.max(500, view.host:GetWidth() - 50)
     local column = math.min(125, width * 0.16)
-    view.summary:SetWidth(math.max(40, view.host:GetWidth() - 470))
+    view.summary:SetWidth(math.max(40, view.host:GetWidth() - (view.deliveredButton and 575 or 430)))
     for index, header in ipairs(view.headers) do
         header:ClearAllPoints()
         header:SetPoint("TOPLEFT", view.inset, "TOPLEFT", index == 1 and 4 or (width - (6 - index) * column + 4), -3)
@@ -237,16 +237,20 @@ end
 function Browse.Render(view, resetFocus)
     local previous = not resetFocus and addon.Navigation.CurrentEntry(view)
     local query = addon.DiscoveryLocales.Key(view.query or "")
-    local visible, priced = {}, 0
+    local visible, priced, hiddenDelivered = {}, 0, false
     for _, entry in ipairs(view.entries or {}) do
         if
             query == ""
             or addon.DiscoveryLocales.Key(entry.name):find(query, 1, true)
             or addon.DiscoveryLocales.Key(addon.Shopping.DeliveryLabel(entry)):find(query, 1, true)
         then
-            visible[#visible + 1] = entry
-            if entry.total then
-                priced = priced + 1
+            if entry.completedToday and not view.showDelivered then
+                hiddenDelivered = true
+            else
+                visible[#visible + 1] = entry
+                if entry.total then
+                    priced = priced + 1
+                end
             end
         end
     end
@@ -290,6 +294,10 @@ function Browse.Render(view, resetFocus)
     end
     view.priced = priced
     Browse.UpdateStatus(view)
+    view.empty:SetText(
+        hiddenDelivered and L["Matching writs were delivered today. Select Show delivered to see them."]
+            or L["No matching items. Clear or change the search."]
+    )
     view.empty:SetShown(#visible == 0)
     Browse.Layout(view)
     if not sameOrder or resetFocus then
@@ -348,7 +356,20 @@ function Browse.Create(host, kind, cachedOwner)
     end)
     view.search = search
     view.summary = text(host, "GameFontDisableSmall")
-    view.summary:SetPoint("TOPLEFT", 215, -13)
+    view.summary:SetPoint("TOPLEFT", kind == "writs" and 355 or 215, -13)
+    if kind == "writs" then
+        local delivered = CreateFrame("Button", nil, host, "UIPanelButtonTemplate")
+        delivered:SetSize(135, 22)
+        delivered:SetPoint("TOPLEFT", 210, -8)
+        addon.Localization.ButtonText(delivered, L["Show delivered"])
+        delivered:SetScript("OnClick", function(self)
+            view.showDelivered = not view.showDelivered
+            addon.Localization.ButtonText(self, view.showDelivered and L["Hide delivered"] or L["Show delivered"])
+            view.scroll:ScrollToBegin()
+            Browse.Render(view)
+        end)
+        view.deliveredButton = delivered
+    end
     local refresh = CreateFrame("Button", nil, host, "UIPanelButtonTemplate")
     refresh:SetMotionScriptsWhileDisabled(true)
     refresh:SetSize(75, 22)

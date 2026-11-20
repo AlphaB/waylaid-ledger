@@ -471,6 +471,9 @@ test("Forever source discovers every options action and report editor in its reg
             }) do
                 assert(actions[control], "cached browser action missing from native discovery")
             end
+            if kind == "writs" then
+                assert(actions[view.deliveredButton], "delivered filter missing from native discovery")
+            end
             for _, header in ipairs(view.headers) do
                 assert(actions[header], "cached sort header missing from native discovery")
             end
