@@ -6,12 +6,12 @@ Merchant's Favor, compare crate options in tooltips, and shop for the goods you 
 
 **[Download the latest release](https://github.com/AlphaB/waylaid-ledger/releases/latest)**
 
-Version **1.3.0** · For **WoW Forever** · No other addons required.
+Version **1.4.0** · For **WoW Forever** · No other addons required.
 
 ## Install
 
 1. Open the **[latest release](https://github.com/AlphaB/waylaid-ledger/releases/latest)**.
-   Under **Assets**, download **`WaylaidLedger-1.3.0.zip`** (or the newer version
+   Under **Assets**, download **`WaylaidLedger-1.4.0.zip`** (or the newer version
    shown there). Choose the WaylaidLedger ZIP, **not “Source code”**.
 2. **Close WoW** and extract the ZIP. Inside is a folder named **`WaylaidLedger`**.
 3. Find your **Forever game folder**. In Battle.net, select Forever and use
@@ -61,8 +61,8 @@ order, estimated travel and added time per writ, reputation, and a priced
 shopping list that accounts for items in your bags. Trips use discovered flight
 stops and the [mapped writ destinations](docs/WRIT_TRIPS.md). Set **Time value
 (gold/hour)** in **Settings** to change how much travel time counts toward the
-trip ranking. Expand your plan by comparing the cost, time and reputation of
-each optional writ.
+trip ranking. Choose a flight stop and tick optional writs to update the
+delivery order, shopping list, total time, reputation and effective cost.
 
 ## Everyday use
 

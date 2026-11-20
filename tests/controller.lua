@@ -229,17 +229,18 @@ test("settings and reports can be reopened and reports register right-stick scro
     end)
 end)
 
-test("writ trip reports open from the cached browser and restore the trip button on Back", function()
+test("the empty writ trip planner opens from the browser and restores the trip button on Back", function()
     fixture(function(f)
         addon.db.browserTab = "writs"
         addon.UI.OpenCachedBrowser()
         local browser = addon.UI.cachedBrowser
         local view = browser.views.writs
         view.tripButton.scripts.OnClick()
-        equal(f.active, addon.UI.report)
-        equal(f.current, addon.UI.reportEdit)
-        equal(f.scrolls[addon.UI.report], addon.UI.reportEdit:GetParent())
-        equal(addon.UI.report.SmartNavigationCloseHandler(), true)
+        local state = addon.TripPlanner.state
+        equal(f.active, state.window)
+        equal(f.current, state.close)
+        equal(f.scrolls[state.window], state.scroll)
+        equal(state.window.SmartNavigationCloseHandler(), true)
         equal(f.active, browser)
         equal(f.current, view.tripButton)
     end)
@@ -501,6 +502,45 @@ test("Forever source discovers every options action and report editor in its reg
             smart:SetScrollFrameForFrame(browser, view.scroll)
             equal(f.scrolling, true)
         end
+        local candidate = {
+            itemID = 264050,
+            reward = 75,
+            requirements = {},
+            canShop = true,
+            flag = 1,
+            recipient = { destination = { name = "Recipient" } },
+        }
+        local trip = {
+            stop = { name = "Flight Stop" },
+            count = 1,
+            rep = 75,
+            mask = 0,
+            required = {},
+            chosen = {},
+            owned = {},
+            candidates = { candidate },
+            additions = { { candidate = candidate } },
+            departureWalk = 0,
+            flight = 0,
+            goldPerHour = 6,
+            seconds = 10,
+            walk = function()
+                return { order = {}, seconds = 0 }
+            end,
+            quote = function()
+                return { cost = 100 }
+            end,
+        }
+        addon.TripPlanner.Open(browser.views.writs, { trip }, "")
+        local planner = addon.TripPlanner.state
+        local plannerActions = inspect(planner.window)
+        assert(plannerActions[planner.selector], "trip selector missing from native discovery")
+        assert(plannerActions[planner.rows[1]], "optional writ missing from native discovery")
+        assert(plannerActions[planner.close], "planner close missing from native discovery")
+        planner.rows[1]:SetChecked(true)
+        planner.rows[1].scripts.OnClick(planner.rows[1])
+        assert(planner.summary:GetText():find("150 rep", 1, true))
+        planner.window.SmartNavigationCloseHandler()
         -- Every named addon dialog instantiated by the production UI must have
         -- a native focus lifecycle, and every action in it must be discoverable.
         local seen = {}

@@ -771,7 +771,7 @@ C_Container = {
         return bags[bag][slot]
     end,
 }
-for _, name in ipairs({ "Navigation", "NativeShopping", "Tooltip", "UI", "BrowseUI", "Minimap", "Core" }) do
+for _, name in ipairs({ "Navigation", "NativeShopping", "Tooltip", "UI", "BrowseUI", "TripPlanner", "Minimap", "Core" }) do
     loadModule(name)
 end
 local host = frames[1]

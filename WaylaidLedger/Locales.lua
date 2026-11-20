@@ -2179,9 +2179,7 @@ local tripValueKeys = {
     "Time value (gold/hour)",
     "Apply",
     "Enter a gold-per-hour value from 0 to 1,000,000.",
-    "Trips are ranked by effective cost per rep, including the value of your time. Check terrain and flight connections.",
     "Time value · %s per hour",
-    "Add-on estimates compare each writ with the suggested trip on its own.",
     "Effective cost per rep · %s",
     "Optional writs",
     "%s at %s · extra cost %s · +%s · +%d rep",
@@ -2191,9 +2189,7 @@ local tripValueLabels = {
         "Zeitwert (Gold/Stunde)",
         "Anwenden",
         "Gib einen Wert von 0 bis 1.000.000 Gold pro Stunde ein.",
-        "Sortiert nach Kosten pro Rufpunkt einschließlich Zeitwert. Prüfe Gelände und Flugverbindungen.",
         "Zeitwert · %s pro Stunde",
-        "Jeder Zusatzauftrag wird einzeln mit der empfohlenen Route verglichen.",
         "Effektive Kosten pro Rufpunkt · %s",
         "Optionale Aufträge",
         "%s bei %s · Mehrkosten %s · +%s · +%d Ruf",
@@ -2202,9 +2198,7 @@ local tripValueLabels = {
         "Valeur du temps (or/heure)",
         "Appliquer",
         "Saisissez une valeur de 0 à 1 000 000 pièces d’or par heure.",
-        "Tournées classées par coût réel par point de réputation, temps compris. Vérifiez le terrain et les vols.",
         "Valeur du temps · %s par heure",
-        "Chaque commande facultative est comparée séparément à la tournée proposée.",
         "Coût réel par point de réputation · %s",
         "Commandes facultatives",
         "%s chez %s · surcoût %s · +%s · +%d rép.",
@@ -2213,9 +2207,7 @@ local tripValueLabels = {
         "Valor del tiempo (oro/hora)",
         "Aplicar",
         "Introduce un valor de 0 a 1 000 000 de oro por hora.",
-        "Rutas ordenadas por coste efectivo de reputación, incluido el tiempo. Comprueba el terreno y los vuelos.",
         "Valor del tiempo · %s por hora",
-        "Cada encargo opcional se compara por separado con la ruta sugerida.",
         "Coste efectivo por punto de rep. · %s",
         "Encargos opcionales",
         "%s con %s · coste adicional %s · +%s · +%d rep.",
@@ -2224,9 +2216,7 @@ local tripValueLabels = {
         "Valor do tempo (ouro/hora)",
         "Aplicar",
         "Digite um valor de 0 a 1.000.000 de ouro por hora.",
-        "Rotas ordenadas pelo custo efetivo por ponto de reputação, incluindo o tempo. Confira o terreno e os voos.",
         "Valor do tempo · %s por hora",
-        "Cada encomenda opcional é comparada separadamente com a rota sugerida.",
         "Custo efetivo por ponto de reputação · %s",
         "Encomendas opcionais",
         "%s com %s · custo adicional %s · +%s · +%d rep.",
@@ -2235,9 +2225,7 @@ local tripValueLabels = {
         "Цена времени (золото/час)",
         "Применить",
         "Введите от 0 до 1 000 000 золотых в час.",
-        "Маршруты отсортированы по стоимости очка репутации с учётом времени. Проверьте местность и перелёты.",
         "Цена времени · %s в час",
-        "Каждый дополнительный заказ отдельно сравнивается с предложенным маршрутом.",
         "Итоговая стоимость очка репутации · %s",
         "Дополнительные заказы",
         "%s у %s · дополнительные расходы %s · +%s · +%d реп.",
@@ -2246,9 +2234,7 @@ local tripValueLabels = {
         "시간 가치 (골드/시간)",
         "적용",
         "시간당 0~1,000,000골드를 입력하세요.",
-        "시간 가치를 포함한 평판 1점당 실질 비용 순입니다. 지형과 비행 연결을 확인하세요.",
         "시간 가치 · 시간당 %s",
-        "추가 주문은 각각 추천 경로와 별도로 비교합니다.",
         "평판 1점당 실질 비용 · %s",
         "추가 주문",
         "%s (%s) · 추가 비용 %s · +%s · 평판 +%d",
@@ -2257,9 +2243,7 @@ local tripValueLabels = {
         "時間價值（每小時金幣）",
         "套用",
         "請輸入每小時 0 至 1,000,000 金幣。",
-        "路線依每點聲望的實際成本排序，含時間價值。請確認地形和航線。",
         "時間價值 · 每小時 %s",
-        "每張額外委託各自與建議路線比較。",
         "每點聲望的實際成本 · %s",
         "可加選的委託",
         "%s（%s）· 額外花費 %s · +%s · +%d 聲望",
@@ -2271,4 +2255,25 @@ for locale, labels in pairs(tripValueLabels) do
     for i, key in ipairs(tripValueKeys) do
         dictionary[key] = labels[i]
     end
+end
+
+local plannerLabels = {
+    deDE = { "Schließen", "Keine optionalen Aufträge für diese Route.", "Einkaufssumme · %s" },
+    frFR = { "Fermer", "Aucune commande facultative pour cette tournée.", "Total des achats · %s" },
+    esES = { "Cerrar", "No hay encargos opcionales para esta ruta.", "Total de compras · %s" },
+    ptBR = { "Fechar", "Nenhuma encomenda opcional para essa rota.", "Total de compras · %s" },
+    ruRU = {
+        "Закрыть",
+        "Для этого маршрута нет дополнительных заказов.",
+        "Стоимость покупок · %s",
+    },
+    koKR = { "닫기", "이 경로에 추가할 주문이 없습니다.", "구매 합계 · %s" },
+    zhTW = { "關閉", "這條路線沒有可加選的委託。", "購物總額 · %s" },
+}
+plannerLabels.esMX = plannerLabels.esES
+for locale, labels in pairs(plannerLabels) do
+    local dictionary = addon.Locales[locale]
+    dictionary["Close"] = labels[1]
+    dictionary["No optional writs for this trip."] = labels[2]
+    dictionary["Shopping total · %s"] = labels[3]
 end

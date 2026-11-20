@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.0
+
+- Choose a flight stop and toggle optional writs directly in the trip planner.
+- Update the delivery order, shopping list, time, reputation, and effective cost together as your selection changes.
+
 ## 1.3.0
 
 - Rank writ trips by effective cost per reputation using an adjustable gold-per-hour value.

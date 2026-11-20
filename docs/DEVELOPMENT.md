@@ -406,3 +406,11 @@ and report navigation with Back returning to the trip button.
 Lua checks cover applying a gold-per-hour value, ranking changes, and optional
 writ estimates at a shared or new recipient. See [WRIT_TRIPS.md](WRIT_TRIPS.md)
 for the score, selection method and pending live verification.
+
+### Interactive writ planner (1.4.0)
+
+Lua checks cover toggling multiple writs, sharing purchase quantities, switching
+stops, restoring selections and handling missing quotes. The native navigation
+contract covers the planner's selector, optional controls, scrolling, empty
+state, Back and return focus. Live Forever verification remains pending in
+[WRIT_TRIPS.md](WRIT_TRIPS.md).

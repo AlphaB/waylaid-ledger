@@ -1,0 +1,156 @@
+local _, addon = ...
+local L = addon.L
+local Trips = addon.WritTrips
+local Planner = {}
+addon.TripPlanner = Planner
+
+local function font(parent, template, x, y, width)
+    local label = parent:CreateFontString(nil, "OVERLAY", template)
+    label:SetPoint("TOPLEFT", x, y)
+    label:SetWidth(width)
+    label:SetJustifyH("LEFT")
+    label:SetJustifyV("TOP")
+    label:SetWordWrap(true)
+    return label
+end
+
+local function update(state, resetScroll)
+    local trip = state.plans[state.index]
+    local plan = trip and Trips.Recalculate(trip, state.selected[trip])
+    state.summary:SetText(plan and Trips.Summary(plan) or state.status)
+    state.totals:SetText(plan and Trips.Totals(plan) or "")
+    state.note:SetShown(plan ~= nil)
+    if trip then
+        state.note:SetText(
+            string.format(L["Time value · %s per hour"], addon.Money(math.floor(trip.goldPerHour * 10000 + 0.5)))
+                .. "    "
+                .. L["Uses saved prices and your bags. Flight fares are separate."]
+        )
+    end
+    state.heading:SetShown(plan ~= nil)
+    state.empty:SetShown(plan ~= nil and #plan.additions == 0)
+    state.details:SetText(plan and Trips.Describe(plan) or "")
+
+    local offset = 25
+    for index, addition in ipairs(plan and plan.additions or {}) do
+        local row = state.rows[index]
+        if not row then
+            row = CreateFrame("CheckButton", nil, state.content, "UICheckButtonTemplate")
+            row:SetSize(26, 26)
+            row.label = font(row, "GameFontHighlightSmall", 30, -4, 308)
+            row:SetScript("OnClick", function(self)
+                local current = state.plans[state.index]
+                state.selected[current][self.itemID] = self:GetChecked() and true or nil
+                update(state)
+            end)
+            state.rows[index] = row
+        end
+        row.itemID = addition.candidate.itemID
+        row:SetChecked(state.selected[trip][row.itemID] == true)
+        row.label:SetText(Trips.OptionLabel(addition))
+        local height = math.max(44, (row.label:GetStringHeight() or 0) + 12)
+        row:SetHitRectInsets(0, -312, 0, 26 - height)
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", state.content, "TOPLEFT", 0, -offset)
+        row:Show()
+        offset = offset + height
+    end
+    for index = (plan and #plan.additions or 0) + 1, #state.rows do
+        state.rows[index]:Hide()
+    end
+    local height = math.max(offset, (state.details:GetStringHeight() or 0) + 30)
+    state.content:SetHeight(height)
+    local scroll = state.scroll
+    local position = resetScroll and 0 or scroll:GetVerticalScroll()
+    scroll:SetVerticalScroll(math.min(position, math.max(0, height - scroll:GetHeight())))
+    addon.Navigation.RefreshWindow(state.window)
+end
+
+local function create()
+    local window = CreateFrame("Frame", "WaylaidLedgerTripPlannerFrame", UIParent, "BasicFrameTemplateWithInset")
+    window:SetSize(800, 555)
+    window:SetPoint("CENTER")
+    window:SetFrameStrata("FULLSCREEN_DIALOG")
+    window:SetClampedToScreen(true)
+    window.TitleText:SetText(L["Writ trips"])
+    window:Hide()
+    tinsert(UISpecialFrames, "WaylaidLedgerTripPlannerFrame")
+
+    local state = { window = window, rows = {}, plans = {}, selected = {}, index = 1 }
+    local close = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
+    close:SetSize(95, 24)
+    close:SetPoint("TOPRIGHT", -16, -34)
+    addon.Localization.ButtonText(close, L["Close"])
+    close:SetScript("OnClick", function()
+        window:Hide()
+    end)
+    window.SmartNavigationCloseHandler = function()
+        window:Hide()
+        return true
+    end
+    state.close = close
+
+    local selector = CreateFrame("DropdownButton", nil, window, "WowStyle1DropdownTemplate")
+    selector:SetSize(365, 25)
+    selector:SetPoint("TOPLEFT", 16, -34)
+    selector:SetupMenu(function(_, menu)
+        for i, trip in ipairs(state.plans) do
+            local index = i
+            menu:CreateRadio(trip.stop.name, function()
+                return state.index == index
+            end, function()
+                state.index = index
+                update(state, true)
+            end)
+        end
+    end)
+    state.selector = selector
+
+    state.summary = font(window, "GameFontNormal", 16, -72, 752)
+    state.totals = font(window, "GameFontHighlight", 16, -94, 752)
+    state.note = font(window, "GameFontDisableSmall", 16, -117, 752)
+    local scroll = CreateFrame("ScrollFrame", nil, window, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 16, -142)
+    scroll:SetPoint("BOTTOMRIGHT", -35, 16)
+    local content = CreateFrame("Frame", nil, scroll)
+    content:SetSize(745, 1)
+    scroll:SetScrollChild(content)
+    state.scroll, state.content = scroll, content
+    state.heading = font(content, "GameFontNormal", 0, 0, 340)
+    state.heading:SetText(L["Optional writs"])
+    state.empty = font(content, "GameFontDisableSmall", 0, -25, 340)
+    state.empty:SetText(L["No optional writs for this trip."])
+    state.details = font(content, "GameFontHighlightSmall", 365, 0, 380)
+    state.details:SetSpacing(3)
+
+    addon.Navigation.RegisterWindow(window, {
+        target = function()
+            return #state.plans > 0 and selector or close
+        end,
+        scroll = scroll,
+    })
+    window:HookScript("OnHide", function()
+        local view = state.returnView
+        state.returnView = nil
+        if view then
+            addon.Navigation.EnterView(view, view.tripButton)
+        end
+    end)
+    return state
+end
+
+function Planner.Open(view, plans, status)
+    local state = Planner.state or create()
+    Planner.state = state
+    state.returnView, state.plans, state.status, state.index = view, plans, status, 1
+    state.selected = {}
+    for _, trip in ipairs(plans) do
+        state.selected[trip] = {}
+    end
+    state.selector:SetShown(#plans > 0)
+    state.selector:GenerateMenu()
+    update(state, true)
+    state.window:Show()
+    addon.Navigation.Focus(state.window)
+    addon.Navigation.RefreshWindow(state.window)
+end

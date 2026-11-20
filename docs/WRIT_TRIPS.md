@@ -1,9 +1,11 @@
 # Writ trips
 
 Open the Craftsman's Writs list in the Auction House or saved-price browser and
-select **Writ trips**. The report ranks one-stop trips by effective cost per
-reputation point. Each shows its delivery order, shopping list, estimated
-upfront cost, and what extra writs would add.
+select **Writ trips**. Choose a flight stop from the dropdown, which ranks the
+recommended trips by effective cost per reputation point. Tick or untick any
+optional writ to update the delivery order, shopping list, shopping total,
+estimated time and reputation together. Selections are kept when switching
+flight stops within the planner. Reopening it builds fresh recommendations.
 
 In **Settings**, set **Time value (gold/hour)** and select **Apply**. Reopen
 **Writ trips** to see the new ranking. The initial value is 6 gold per hour,
@@ -14,7 +16,7 @@ total is shown separately.
 
 ## Coverage and price estimates
 
-The first catalog has 53 writs at 26 named recipients. The report requires a
+The first catalog has 53 writs at 26 named recipients. A recommendation requires a
 mapped recipient and a price for every item you are missing to recommend a
 purchase. Optional writs with incomplete price data show **No price**. Writs
 already delivered by the current character are skipped. Quantities are combined across
@@ -52,18 +54,20 @@ its added time includes the change in the shortest walk if that recipient were
 omitted. Extra writs at a shared recipient only add the hand-in time. A
 one-writ trip shows the entire trip time as that writ's addition.
 
-Each optional writ is scored separately against the displayed recommendation.
-Its extra purchase cost comes from repricing the entire basket, including
-shared goods and bags. Its extra time compares shortest walking orders before
-and after adding it. Adding several optional writs can share a detour or change
-the quantities you need, so their individual estimates may overlap.
+Each checkbox shows the extra cost, time and reputation for that writ relative
+to the rest of the current selection. Toggling a writ reprices the combined
+basket after subtracting bags once and recalculates the shortest walking order.
+When a selected quantity has no quote, the missing item shows **No price** and
+the shopping total and effective cost stay unknown. The route, time and
+reputation still update.
 
 ## Live verification
 
 Pending in Forever. Compare mapped destinations and the discovered flight
 stops with the native map on each faction and continent. Compare predicted
 arrival and hand-in time with a completed trip. Verify shopping quantities,
-daily lockouts, empty reports, mouse and native controller activation,
-scrolling, Back and focus return in both browsers. Verify the gold-per-hour
+daily lockouts, empty planner states, the stop selector and optional checkboxes
+with mouse and native controller, scrolling, Back and focus return in both
+browsers. Verify the gold-per-hour
 field with mouse, keyboard and controller, including decimal input, applying a
-change and reopening the report.
+change and reopening the planner.
