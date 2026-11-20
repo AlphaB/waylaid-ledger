@@ -1,6 +1,6 @@
 local addonName, addon = ...
 local L = addon.L
-addon.version = "1.4.1"
+addon.version = "1.5.0"
 local frame = CreateFrame("Frame")
 local SCHEMA_VERSION = 1
 local SOURCES = { auto = true, auctionator = true, tsm = true, own = true }
@@ -815,6 +815,8 @@ function addon:Command(text)
     command = command:lower()
     if command == "" then
         self.UI.Toggle()
+    elseif command == "trip" then
+        self.TripPlanner.OpenSaved()
     elseif command == "scan" then
         self:StartScan(rest == "" and "bags" or rest:lower())
     elseif command == "refresh" then
@@ -919,7 +921,7 @@ function addon:Command(text)
             "/wll - browse crates/writs | settings | scan bags/hovered/tracked/crates/writs/all/deep | source auto/auctionator/tsm/own | tsmkey DBMinBuyout/DBMarket"
         )
         self:Print(
-            "search | shop [option number] | stop | report | debug [on|off] | inspect [item ID] | market <name> | clear"
+            "search | shop [option number] | stop | report | trip | debug [on|off] | inspect [item ID] | market <name> | clear"
         )
         self:Print(
             "writsource auto/own/auctionator/tsm/off | refresh [crates/writs] | auctionscan [scope] | tsmexport [scope] | settings | controls | inventory | minimap/tracking/banks/alts/scanopen/details on/off | auctionatorfollowup on/off"
@@ -1144,6 +1146,9 @@ frame:SetScript("OnEvent", function(_, event, argument)
     elseif event == "PLAYER_REGEN_ENABLED" then
         addon.Navigation.Install()
     elseif event == "QUEST_TURNED_IN" then
+        if addon.TripPlanner then
+            addon.TripPlanner.QuestTurnedIn(argument)
+        end
         addon.UI.Update()
         addon.Tooltip.Refresh()
     elseif event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then

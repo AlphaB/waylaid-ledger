@@ -414,3 +414,11 @@ stops, restoring selections and handling missing quotes. The native navigation
 contract covers the planner's selector, optional controls, scrolling, empty
 state, Back and return focus. Live Forever verification remains pending in
 [WRIT_TRIPS.md](WRIT_TRIPS.md).
+
+### Saved writ trips (1.5.0)
+
+Lua checks cover saved selections surviving the shopping handoff, real event
+dispatch through QUEST_TURNED_IN, backfill from quest flags, next-stop
+progress and isolation by character. The planner's Save trip and Saved trip
+controls are covered by native discovery. See [WRIT_TRIPS.md](WRIT_TRIPS.md)
+for pending live checks.

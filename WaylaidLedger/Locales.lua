@@ -2296,3 +2296,117 @@ for locale, labels in pairs(tripShoppingLabels) do
     dictionary["Send to Auctionator"] = labels[1]
     dictionary["Search for the items and quantities still missing from your bags."] = labels[2]
 end
+
+local tripSaveKeys = {
+    "Save trip",
+    "Replace saved trip",
+    "Saved trip",
+    "Plan trips",
+    "Trip saved. Open it with /wll trip.",
+    "No writ trip saved for this character.",
+    "Flight · %s to %s",
+    "%d. %s · %s",
+    "%s · %d/%d writs delivered",
+    "Next stop · %s",
+    "Trip complete.",
+}
+local tripSaveLabels = {
+    deDE = {
+        "Route speichern",
+        "Route ersetzen",
+        "Gespeicherte Route",
+        "Routen planen",
+        "Route gespeichert. Öffne sie mit /wll trip.",
+        "Für diesen Charakter ist keine Route gespeichert.",
+        "Flug · %s nach %s",
+        "%d. %s · %s",
+        "%s · %d/%d Aufträge abgegeben",
+        "Nächster Halt · %s",
+        "Route abgeschlossen.",
+    },
+    frFR = {
+        "Enregistrer la tournée",
+        "Remplacer la tournée",
+        "Tournée enregistrée",
+        "Planifier les tournées",
+        "Tournée enregistrée. Ouvrez-la avec /wll trip.",
+        "Aucune tournée enregistrée pour ce personnage.",
+        "Vol · %s vers %s",
+        "%d. %s · %s",
+        "%s · %d/%d commandes livrées",
+        "Prochain arrêt · %s",
+        "Tournée terminée.",
+    },
+    esES = {
+        "Guardar ruta",
+        "Reemplazar ruta",
+        "Ruta guardada",
+        "Planear rutas",
+        "Ruta guardada. Ábrela con /wll trip.",
+        "No hay una ruta guardada para este personaje.",
+        "Vuelo · %s a %s",
+        "%d. %s · %s",
+        "%s · %d/%d encargos entregados",
+        "Próxima parada · %s",
+        "Ruta completada.",
+    },
+    ptBR = {
+        "Salvar rota",
+        "Substituir rota",
+        "Rota salva",
+        "Planejar rotas",
+        "Rota salva. Abra com /wll trip.",
+        "Nenhuma rota salva para este personagem.",
+        "Voo · %s até %s",
+        "%d. %s · %s",
+        "%s · %d/%d encomendas entregues",
+        "Próxima parada · %s",
+        "Rota concluída.",
+    },
+    ruRU = {
+        "Сохранить маршрут",
+        "Заменить маршрут",
+        "Сохранённый маршрут",
+        "Планировать маршруты",
+        "Маршрут сохранён. Откройте его командой /wll trip.",
+        "Для этого персонажа нет сохранённого маршрута.",
+        "Перелёт · %s → %s",
+        "%d. %s · %s",
+        "%s · сдано заказов: %d/%d",
+        "Следующая остановка · %s",
+        "Маршрут завершён.",
+    },
+    koKR = {
+        "경로 저장",
+        "저장한 경로 교체",
+        "저장한 경로",
+        "경로 계획",
+        "경로를 저장했습니다. /wll trip으로 열 수 있습니다.",
+        "이 캐릭터에 저장된 주문 경로가 없습니다.",
+        "비행 · %s에서 %s까지",
+        "%d. %s · %s",
+        "%s · 주문 %d/%d개 납품",
+        "다음 목적지 · %s",
+        "경로 완료.",
+    },
+    zhTW = {
+        "儲存路線",
+        "取代已儲存路線",
+        "已儲存路線",
+        "規劃路線",
+        "已儲存路線。輸入 /wll trip 開啟。",
+        "此角色尚未儲存委託路線。",
+        "飛行 · 從 %s 到 %s",
+        "%d. %s · %s",
+        "%s · 已交付 %d/%d 張委託",
+        "下一站 · %s",
+        "路線已完成。",
+    },
+}
+tripSaveLabels.esMX = tripSaveLabels.esES
+for locale, labels in pairs(tripSaveLabels) do
+    local dictionary = addon.Locales[locale]
+    for index, key in ipairs(tripSaveKeys) do
+        dictionary[key] = labels[index]
+    end
+end

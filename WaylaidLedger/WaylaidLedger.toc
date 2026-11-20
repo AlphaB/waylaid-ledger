@@ -3,7 +3,7 @@
 ## IconTexture: Interface\Icons\INV_Crate_05
 ## Notes: Browse saved crate and writ costs anywhere; scan and shop at the auction house.
 ## Author: Mikhail Salosin
-## Version: 1.4.1
+## Version: 1.5.0
 ## OptionalDeps: Auctionator, TradeSkillMaster
 ## SavedVariables: WaylaidLedgerDB
 ## Category: Auction & Economy
