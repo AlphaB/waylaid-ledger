@@ -159,7 +159,7 @@ end
 function Browse.Layout(view)
     local width = math.max(500, view.host:GetWidth() - 50)
     local column = math.min(125, width * 0.16)
-    view.summary:SetWidth(math.max(1, view.host:GetWidth() - (view.tripButton and 645 or 430)))
+    view.summary:SetWidth(math.max(1, view.host:GetWidth() - (view.deliveredButton and 575 or 430)))
     for index, header in ipairs(view.headers) do
         header:ClearAllPoints()
         header:SetPoint("TOPLEFT", view.inset, "TOPLEFT", index == 1 and 4 or (width - (6 - index) * column + 4), -3)
@@ -356,7 +356,7 @@ function Browse.Create(host, kind, cachedOwner)
     end)
     view.search = search
     view.summary = text(host, "GameFontDisableSmall")
-    view.summary:SetPoint("TOPLEFT", kind == "writs" and 461 or 215, -13)
+    view.summary:SetPoint("TOPLEFT", kind == "writs" and 355 or 215, -13)
     if kind == "writs" then
         local delivered = CreateFrame("Button", nil, host, "UIPanelButtonTemplate")
         delivered:SetSize(135, 22)
@@ -369,14 +369,6 @@ function Browse.Create(host, kind, cachedOwner)
             Browse.Render(view)
         end)
         view.deliveredButton = delivered
-        local trips = CreateFrame("Button", nil, host, "UIPanelButtonTemplate")
-        trips:SetSize(100, 22)
-        trips:SetPoint("TOPLEFT", 352, -8)
-        addon.Localization.ButtonText(trips, L["Writ trips"])
-        trips:SetScript("OnClick", function()
-            addon.WritTrips.Open(view)
-        end)
-        view.tripButton = trips
     end
     local refresh = CreateFrame("Button", nil, host, "UIPanelButtonTemplate")
     refresh:SetMotionScriptsWhileDisabled(true)

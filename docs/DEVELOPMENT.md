@@ -429,3 +429,10 @@ Verify title-bar dragging, keeping windows on screen, clicking and scrolling
 the content, Escape, and native controller focus and Back in the saved-price
 browser, trip planner, shopping basket, and report window. Check return focus
 from both trip views. This remains unverified in the live Forever client.
+
+### Writ trips tab and coin returns (1.6.0)
+
+Verify switching among all three tabs in both browsers, retaining selected
+writs, controller entry and scrolling in both trip modes, the Auctionator
+handoff, and selecting the saved view via /wll trip. Check the displayed
+return estimates against opened coin pouches. In-game checks remain pending.

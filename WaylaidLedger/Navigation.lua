@@ -183,6 +183,54 @@ function Nav.UpdateAuctionScroll()
     end
 end
 
+local function link(view, source, direction, target)
+    if not source then
+        return
+    end
+    SmartNavigation_AddJumpNavigationOverride(source, direction, function()
+        if not available() or not view.host:IsVisible() then
+            return
+        end
+        return target and target:IsVisible() and target or true
+    end)
+end
+
+local function bindTabs(view, target)
+    local directions = SMART_NAV_INPUT_DIRECTION
+    local tabs = view.tabs or addon.UI.browserTabs or {}
+    local auctionTab = not view.cached and addon.UI.auctionTab or nil
+    link(view, auctionTab, directions.UP, target)
+    link(view, auctionTab, directions.DOWN, target)
+    for _, tab in pairs(tabs) do
+        link(view, tab, directions.DOWN, target)
+        link(view, tab, directions.UP, auctionTab)
+    end
+    link(view, tabs.writs, directions.RIGHT, tabs.crates)
+    link(view, tabs.crates, directions.LEFT, tabs.writs)
+    link(view, tabs.crates, directions.RIGHT, tabs.trips)
+    link(view, tabs.trips, directions.LEFT, tabs.crates)
+    return tabs[view.kind], auctionTab
+end
+
+function Nav.RefreshTripView(view, entering)
+    if not available() or not view.host:IsVisible() then
+        return
+    end
+    local owner = view.owner or AuctionHouseFrame
+    if not view.cached then
+        Nav.auctionOwned, Nav.auctionCleanupPending = true, false
+    end
+    local first = view.target()
+    local current = SmartNavigation:GetCurrentButton()
+    if SMART_NAV_INPUT_DIRECTION and SmartNavigation_AddJumpNavigationOverride then
+        local category = bindTabs(view, first)
+        for _, control in ipairs({ view.selector, view.send, view.save, view.savedButton, view.refresh }) do
+            link(view, control, SMART_NAV_INPUT_DIRECTION.UP, category)
+        end
+    end
+    Nav.Refresh(owner, view.scroll, (entering or not current or not current:IsVisible()) and first or nil)
+end
+
 function Nav.BindView(view)
     if
         not SmartNavigation_AddJumpNavigationOverride
@@ -208,64 +256,37 @@ function Nav.BindView(view)
     for _, header in ipairs(view.headers) do
         SmartNavigation_AddJumpNavigationOverride(header, SMART_NAV_INPUT_DIRECTION.DOWN, enter)
     end
-    local function link(source, direction, target)
-        if not source then
-            return
-        end
-        SmartNavigation_AddJumpNavigationOverride(source, direction, function()
-            if not available() or not view.host:IsVisible() then
-                return
-            end
-            return target and target:IsVisible() and target or true
-        end)
-    end
     local directions = SMART_NAV_INPUT_DIRECTION
     -- Actionable headers sit between the page controls and the virtual list.
-    link(view.search, directions.DOWN, view.headers[1])
-    link(view.deliveredButton, directions.DOWN, view.headers[2])
-    link(view.tripButton, directions.DOWN, view.headers[3])
-    link(view.refreshButton, directions.DOWN, view.headers[4])
-    link(view.settingsButton, directions.DOWN, view.headers[5])
+    link(view, view.search, directions.DOWN, view.headers[1])
+    link(view, view.deliveredButton, directions.DOWN, view.headers[2])
+    link(view, view.refreshButton, directions.DOWN, view.headers[4])
+    link(view, view.settingsButton, directions.DOWN, view.headers[5])
     for index, header in ipairs(view.headers) do
-        link(header, directions.LEFT, view.headers[index - 1])
-        link(header, directions.RIGHT, view.headers[index + 1])
+        link(view, header, directions.LEFT, view.headers[index - 1])
+        link(view, header, directions.RIGHT, view.headers[index + 1])
         link(
+            view,
             header,
             directions.UP,
             index == 1 and view.search
                 or (index == 2 and view.deliveredButton)
-                or (index == 3 and view.tripButton)
                 or (index == 5 and view.settingsButton or view.refreshButton)
         )
     end
-    local tabs = view.tabs or addon.UI.browserTabs or {}
-    local category = tabs[view.kind]
-    local auctionTab = not view.cached and addon.UI.auctionTab or nil
-    -- Auction tabs sit below the page, category tabs above it. Bind both
-    -- explicitly: geometric navigation can pick a native scroll child instead.
-    link(auctionTab, directions.UP, view.search)
-    link(auctionTab, directions.DOWN, view.search)
-    for _, tab in pairs(tabs) do
-        link(tab, directions.DOWN, view.search)
-        link(tab, directions.UP, auctionTab)
-    end
-    link(tabs.writs, directions.RIGHT, tabs.crates)
-    link(tabs.crates, directions.LEFT, tabs.writs)
+    local category, auctionTab = bindTabs(view, view.search)
     for _, control in ipairs({ view.search, view.refreshButton, view.settingsButton }) do
-        link(control, directions.UP, category or auctionTab)
+        link(view, control, directions.UP, category or auctionTab)
     end
-    link(view.search, directions.LEFT)
-    link(view.deliveredButton, directions.UP, category or auctionTab)
-    link(view.tripButton, directions.UP, category or auctionTab)
-    link(view.search, directions.RIGHT, view.deliveredButton or view.refreshButton)
-    link(view.deliveredButton, directions.LEFT, view.search)
-    link(view.deliveredButton, directions.RIGHT, view.tripButton or view.refreshButton)
-    link(view.tripButton, directions.LEFT, view.deliveredButton)
-    link(view.tripButton, directions.RIGHT, view.refreshButton)
-    link(view.refreshButton, directions.LEFT, view.tripButton or view.search)
-    link(view.refreshButton, directions.RIGHT, view.settingsButton)
-    link(view.settingsButton, directions.LEFT, view.refreshButton)
-    link(view.settingsButton, directions.RIGHT)
+    link(view, view.search, directions.LEFT)
+    link(view, view.deliveredButton, directions.UP, category or auctionTab)
+    link(view, view.search, directions.RIGHT, view.deliveredButton or view.refreshButton)
+    link(view, view.deliveredButton, directions.LEFT, view.search)
+    link(view, view.deliveredButton, directions.RIGHT, view.refreshButton)
+    link(view, view.refreshButton, directions.LEFT, view.deliveredButton or view.search)
+    link(view, view.refreshButton, directions.RIGHT, view.settingsButton)
+    link(view, view.settingsButton, directions.LEFT, view.refreshButton)
+    link(view, view.settingsButton, directions.RIGHT)
 end
 
 function Nav.RefreshView(view, previous, initialTarget)
@@ -303,7 +324,11 @@ function Nav.EnterView(view, target)
         return
     end
     Nav.Focus(view.owner or AuctionHouseFrame)
-    Nav.RefreshView(view, nil, target or view.search)
+    if view.kind == "trips" then
+        Nav.RefreshTripView(view, true)
+    else
+        Nav.RefreshView(view, nil, target or view.search)
+    end
 end
 
 function Nav.LeaveAuction()
@@ -426,5 +451,9 @@ function Nav.Install()
             end)
             Nav.RefreshView(view)
         end
+    end
+    local trip = addon.TripPlanner and addon.TripPlanner.state
+    if trip then
+        Nav.RefreshTripView(trip)
     end
 end

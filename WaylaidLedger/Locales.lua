@@ -2410,3 +2410,23 @@ for locale, labels in pairs(tripSaveLabels) do
         dictionary[key] = labels[index]
     end
 end
+
+local tripReturnLabels = {
+    deDE = { "Geschätzter Münzertrag · %s", "Geschätzter Ertrag aus Abgaben · %s", "Routen neu planen" },
+    frFR = { "Retour en pièces estimé · %s", "Retour estimé des livraisons · %s", "Recalculer les tournées" },
+    esES = { "Retorno estimado en monedas · %s", "Retorno estimado de entregas · %s", "Recalcular rutas" },
+    ptBR = { "Retorno estimado em moedas · %s", "Retorno estimado das entregas · %s", "Recalcular rotas" },
+    ruRU = {
+        "Ожидаемая выплата · %s",
+        "Оценка выплат за сданные заказы · %s",
+        "Пересчитать маршруты",
+    },
+    koKR = { "예상 동전 보상 · %s", "납품한 주문의 예상 보상 · %s", "경로 다시 계산" },
+    zhTW = { "預估錢袋回收 · %s", "已交付預估回收 · %s", "重新規劃路線" },
+}
+tripReturnLabels.esMX = tripReturnLabels.esES
+for locale, labels in pairs(tripReturnLabels) do
+    addon.Locales[locale]["Estimated coin return · %s"] = labels[1]
+    addon.Locales[locale]["Estimated delivered return · %s"] = labels[2]
+    addon.Locales[locale]["Rebuild trips"] = labels[3]
+end

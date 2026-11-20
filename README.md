@@ -6,12 +6,12 @@ Merchant's Favor, compare crate options in tooltips, and shop for the goods you 
 
 **[Download the latest release](https://github.com/AlphaB/waylaid-ledger/releases/latest)**
 
-Version **1.5.1** · For **WoW Forever** · No other addons required.
+Version **1.6.0** · For **WoW Forever** · No other addons required.
 
 ## Install
 
 1. Open the **[latest release](https://github.com/AlphaB/waylaid-ledger/releases/latest)**.
-   Under **Assets**, download **`WaylaidLedger-1.5.1.zip`** (or the newer version
+   Under **Assets**, download **`WaylaidLedger-1.6.0.zip`** (or the newer version
    shown there). Choose the WaylaidLedger ZIP, **not “Source code”**.
 2. **Close WoW** and extract the ZIP. Inside is a folder named **`WaylaidLedger`**.
 3. Find your **Forever game folder**. In Battle.net, select Forever and use
@@ -55,14 +55,14 @@ Writ tooltips show estimated coin-pouch rewards. The writ list hides orders
 your character delivered today. Select **Show delivered** to include them.
 Prices at least 10% below usual are flagged after you collect scans on three earlier days.
 
-Select **Writ trips** in either writ browser to compare one-stop trips on your
+Open the **Writ trips** tab in either browser to compare one-stop trips on your
 current continent. Plans group deliveries by recipient and show the walking
 order, estimated travel and added time per writ, reputation, and a priced
 shopping list that accounts for items in your bags. Trips use discovered flight
 stops and the [mapped writ destinations](docs/WRIT_TRIPS.md). Set **Time value
 (gold/hour)** in **Settings** to change how much travel time counts toward the
 trip ranking. Choose a flight stop and tick optional writs to update the
-delivery order, shopping list, total time, reputation and effective cost.
+delivery order, shopping list, total time, reputation, effective cost and estimated coin return.
 At the Auction House, select **Send to Auctionator** to search for the
 quantities you still need. Select **Save trip** before shopping to keep the
 delivery route. Reopen it with **Saved trip** or **`/wll trip`** as you turn
