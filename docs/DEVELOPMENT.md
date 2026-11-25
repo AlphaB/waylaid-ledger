@@ -1,5 +1,18 @@
 # Implementation notes
 
+## README cleanup (1.6.1)
+
+Reduced the README to main features, installation/update instructions and the
+existing Aelris credit. Runtime changes are limited to release version metadata.
+
+Validation: 255 default Lua checks and 257 checks against each freshly fetched
+pinned/latest Forever navigation source passed. Python lint/formatting and
+install ZIP integrity passed.
+
+Manual verification not performed: fresh installation in a live Forever client
+and the hardware-controller, focus/Back, localized-layout and combat/taint checks
+in [CONTROLLER.md](CONTROLLER.md).
+
 ## README installation guide (1.0.2)
 
 Reorganized the README around downloading the install asset, locating the Forever

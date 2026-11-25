@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.1
+
+- Simplify the README to main features, installation and thanks.
+
 ## 1.6.0
 
 - Open Writ trips as its own tab in the Auction House and saved-price browser.
